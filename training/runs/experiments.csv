@@ -1,0 +1,2 @@
+experiment_id,model,dataset_version,epochs,imgsz,batch,device,precision,recall,mAP50,mAP50_95,training_time,best_epoch
+pothole_baseline_smoke,yolo11n.pt,pothole-dataset-v1,1,320,4,cpu,0.00060606,0.4,0.00078063,0.00030502,57.174,1

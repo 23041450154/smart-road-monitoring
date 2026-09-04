@@ -1,0 +1,25 @@
+{
+  "total_images": 328,
+  "train_images": 229,
+  "validation_images": 66,
+  "test_images": 33,
+  "positive_images": 164,
+  "negative_images": 164,
+  "total_bounding_boxes": 235,
+  "images_per_source": {
+    "RDD2022": 328
+  },
+  "bounding_boxes_per_image": {
+    "mean": 0.7165,
+    "median": 0.5,
+    "maximum": 3
+  },
+  "resolution_distribution": {
+    "512x512": 328
+  },
+  "bounding_box_size_distribution": {
+    "small_under_1_percent": 194,
+    "medium_1_to_10_percent": 31,
+    "large_10_percent_or_more": 10
+  }
+}

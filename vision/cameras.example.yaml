@@ -1,0 +1,15 @@
+cameras:
+  - id: 1
+    name: "DEMO Local Traffic Video"
+    source_type: local
+    source: vision/samples/traffic.mp4
+    counting_line:
+      - [0.1, 0.55]
+      - [0.9, 0.55]
+    thresholds:
+      low: 22
+      medium: 48
+      high: 78
+
+# Only add an HLS or RTSP URL when it is publicly accessible or you have
+# explicit authorization. Database camera configuration is authoritative.

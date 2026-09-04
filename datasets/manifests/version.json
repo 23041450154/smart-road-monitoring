@@ -1,0 +1,25 @@
+{
+  "version": "pothole-dataset-v1",
+  "created_at": "2026-09-04T17:48:20.422087+00:00",
+  "image_count": 328,
+  "bbox_count": 235,
+  "sources": [
+    "RDD2022"
+  ],
+  "split_ratios": {
+    "train": 0.7,
+    "val": 0.2,
+    "test": 0.1
+  },
+  "split_counts": {
+    "train": 229,
+    "val": 66,
+    "test": 33
+  },
+  "seed": 42,
+  "duplicate_hash": {
+    "algorithm": "dhash64",
+    "max_hamming_distance": 6
+  },
+  "manifest_sha256": "1da995b3514d580e7da3d64faacbb25f08a1d62ffa83c0807b37c0dcc326ee2f"
+}

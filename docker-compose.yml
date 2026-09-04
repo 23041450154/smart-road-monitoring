@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smartroad}
+      POSTGRES_USER: ${POSTGRES_USER:-smartroad}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-smartroad}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-smartroad} -d ${POSTGRES_DB:-smartroad}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DEMO_MODE: ${DEMO_MODE:-true}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smartroad}:${POSTGRES_PASSWORD:-smartroad}@postgres:5432/${POSTGRES_DB:-smartroad}
+      CORS_ORIGINS: http://localhost:${FRONTEND_PORT:-3000}
+      CAMERA_ROUTE_BUFFER_METERS: ${CAMERA_ROUTE_BUFFER_METERS:-500}
+      POTHOLE_ROUTE_BUFFER_METERS: ${POTHOLE_ROUTE_BUFFER_METERS:-100}
+      POTHOLE_DUPLICATE_RADIUS_METERS: ${POTHOLE_DUPLICATE_RADIUS_METERS:-10}
+      BRIEFING_MODE: ${BRIEFING_MODE:-template}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./vision:/vision
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_DEMO_MODE: ${DEMO_MODE:-true}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

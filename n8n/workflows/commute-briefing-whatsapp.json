@@ -1,0 +1,185 @@
+{
+  "name": "Smart Road - Commute Briefing (WhatsApp Ready)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Every Minute",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_API_URL + '/api/routes' }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "routes",
+      "name": "Get Active Routes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const nowParts = new Intl.DateTimeFormat('en-GB', {\n  timeZone: 'Asia/Jakarta',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: false,\n}).formatToParts(new Date());\nconst hour = nowParts.find((part) => part.type === 'hour')?.value ?? '';\nconst minute = nowParts.find((part) => part.type === 'minute')?.value ?? '';\nconst now = hour + ':' + minute;\nconst routes = $input.all().flatMap((item) =>\n  Array.isArray(item.json) ? item.json : [item.json],\n);\n\nreturn routes\n  .filter((route) => {\n    const fallback =\n      route.route_type === 'commute_to_work'\n        ? '06:45'\n        : route.route_type === 'commute_home'\n          ? '16:45'\n          : '';\n    const scheduledFor = String(route.notification_time || fallback).slice(0, 5);\n    return route.is_active === true && scheduledFor === now;\n  })\n  .map((route) => ({ json: route }));"
+      },
+      "id": "due",
+      "name": "Filter Routes Due Now",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.BACKEND_API_URL + '/api/routes/' + $json.id + '/briefing' }}",
+        "authentication": "none",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "briefing",
+      "name": "Get Deterministic Briefing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [760, 0]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "channel",
+              "name": "channel",
+              "value": "whatsapp",
+              "type": "string"
+            },
+            {
+              "id": "delivery-status",
+              "name": "delivery_status",
+              "value": "pending_provider_configuration",
+              "type": "string"
+            },
+            {
+              "id": "recipient-user-id",
+              "name": "recipient_user_id",
+              "value": "={{ $('Filter Routes Due Now').item.json.user_id }}",
+              "type": "number"
+            },
+            {
+              "id": "recipient-phone",
+              "name": "recipient_phone",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "route-id",
+              "name": "route_id",
+              "value": "={{ $json.route_id }}",
+              "type": "number"
+            },
+            {
+              "id": "route-name",
+              "name": "route_name",
+              "value": "={{ $json.route_name }}",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{ $json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "overall-status",
+              "name": "overall_status",
+              "value": "={{ $json.overall_status }}",
+              "type": "string"
+            },
+            {
+              "id": "generated-at",
+              "name": "generated_at",
+              "value": "={{ $json.generated_at }}",
+              "type": "string"
+            },
+            {
+              "id": "ready-to-send",
+              "name": "ready_to_send",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "id": "whatsapp-outbox",
+      "name": "WhatsApp Outbox — Connect Provider Here",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [1040, 0]
+    },
+    {
+      "parameters": {
+        "content": "## Sambungkan WhatsApp nanti\nTambahkan node provider WhatsApp setelah outbox ini. Petakan nomor tujuan dan field `message`, ubah `ready_to_send` setelah konfigurasi tervalidasi, lalu publish workflow.",
+        "height": 300,
+        "width": 420,
+        "color": 5
+      },
+      "id": "whatsapp-note",
+      "name": "WhatsApp Setup Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [980, -220]
+    }
+  ],
+  "connections": {
+    "Every Minute": {
+      "main": [[{ "node": "Get Active Routes", "type": "main", "index": 0 }]]
+    },
+    "Get Active Routes": {
+      "main": [[{ "node": "Filter Routes Due Now", "type": "main", "index": 0 }]]
+    },
+    "Filter Routes Due Now": {
+      "main": [[{ "node": "Get Deterministic Briefing", "type": "main", "index": 0 }]]
+    },
+    "Get Deterministic Briefing": {
+      "main": [[{ "node": "WhatsApp Outbox — Connect Provider Here", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Jakarta",
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

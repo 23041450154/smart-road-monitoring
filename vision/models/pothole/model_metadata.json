@@ -1,0 +1,18 @@
+{
+  "status": "not_trained",
+  "model": null,
+  "artifact": null,
+  "dataset_version": null,
+  "trained_at": null,
+  "classes": [
+    "pothole"
+  ],
+  "imgsz": null,
+  "metrics": {
+    "precision": null,
+    "recall": null,
+    "f1": null,
+    "map50": null,
+    "map50_95": null
+  }
+}
