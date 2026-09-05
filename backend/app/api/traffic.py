@@ -14,13 +14,13 @@ router = APIRouter(prefix="/traffic", tags=["traffic"])
 
 
 @router.get("/current", response_model=list[TrafficCurrent])
-async def current_traffic(db: Session = Depends(get_db)) -> list[TrafficCurrent]:
+def current_traffic(db: Session = Depends(get_db)) -> list[TrafficCurrent]:
     cameras = db.scalars(select(Camera).where(Camera.is_active.is_(True)).order_by(Camera.name))
     return [camera_metrics(db, camera) for camera in cameras]
 
 
 @router.get("/summary", response_model=TrafficSummary)
-async def traffic_summary(
+def traffic_summary(
     db: Session = Depends(get_db), settings: Settings = Depends(get_settings)
 ) -> TrafficSummary:
     now = datetime.now(UTC)

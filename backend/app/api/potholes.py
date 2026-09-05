@@ -13,7 +13,7 @@ router = APIRouter(prefix="/potholes", tags=["potholes"])
 
 
 @router.post("", response_model=PotholeRead, status_code=201)
-async def create_pothole(
+def create_pothole(
     payload: PotholeCreate,
     deduplicate: bool = Query(default=True),
     db: Session = Depends(get_db),
@@ -39,12 +39,12 @@ async def create_pothole(
 
 
 @router.get("", response_model=list[PotholeRead])
-async def list_potholes(db: Session = Depends(get_db)) -> list[Pothole]:
+def list_potholes(db: Session = Depends(get_db)) -> list[Pothole]:
     return list(db.scalars(select(Pothole).order_by(Pothole.detected_at.desc())))
 
 
 @router.get("/{pothole_id}", response_model=PotholeRead)
-async def get_pothole(pothole_id: int, db: Session = Depends(get_db)) -> Pothole:
+def get_pothole(pothole_id: int, db: Session = Depends(get_db)) -> Pothole:
     pothole = db.get(Pothole, pothole_id)
     if pothole is None:
         raise HTTPException(status_code=404, detail="Pothole not found")

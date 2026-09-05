@@ -262,27 +262,21 @@ class YoloByteTrackProcessor:
                 )
             )
 
-        # Smooth track continuity: keep active tracks visible during brief headlight glare / missed frames
+        # Stable track continuity: keep active tracks visible briefly during occlusion without phantom drifting
         for tid, tinfo in list(self._active_tracks.items()):
             if tid in matched_active_ids:
                 continue
             missed = tinfo.get("missed_count", 0) + 1
             tinfo["missed_count"] = missed
-            if missed <= 8 and (now - tinfo["last_seen"]) < self._max_lost_seconds:
-                vx, vy = tinfo.get("velocity", (0.0, 0.0))
-                vx *= 0.8
-                vy *= 0.8
-                tinfo["velocity"] = (vx, vy)
+            if missed <= 2 and (now - tinfo["last_seen"]) < 0.5:
                 b = tinfo["box"]
-                pred_box = [b[0] + vx, b[1] + vy, b[2] + vx, b[3] + vy]
-                tinfo["box"] = pred_box
                 tracks.append(
                     Track(
                         tracker_id=tid,
                         vehicle_type=tinfo["type"],
-                        confidence=max(0.05, tinfo.get("conf", 0.20) * 0.85),
-                        bounding_box=pred_box,
-                        velocity=(vx, vy),
+                        confidence=max(0.05, tinfo.get("conf", 0.20) * 0.8),
+                        bounding_box=b,
+                        velocity=(0.0, 0.0),
                     )
                 )
 
@@ -290,7 +284,7 @@ class YoloByteTrackProcessor:
         self._active_tracks = {
             tid: info
             for tid, info in self._active_tracks.items()
-            if now - info["last_seen"] < self._max_lost_seconds and info.get("missed_count", 0) <= 8
+            if now - info["last_seen"] < 0.5 and info.get("missed_count", 0) <= 2
         }
 
         return tracks

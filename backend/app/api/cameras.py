@@ -67,7 +67,7 @@ def get_camera_or_404(db: Session, camera_id: int) -> Camera:
 
 
 @router.post("", response_model=CameraRead, status_code=201)
-async def create_camera(payload: CameraCreate, db: Session = Depends(get_db)) -> Camera:
+def create_camera(payload: CameraCreate, db: Session = Depends(get_db)) -> Camera:
     camera = Camera(
         **payload.model_dump(),
         location=database_geometry(db, point_wkt(payload.latitude, payload.longitude)),
@@ -79,22 +79,22 @@ async def create_camera(payload: CameraCreate, db: Session = Depends(get_db)) ->
 
 
 @router.get("", response_model=list[CameraRead])
-async def list_cameras(db: Session = Depends(get_db)) -> list[Camera]:
+def list_cameras(db: Session = Depends(get_db)) -> list[Camera]:
     return list(db.scalars(select(Camera).order_by(Camera.name)))
 
 
 @router.get("/{camera_id}", response_model=CameraRead)
-async def get_camera(camera_id: int, db: Session = Depends(get_db)) -> Camera:
+def get_camera(camera_id: int, db: Session = Depends(get_db)) -> Camera:
     return get_camera_or_404(db, camera_id)
 
 
 @router.get("/{camera_id}/traffic/current", response_model=TrafficCurrent)
-async def get_current_traffic(camera_id: int, db: Session = Depends(get_db)) -> TrafficCurrent:
+def get_current_traffic(camera_id: int, db: Session = Depends(get_db)) -> TrafficCurrent:
     return camera_metrics(db, get_camera_or_404(db, camera_id))
 
 
 @router.get("/{camera_id}/traffic/history", response_model=list[SnapshotRead])
-async def get_traffic_history(
+def get_traffic_history(
     camera_id: int,
     hours: int = Query(default=24, ge=1, le=168),
     db: Session = Depends(get_db),
@@ -367,6 +367,18 @@ class ThreadedCameraReader:
             self.thread.join(timeout=0.6)
 
 
+def _async_save_window(
+    camera_id: int, counts: Counter[str], events: list[tuple[Track, str]]
+) -> None:
+    try:
+        with SessionLocal() as db_session:
+            cam = db_session.get(Camera, camera_id)
+            if cam:
+                save_window(db_session, cam, counts, events)
+    except Exception as exc:
+        logging.getLogger("traffic-worker").warning("Async save_window failed for cam %d: %s", camera_id, exc)
+
+
 class CameraStreamWorker:
     """Singleton worker per camera to avoid duplicate YOLO inferences and HLS decoding."""
 
@@ -420,7 +432,7 @@ class CameraStreamWorker:
         reader = ThreadedCameraReader(self.video_source, is_live=is_live, target_size=(640, 360))
         processor = YoloByteTrackProcessor(
             model_path=str(PROJECT_ROOT / "yolo11n.pt"),
-            confidence=0.08,
+            confidence=0.20,
             device="cpu",
             exclusion_zones=self.exclusion_zones,
         )
@@ -480,17 +492,20 @@ class CameraStreamWorker:
                     last_inference_time = now
                     future = executor.submit(processor.process, frame_small.copy())
 
-                # Periodic database snapshot persistence every 6 seconds
+                # Periodic database snapshot persistence offloaded to background daemon thread
+                # This guarantees video frame generation NEVER stalls on SQLite I/O or lock contention.
                 if now - last_db_save >= 6.0:
                     if window_counts or events:
-                        try:
-                            with SessionLocal() as db_session:
-                                cam_in_db = db_session.get(Camera, self.camera_id)
-                                if cam_in_db:
-                                    save_window(db_session, cam_in_db, window_counts, events)
-                        except Exception:
-                            pass
-                        window_counts, events = Counter(), []
+                        save_c = Counter(window_counts)
+                        save_e = list(events)
+                        threading.Thread(
+                            target=_async_save_window,
+                            args=(self.camera_id, save_c, save_e),
+                            daemon=True,
+                            name=f"SaveDB-{self.camera_id}-{int(now)}",
+                        ).start()
+                        window_counts.clear()
+                        events.clear()
                     last_db_save = now
 
                 # 2. Annotate frame
@@ -610,11 +625,10 @@ async def _generate_video_stream(camera: Camera, video_source: str):
         while True:
             now = time.monotonic()
             current_fid = worker.frame_id
-            latest_bytes = worker.latest_jpeg or LOADING_JPEG
+            latest_bytes = worker.latest_jpeg
 
-            # Yield frame if new detection is ready, OR every 150ms as keep-alive heartbeat
-            # so the client browser never experiences stalled connections or image errors.
-            if current_fid != last_sent_frame_id or (now - last_sent_time >= 0.15):
+            # Yield new frame as soon as generated
+            if latest_bytes is not None and current_fid != last_sent_frame_id:
                 last_sent_frame_id = current_fid
                 last_sent_time = now
                 yield (
@@ -624,15 +638,26 @@ async def _generate_video_stream(camera: Camera, video_source: str):
                     + latest_bytes
                     + b"\r\n"
                 )
+            elif now - last_sent_time >= 3.0:
+                # Keep-alive heartbeat only if no frames were generated for 3 full seconds
+                last_sent_time = now
+                frame_to_send = latest_bytes or LOADING_JPEG
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n"
+                    + f"Content-Length: {len(frame_to_send)}\r\n\r\n".encode("ascii")
+                    + frame_to_send
+                    + b"\r\n"
+                )
 
-            await asyncio.sleep(0.025)
+            await asyncio.sleep(0.015)
     finally:
         worker.remove_client()
 
 
 
 @router.get("/{camera_id}/stream/video")
-async def stream_video(camera_id: int, request: Request, db: Session = Depends(get_db)):
+def stream_video(camera_id: int, request: Request, db: Session = Depends(get_db)):
     camera = get_camera_or_404(db, camera_id)
     if camera.stream_type == "hls" and camera.stream_url:
         video_source = camera.stream_url
@@ -653,43 +678,50 @@ async def stream_video(camera_id: int, request: Request, db: Session = Depends(g
     )
 
 
+def _fetch_camera_metadata(camera_id: int):
+    with SessionLocal() as db:
+        camera = db.get(Camera, camera_id)
+        if camera is None:
+            return None, [], None
+        events = list(
+            db.scalars(
+                select(VehicleEvent)
+                .where(VehicleEvent.camera_id == camera_id)
+                .order_by(VehicleEvent.last_seen.desc())
+                .limit(20)
+            )
+        )
+        metrics = camera_metrics(db, camera)
+        return camera, events, metrics
+
+
 @router.websocket("/{camera_id}/stream/metadata")
 async def stream_metadata(websocket: WebSocket, camera_id: int) -> None:
     """Send lightweight processed metadata; video frames are never persisted here."""
     await websocket.accept()
     try:
         while True:
-            with SessionLocal() as db:
-                camera = db.get(Camera, camera_id)
-                if camera is None:
-                    await websocket.send_json({"error": "Camera not found"})
-                    await websocket.close(code=1008)
-                    return
-                events = list(
-                    db.scalars(
-                        select(VehicleEvent)
-                        .where(VehicleEvent.camera_id == camera_id)
-                        .order_by(VehicleEvent.last_seen.desc())
-                        .limit(20)
-                    )
-                )
-                metrics = camera_metrics(db, camera)
-                await websocket.send_json(
-                    {
-                        "camera_id": camera_id,
-                        "generated_at": datetime.now(UTC).isoformat(),
-                        "traffic_status": metrics.traffic_status.value,
-                        "active_metadata": [
-                            {
-                                "tracker_id": event.tracker_id,
-                                "vehicle_type": event.vehicle_type,
-                                "direction": event.direction,
-                                "last_seen": event.last_seen.isoformat(),
-                            }
-                            for event in events
-                        ],
-                    }
-                )
+            camera, events, metrics = await asyncio.to_thread(_fetch_camera_metadata, camera_id)
+            if camera is None:
+                await websocket.send_json({"error": "Camera not found"})
+                await websocket.close(code=1008)
+                return
+            await websocket.send_json(
+                {
+                    "camera_id": camera_id,
+                    "generated_at": datetime.now(UTC).isoformat(),
+                    "traffic_status": metrics.traffic_status.value,
+                    "active_metadata": [
+                        {
+                            "tracker_id": event.tracker_id,
+                            "vehicle_type": event.vehicle_type,
+                            "direction": event.direction,
+                            "last_seen": event.last_seen.isoformat(),
+                        }
+                        for event in events
+                    ],
+                }
+            )
             await asyncio.sleep(1)
     except WebSocketDisconnect:
         return
