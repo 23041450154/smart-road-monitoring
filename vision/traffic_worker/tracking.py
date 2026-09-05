@@ -69,9 +69,9 @@ def _nms(
     scores: list[float],
     classes: list[int],
     iou_thresh: float = 0.45,
-    iomin_thresh: float = 0.65,
+    iomin_thresh: float = 0.60,
 ) -> list[int]:
-    """Non-Maximum Suppression to remove redundant or sub-part candidate boxes within the same vehicle group."""
+    """Non-Maximum Suppression to remove redundant, conflicting, or sub-part candidate boxes within the same vehicle group."""
     if not boxes:
         return []
     indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
@@ -84,9 +84,20 @@ def _nms(
         for i in indices:
             iou, iomin = _box_metrics(curr_box, boxes[i])
             same_grp = _same_class_group(classes[current], classes[i])
-            if same_grp and (iou >= iou_thresh or iomin >= iomin_thresh):
-                # When rider (0) and motorcycle (3) are both detected on same bike, encompass whole vehicle
-                if {classes[current], classes[i]} in ({0, 3}, {1, 3}):
+
+            # Check if rider (0/1) and motorcycle (3) are on the same bike (vertically aligned)
+            is_rider_bike = False
+            if same_grp and {classes[current], classes[i]} in ({0, 3}, {1, 3}, {0, 0}, {3, 3}):
+                w_max = max(curr_box[2] - curr_box[0], boxes[i][2] - boxes[i][0])
+                cx1 = (curr_box[0] + curr_box[2]) / 2.0
+                cx2 = (boxes[i][0] + boxes[i][2]) / 2.0
+                y_overlap = min(curr_box[3], boxes[i][3]) - max(curr_box[1], boxes[i][1])
+                if abs(cx1 - cx2) <= w_max * 0.70 and y_overlap >= -12.0:
+                    is_rider_bike = True
+
+            if same_grp and (iou >= iou_thresh or iomin >= iomin_thresh or is_rider_bike):
+                # When two-wheelers overlap or stack, encompass whole vehicle
+                if {classes[current], classes[i]} in ({0, 3}, {1, 3}, {0, 0}, {3, 3}):
                     curr_box[0] = min(curr_box[0], boxes[i][0])
                     curr_box[1] = min(curr_box[1], boxes[i][1])
                     curr_box[2] = max(curr_box[2], boxes[i][2])
