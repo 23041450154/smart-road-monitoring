@@ -26,16 +26,26 @@ class Track:
         return ((left + right) / 2, (top + bottom) / 2)
 
 
-def _box_iou(b1: list[float], b2: list[float]) -> float:
+def _box_metrics(b1: list[float], b2: list[float]) -> tuple[float, float]:
+    """Returns (iou, io_min) where io_min is intersection / min(area1, area2)."""
     x1 = max(b1[0], b2[0])
     y1 = max(b1[1], b2[1])
     x2 = min(b1[2], b2[2])
     y2 = min(b1[3], b2[3])
     inter = max(0.0, x2 - x1) * max(0.0, y2 - y1)
+    if inter <= 0.0:
+        return 0.0, 0.0
     a1 = max(0.0, (b1[2] - b1[0]) * (b1[3] - b1[1]))
     a2 = max(0.0, (b2[2] - b2[0]) * (b2[3] - b2[1]))
     union = a1 + a2 - inter
-    return inter / union if union > 0 else 0.0
+    iou = inter / union if union > 0 else 0.0
+    min_area = min(a1, a2)
+    iomin = inter / min_area if min_area > 0 else 0.0
+    return iou, iomin
+
+
+def _box_iou(b1: list[float], b2: list[float]) -> float:
+    return _box_metrics(b1, b2)[0]
 
 
 def _center_dist(b1: list[float], b2: list[float]) -> float:
@@ -58,9 +68,10 @@ def _nms(
     boxes: list[list[float]],
     scores: list[float],
     classes: list[int],
-    iou_thresh: float = 0.50,
+    iou_thresh: float = 0.45,
+    iomin_thresh: float = 0.65,
 ) -> list[int]:
-    """Non-Maximum Suppression to remove redundant candidate boxes within the same class group."""
+    """Non-Maximum Suppression to remove redundant or sub-part candidate boxes within the same vehicle group."""
     if not boxes:
         return []
     indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
@@ -71,12 +82,11 @@ def _nms(
         curr_box = list(boxes[current])
         new_indices = []
         for i in indices:
-            if (
-                _box_iou(curr_box, boxes[i]) >= iou_thresh
-                and _same_class_group(classes[current], classes[i])
-            ):
+            iou, iomin = _box_metrics(curr_box, boxes[i])
+            same_grp = _same_class_group(classes[current], classes[i])
+            if same_grp and (iou >= iou_thresh or iomin >= iomin_thresh):
                 # When rider (0) and motorcycle (3) are both detected on same bike, encompass whole vehicle
-                if {classes[current], classes[i]} == {0, 3} or {classes[current], classes[i]} == {1, 3}:
+                if {classes[current], classes[i]} in ({0, 3}, {1, 3}):
                     curr_box[0] = min(curr_box[0], boxes[i][0])
                     curr_box[1] = min(curr_box[1], boxes[i][1])
                     curr_box[2] = max(curr_box[2], boxes[i][2])
@@ -96,6 +106,8 @@ CAMERA_EXCLUSION_ZONES: dict[int, list[list[tuple[float, float]]]] = {
     8: [
         # Cam 8 (Punti Kayu) - far-left pole on median divider [x < 80, y > 270]
         [(0.0, 0.75), (0.13, 0.75), (0.13, 1.0), (0.0, 1.0)],
+        # Cam 8 - center median street lamp pole [x: 0.14-0.21, y: 0.40-0.60]
+        [(0.14, 0.40), (0.21, 0.40), (0.21, 0.60), (0.14, 0.60)],
     ],
 }
 
@@ -473,9 +485,24 @@ class YoloByteTrackProcessor:
             )
 
         # Phase 5: Display continuity: hold active boxes during brief detection drops without phantom drifting
+        claimed_boxes = [self._active_tracks[cid]["box"] for cid in claimed_tracks if cid in self._active_tracks]
         for tid, tinfo in list(self._active_tracks.items()):
             if tid in claimed_tracks:
                 continue
+
+            tbox = tinfo["box"]
+            # If an unclaimed track significantly overlaps with any currently claimed vehicle,
+            # it is superseded (e.g. ID remapped, or duplicate sub-part) and should be pruned immediately
+            is_superseded = False
+            for cbox in claimed_boxes:
+                iou, iomin = _box_metrics(tbox, cbox)
+                if iou >= 0.30 or iomin >= 0.50:
+                    is_superseded = True
+                    break
+            if is_superseded:
+                self._active_tracks.pop(tid, None)
+                continue
+
             missed = tinfo.get("missed_count", 0) + 1
             tinfo["missed_count"] = missed
             if missed <= 4 and (now - tinfo["last_seen"]) < 0.60:
@@ -484,7 +511,7 @@ class YoloByteTrackProcessor:
                         tracker_id=tid,
                         vehicle_type=tinfo["type"],
                         confidence=max(0.05, tinfo.get("conf", 0.20) * 0.8),
-                        bounding_box=tinfo["box"],
+                        bounding_box=tbox,
                         velocity=(0.0, 0.0),
                     )
                 )
