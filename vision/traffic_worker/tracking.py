@@ -84,6 +84,10 @@ CAMERA_EXCLUSION_ZONES: dict[int, list[list[tuple[float, float]]]] = {
         # Cam 4 (Masjid Agung) - bottom-left fountain monument & bright spotlights
         [(0.0, 0.45), (0.36, 0.65), (0.36, 1.0), (0.0, 1.0)],
     ],
+    8: [
+        # Cam 8 (Punti Kayu) - far-left pole on median divider [x < 80, y > 270]
+        [(0.0, 0.75), (0.13, 0.75), (0.13, 1.0), (0.0, 1.0)],
+    ],
 }
 
 
@@ -266,14 +270,26 @@ class YoloByteTrackProcessor:
 
         now = time.monotonic()
         if not hasattr(result, "boxes") or len(result.boxes) == 0:
-            for tid, tinfo in self._active_tracks.items():
-                tinfo["missed_count"] = tinfo.get("missed_count", 0) + 1
+            tracks: list[Track] = []
+            for tid, tinfo in list(self._active_tracks.items()):
+                missed = tinfo.get("missed_count", 0) + 1
+                tinfo["missed_count"] = missed
+                if missed <= 3 and (now - tinfo["last_seen"]) < 0.45:
+                    tracks.append(
+                        Track(
+                            tracker_id=tid,
+                            vehicle_type=tinfo["type"],
+                            confidence=max(0.05, tinfo.get("conf", 0.20) * 0.8),
+                            bounding_box=tinfo["box"],
+                            velocity=(0.0, 0.0),
+                        )
+                    )
             self._active_tracks = {
                 tid: info
                 for tid, info in self._active_tracks.items()
                 if now - info["last_seen"] < self._reid_memory_seconds
             }
-            return []
+            return tracks
 
         raw_boxes = [box.xyxy[0].tolist() for box in result.boxes]
         raw_confs = [float(box.conf.item()) for box in result.boxes]
@@ -438,13 +454,13 @@ class YoloByteTrackProcessor:
                 )
             )
 
-        # Phase 5: Display continuity: brief 1-frame hold during occlusion without phantom drifting
+        # Phase 5: Display continuity: hold active boxes during brief detection drops without phantom drifting
         for tid, tinfo in list(self._active_tracks.items()):
             if tid in claimed_tracks:
                 continue
             missed = tinfo.get("missed_count", 0) + 1
             tinfo["missed_count"] = missed
-            if missed <= 1 and (now - tinfo["last_seen"]) < 0.25:
+            if missed <= 3 and (now - tinfo["last_seen"]) < 0.45:
                 tracks.append(
                     Track(
                         tracker_id=tid,

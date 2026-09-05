@@ -434,7 +434,7 @@ class CameraStreamWorker:
         reader = ThreadedCameraReader(self.video_source, is_live=is_live, target_size=(640, 360))
         processor = YoloByteTrackProcessor(
             model_path=str(PROJECT_ROOT / "yolo11n.pt"),
-            confidence=0.12,
+            confidence=0.08,
             device="cpu",
             exclusion_zones=self.exclusion_zones,
         )
