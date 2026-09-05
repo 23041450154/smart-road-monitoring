@@ -2,7 +2,14 @@ from dataclasses import dataclass
 from typing import Any
 
 
-VEHICLE_CLASSES = {2: "car", 3: "motorcycle", 5: "bus", 7: "truck"}
+VEHICLE_CLASSES = {
+    0: "motorcycle",  # Rider on motorcycle / moped in CCTV surveillance
+    1: "motorcycle",  # Bicycle / scooter
+    2: "car",
+    3: "motorcycle",
+    5: "bus",
+    7: "truck",
+}
 
 
 @dataclass(frozen=True)

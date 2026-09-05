@@ -13,6 +13,7 @@ from app.models import Camera, TrafficSnapshot, VehicleEvent
 from app.traffic.analytics import classify_traffic
 from vision.shared.stream_sources import StreamError, create_stream
 from vision.traffic_worker.tracking import (
+    CAMERA_EXCLUSION_ZONES,
     LineCrossingCounter,
     Track,
     YoloByteTrackProcessor,
@@ -74,17 +75,19 @@ def save_window(
     )
 
 
-def run(camera_id: int, show: bool = False) -> None:
+def run(camera_id: int, show: bool = False, once: bool = False) -> None:
     with SessionLocal() as db:
         camera = db.get(Camera, camera_id)
         if camera is None:
             raise SystemExit(f"Camera {camera_id} not found")
         source_type = os.getenv("CAMERA_SOURCE", camera.stream_type)
         source_url = os.getenv("CAMERA_STREAM_URL", camera.stream_url or "")
+        exclusion_zones = CAMERA_EXCLUSION_ZONES.get(camera_id, [])
         processor = YoloByteTrackProcessor(
-            os.getenv("YOLO_MODEL", "yolo11n.pt"),
-            float(os.getenv("YOLO_CONFIDENCE", "0.35")),
+            os.getenv("YOLO_MODEL", "yolo11s.pt"),
+            float(os.getenv("YOLO_CONFIDENCE", "0.10")),
             os.getenv("YOLO_DEVICE", "cpu"),
+            exclusion_zones=exclusion_zones,
         )
         counter = LineCrossingCounter(
             camera.counting_line or [[0.1, 0.55], [0.9, 0.55]]
@@ -103,6 +106,11 @@ def run(camera_id: int, show: bool = False) -> None:
                 while True:
                     ok, frame = source.read()
                     if not ok:
+                        if once:
+                            if counts or events:
+                                save_window(db, camera, counts, events)
+                            log.info("[CAMERA] single pass complete; exiting (--once)")
+                            return
                         raise StreamError("Stream ended or disconnected")
                     height, width = frame.shape[:2]
                     tracks = processor.process(frame)
@@ -118,6 +126,9 @@ def run(camera_id: int, show: bool = False) -> None:
                     if show:
                         _draw(frame, tracks)
             except StreamError as exc:
+                if once:
+                    log.warning("[CAMERA] %s; exiting (--once)", exc)
+                    return
                 log.warning("[CAMERA] %s; reconnecting in %ds", exc, backoff)
                 time.sleep(backoff)
                 backoff = min(backoff * 2, 60)
@@ -151,5 +162,9 @@ if __name__ == "__main__":
     )
     parser.add_argument("--camera-id", type=int, default=1)
     parser.add_argument("--show", action="store_true")
+    parser.add_argument(
+        "--once", action="store_true", help="Process until stream ends once then exit"
+    )
     args = parser.parse_args()
-    run(args.camera_id, args.show)
+    run(args.camera_id, args.show, args.once)
+
