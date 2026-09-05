@@ -279,6 +279,19 @@ class YoloByteTrackProcessor:
         custom_tracker = Path(__file__).parent / "bytetrack_custom.yaml"
         self._tracker_cfg = str(custom_tracker) if custom_tracker.exists() else "bytetrack.yaml"
 
+    def _allocate_id(self, nid: int | None = None) -> str:
+        """Allocate a clean cyclic ID between 1 and 999."""
+        if nid is not None and 1 <= nid <= 999:
+            return f"vehicle_{nid}"
+        active = set(self._active_tracks.keys())
+        for _ in range(999):
+            candidate = f"vehicle_{self._next_id}"
+            self._next_id = (self._next_id % 999) + 1
+            if candidate not in active:
+                return candidate
+        self._next_id += 1
+        return f"vehicle_{self._next_id}"
+
     def process(self, frame: Any) -> list[Track]:
         classes = list(VEHICLE_CLASSES.keys())
         try:
@@ -429,12 +442,9 @@ class YoloByteTrackProcessor:
         for i in range(num_dets):
             if assigned_cids[i] is None:
                 nid = det_nids[i]
+                new_id = self._allocate_id(nid)
                 if nid is not None:
-                    new_id = f"vehicle_{nid}"
                     self._bytetrack_remap[nid] = new_id
-                else:
-                    new_id = f"vehicle_{self._next_id}"
-                    self._next_id += 1
                 assigned_cids[i] = new_id
                 claimed_tracks.add(new_id)
 

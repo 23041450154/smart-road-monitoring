@@ -164,8 +164,20 @@ def _annotate_frame(
             bottom = max(0, min(h - 1, bottom))
             if right <= left or bottom <= top:
                 continue
+            bw = right - left
+            bh = bottom - top
+            area = bw * bh
             color = colors.get(track.vehicle_type, (48, 209, 88))
-            cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+
+            # 1. Bounding box thickness: 1px for distant vehicles, 2px for foreground
+            thickness = 1 if (bh < 35 or area < 1400) else 2
+            cv2.rectangle(frame, (left, top), (right, bottom), color, thickness)
+
+            # 2. Level of Detail (LOD) Tag Suppression:
+            # Distant vehicles in the far background (area < 950 px² or height < 28px)
+            # are cleanly outlined without bulky text banners, preventing clutter.
+            if bh < 28 or area < 950:
+                continue
 
             vehicle_label = {
                 "car": "MOBIL",
@@ -173,24 +185,28 @@ def _annotate_frame(
                 "bus": "BUS",
                 "truck": "TRUK",
             }.get(track.vehicle_type, track.vehicle_type.upper())
-            tag = f"{vehicle_label} #{track.tracker_id.replace('vehicle_', '')}"
-            (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
-            tag_y1 = top - th - 6 if top - th - 6 >= 0 else top
-            tag_y2 = top if top - th - 6 >= 0 else top + th + 6
-            text_y = max(th + 2, top - 4) if top - th - 6 >= 0 else top + th + 2
+            raw_id = track.tracker_id.replace("vehicle_", "")
+            tag = f"{vehicle_label} #{raw_id}"
+
+            # Compact, crisp modern tag styling
+            font_scale = 0.38
+            (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 1)
+            tag_y1 = top - th - 5 if top - th - 5 >= 0 else top
+            tag_y2 = top if top - th - 5 >= 0 else top + th + 5
+            text_y = max(th + 2, top - 3) if top - th - 5 >= 0 else top + th + 2
             cv2.rectangle(
                 frame,
                 (left, tag_y1),
-                (left + tw + 8, tag_y2),
+                (left + tw + 6, tag_y2),
                 color,
                 -1,
             )
             cv2.putText(
                 frame,
                 tag,
-                (left + 4, text_y),
+                (left + 3, text_y),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.42,
+                font_scale,
                 (16, 24, 20),
                 1,
                 cv2.LINE_AA,

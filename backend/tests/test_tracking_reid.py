@@ -206,3 +206,23 @@ def test_motorcycle_class_flicker_retains_consensus():
     tracks3 = processor.process(frame_dummy)
     assert tracks3[0].tracker_id == "vehicle_50"
     assert tracks3[0].vehicle_type == "motorcycle"
+
+def test_allocate_id_cycles_cleanly():
+    processor = YoloByteTrackProcessor.__new__(YoloByteTrackProcessor)
+    processor._next_id = 1
+    processor._active_tracks = {}
+
+    # Preserves 1 <= nid <= 999
+    assert processor._allocate_id(247) == "vehicle_247"
+    assert processor._allocate_id(999) == "vehicle_999"
+
+    # Cycles huge ByteTrack IDs (> 999)
+    huge_id1 = processor._allocate_id(268242)
+    assert huge_id1 == "vehicle_1"
+    huge_id2 = processor._allocate_id(268243)
+    assert huge_id2 == "vehicle_2"
+
+    # None nid also allocates from cycle
+    none_id = processor._allocate_id(None)
+    assert none_id == "vehicle_3"
+
