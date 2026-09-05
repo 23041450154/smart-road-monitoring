@@ -8,6 +8,9 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+import shutil
+import subprocess
+import numpy as np
 
 # Limit CPU threads for deep learning to keep 2 cores free for HLS decoding & streaming
 os.environ["OMP_NUM_THREADS"] = "2"
@@ -121,50 +124,11 @@ async def get_traffic_history(
 def _annotate_frame(
     frame,
     tracks: list[Track],
-    line: list[list[float]],
     counts: Counter[str],
-    recently_crossed: bool = False,
 ) -> None:
     h, w = frame.shape[:2]
-    # 1. Draw counting line
-    lx1 = int(line[0][0] * w)
-    ly1 = int(line[0][1] * h)
-    lx2 = int(line[1][0] * w)
-    ly2 = int(line[1][1] * h)
 
-    # Dynamic line feedback (glow lime green on vehicle count)
-    line_color = (60, 255, 60) if recently_crossed else (0, 230, 255)
-    thickness = 3 if recently_crossed else 2
-    cv2.line(frame, (lx1, ly1), (lx2, ly2), line_color, thickness)
-
-    # Direction arrow in the middle of counting line
-    mx = (lx1 + lx2) // 2
-    my = (ly1 + ly2) // 2
-    dx = lx2 - lx1
-    dy = ly2 - ly1
-    length = math.hypot(dx, dy)
-    if length > 0:
-        nx = -dy / length
-        ny = dx / length
-        if ny < 0:  # Point downward along road flow
-            nx, ny = -nx, -ny
-        ax = int(mx + nx * 14)
-        ay = int(my + ny * 14)
-        cv2.arrowedLine(frame, (mx, my), (ax, ay), line_color, 2, tipLength=0.35)
-
-    tag_label = "TERHITUNG!" if recently_crossed else "GARIS HITUNG"
-    cv2.putText(
-        frame,
-        tag_label,
-        (max(10, min(lx1, lx2) + 12), max(20, min(ly1, ly2) - 8)),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.45,
-        line_color,
-        1,
-        cv2.LINE_AA,
-    )
-
-    # 2. Draw vehicle bounding boxes and labels
+    # 1. Draw vehicle bounding boxes and labels
     colors = {
         "car": (48, 209, 88),         # Vibrant Green
         "motorcycle": (0, 140, 255),  # Vibrant Orange (BGR)
@@ -239,15 +203,23 @@ def _annotate_frame(
     )
 
 
-class ThreadedCameraReader:
-    """Bulletproof non-blocking background video capture reader for smooth live streaming."""
+HAS_FFMPEG = bool(shutil.which("ffmpeg"))
 
-    def __init__(self, source: str, is_live: bool = True) -> None:
+
+class ThreadedCameraReader:
+    """Bulletproof non-blocking background video capture reader for smooth live streaming.
+    Uses an isolated FFmpeg subprocess for HLS streams (preventing OpenCV C++ segfaults)
+    and falls back to cv2.VideoCapture when appropriate.
+    """
+
+    def __init__(self, source: str, is_live: bool = True, target_size: tuple[int, int] = (640, 360)) -> None:
         self.source = source
         self.is_live = is_live
+        self.target_size = target_size
         self.frame = None
         self.running = True
         self.lock = threading.Lock()
+        self._proc: subprocess.Popen | None = None
         self.thread = threading.Thread(
             target=self._reader_loop,
             daemon=True,
@@ -256,6 +228,73 @@ class ThreadedCameraReader:
         self.thread.start()
 
     def _reader_loop(self) -> None:
+        use_ffmpeg = HAS_FFMPEG and (self.source.startswith("http://") or self.source.startswith("https://"))
+        if use_ffmpeg:
+            self._ffmpeg_loop()
+        else:
+            self._opencv_loop()
+
+    def _ffmpeg_loop(self) -> None:
+        w, h = self.target_size
+        frame_bytes = w * h * 3
+        reconnect_delay = 1.0
+
+        while self.running:
+            cmd = [
+                "ffmpeg",
+                "-loglevel", "error",
+                "-reconnect", "1",
+                "-reconnect_streamed", "1",
+                "-reconnect_delay_max", "2",
+                "-i", self.source,
+                "-vf", f"scale={w}:{h}",
+                "-f", "rawvideo",
+                "-pix_fmt", "bgr24",
+                "-",
+            ]
+            try:
+                proc = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    bufsize=frame_bytes * 2,
+                )
+                self._proc = proc
+            except Exception:
+                time.sleep(reconnect_delay)
+                continue
+
+            try:
+                while self.running and proc.poll() is None:
+                    raw = proc.stdout.read(frame_bytes)
+                    if len(raw) != frame_bytes:
+                        break
+                    f = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
+                    with self.lock:
+                        self.frame = f
+                    time.sleep(0.010)
+            except Exception:
+                pass
+            finally:
+                try:
+                    if proc.stdout:
+                        proc.stdout.close()
+                except Exception:
+                    pass
+                try:
+                    proc.terminate()
+                    proc.wait(timeout=0.5)
+                except Exception:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+                self._proc = None
+
+            if self.running:
+                time.sleep(reconnect_delay)
+
+    def _opencv_loop(self) -> None:
         cap = None
         reconnect_delay = 0.5
         while self.running:
@@ -294,7 +333,6 @@ class ThreadedCameraReader:
                 else:
                     time.sleep(0.01)
 
-        # Cleanup: cap is strictly released on this same thread
         if cap is not None:
             try:
                 cap.release()
@@ -309,6 +347,11 @@ class ThreadedCameraReader:
 
     def stop(self) -> None:
         self.running = False
+        if self._proc:
+            try:
+                self._proc.terminate()
+            except Exception:
+                pass
         if self.thread and self.thread.is_alive() and threading.current_thread() != self.thread:
             self.thread.join(timeout=0.6)
 
@@ -363,7 +406,7 @@ class CameraStreamWorker:
 
     def _worker_loop(self) -> None:
         is_live = self.video_source.startswith("http://") or self.video_source.startswith("https://")
-        reader = ThreadedCameraReader(self.video_source, is_live=is_live)
+        reader = ThreadedCameraReader(self.video_source, is_live=is_live, target_size=(640, 360))
         processor = YoloByteTrackProcessor(
             model_path=str(PROJECT_ROOT / "yolo11n.pt"),
             confidence=0.08,
@@ -375,7 +418,6 @@ class CameraStreamWorker:
         window_counts: Counter[str] = Counter()
         events: list[tuple[Track, str]] = []
         last_db_save = time.monotonic()
-        last_crossed_time = 0.0
 
         executor = ThreadPoolExecutor(max_workers=1)
         future = None
@@ -400,7 +442,10 @@ class CameraStreamWorker:
                 h, w = frame.shape[:2]
                 target_w = 640
                 target_h = int(h * target_w / w)
-                frame_small = cv2.resize(frame, (target_w, target_h))
+                if (w, h) != (target_w, target_h):
+                    frame_small = cv2.resize(frame, (target_w, target_h))
+                else:
+                    frame_small = frame
 
                 now = time.monotonic()
                 dt = min(0.1, max(0.01, now - last_frame_time))
@@ -416,7 +461,6 @@ class CameraStreamWorker:
                                 session_counts[track.vehicle_type] += 1
                                 window_counts[track.vehicle_type] += 1
                                 events.append((track, direction))
-                                last_crossed_time = now
                     except Exception:
                         pass
                     future = None
@@ -424,32 +468,6 @@ class CameraStreamWorker:
                 if future is None and (now - last_inference_time >= min_inference_interval):
                     last_inference_time = now
                     future = executor.submit(processor.process, frame_small.copy())
-                else:
-                    # Smooth inter-frame box motion: glide boxes smoothly using physical dt
-                    interp_tracks = []
-                    for t in latest_tracks:
-                        vx, vy = t.velocity
-                        speed = math.hypot(vx, vy)
-                        if 0.1 < speed < 35.0:
-                            factor = dt * 25.0
-                            dx = vx * factor
-                            dy = vy * factor
-                            b = t.bounding_box
-                            nb = [b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy]
-                            interp_tracks.append(
-                                Track(
-                                    tracker_id=t.tracker_id,
-                                    vehicle_type=t.vehicle_type,
-                                    confidence=t.confidence,
-                                    bounding_box=nb,
-                                    velocity=t.velocity,
-                                )
-                            )
-                        else:
-                            interp_tracks.append(t)
-                    latest_tracks = interp_tracks
-
-                recently_crossed = (now - last_crossed_time < 1.0)
 
                 # Periodic database snapshot persistence every 6 seconds
                 if now - last_db_save >= 6.0:
@@ -468,9 +486,7 @@ class CameraStreamWorker:
                 _annotate_frame(
                     frame_small,
                     latest_tracks,
-                    self.counting_line,
                     session_counts,
-                    recently_crossed,
                 )
 
                 # 3. High-speed JPEG encoding (Quality 65 for low latency and smooth frame delivery)
