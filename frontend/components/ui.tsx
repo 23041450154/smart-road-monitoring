@@ -3,9 +3,18 @@ import type { TrafficStatus, Trend } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function PageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
-  return <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-    <div><p className="mb-2 text-[10px] font-black uppercase tracking-[.23em] text-[#df5b31]">{eyebrow}</p><h1 className="display text-4xl font-black uppercase leading-none sm:text-5xl">{title}</h1><p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#64726e]">{description}</p></div>{action}
-  </div>;
+  return (
+    <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-7 sm:flex-row sm:items-end">
+      <div className="min-w-0 flex-1">
+        <p className="mb-1.5 text-[10px] font-black uppercase tracking-[.23em] text-[#df5b31]">{eyebrow}</p>
+        <h1 className="display text-2xl font-black uppercase leading-tight tracking-tight sm:text-4xl sm:leading-none lg:text-5xl break-words">
+          {title}
+        </h1>
+        <p className="mt-2 max-w-2xl text-xs sm:text-sm leading-relaxed text-[#64726e]">{description}</p>
+      </div>
+      {action && <div className="flex flex-wrap items-center gap-2 shrink-0">{action}</div>}
+    </div>
+  );
 }
 
 const statusStyle: Record<TrafficStatus, string> = {

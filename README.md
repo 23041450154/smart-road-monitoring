@@ -198,14 +198,24 @@ LLM_MODEL=...
 
 Jika konfigurasi kosong atau request gagal, formatter kembali ke template. Model bahasa tidak bisa menentukan nilai congestion.
 
-## Remote n8n + WhatsApp-ready outbox
+## Remote n8n + Telegram / WhatsApp Automation
 
-1. Draft **Smart Road - Commute Briefing (WhatsApp Ready)** sudah dibuat di n8n remote. Jika perlu membuat salinan, impor `n8n/workflows/commute-briefing-whatsapp.json`.
-2. Atur environment server sesuai `n8n/.env.remote.example`.
-3. `BACKEND_API_URL` harus menunjuk ke FastAPI yang dapat diakses dari server n8n; `localhost:8000` pada server remote bukan backend laptop ini.
-4. Sambungkan provider WhatsApp dan pemetaan nomor penerima nanti, uji dengan nomor sandbox, lalu publish workflow.
+Workflow otomasi tersedia dalam dua pilihan di folder `n8n/workflows/`:
+1. **Telegram Automation (`n8n/workflows/commute-briefing-telegram.json`):**
+   - Schedule trigger setiap menit (timezone `Asia/Jakarta`).
+   - Mengambil rute commute aktif dari FastAPI.
+   - Memfilter rute yang due (`commute_to_work` jam 06:45, `commute_home` jam 16:45, atau custom `notification_time`).
+   - Meminta briefing perjalanan deterministik dari `/api/routes/{id}/briefing`.
+   - Mengirim notifikasi format Markdown ke bot Telegram melalui variable environment `TELEGRAM_BOT_TOKEN` dan `TELEGRAM_CHAT_ID` (tanpa hardcoded secret).
+2. **WhatsApp Ready Outbox (`n8n/workflows/commute-briefing-whatsapp.json`):**
+   - Alur serupa dengan node akhir outbox siap dihubungkan ke provider WhatsApp (Twilio/WABA). Panduan: [n8n remote dan WhatsApp](docs/n8n-whatsapp.md).
 
-Workflow berjalan setiap menit, memilih rute aktif sesuai `notification_time` atau fallback 06:45/16:45, memanggil briefing FastAPI, lalu berhenti di payload outbox. `recipient_phone` masih kosong dan `ready_to_send=false`, sehingga belum ada pesan yang dikirim. Panduan lengkap: [n8n remote dan WhatsApp](docs/n8n-whatsapp.md).
+Dokumentasi audit dan verifikasi:
+- Integrasi Peta Terpadu: [`docs/MAP_INTEGRATION.md`](docs/MAP_INTEGRATION.md)
+- Audit kelanjutan: [`docs/ANTIGRAVITY_CONTINUATION_AUDIT.md`](docs/ANTIGRAVITY_CONTINUATION_AUDIT.md)
+- Verifikasi CCTV Palembang: [`docs/PALEMBANG_CCTV_DISCOVERY.md`](docs/PALEMBANG_CCTV_DISCOVERY.md)
+- Laporan uji end-to-end: [`docs/END_TO_END_TEST.md`](docs/END_TO_END_TEST.md)
+
 
 ## Testing dan quality checks
 

@@ -52,20 +52,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       {open && <button className="fixed inset-0 z-[1000] bg-black/35 lg:hidden" onClick={() => setOpen(false)} aria-label="Tutup menu" />}
       <div className="min-w-0 lg:col-start-2">
-        <header className="sticky top-0 z-[900] flex h-16 items-center justify-between border-b border-black/7 bg-[#f4f3ed]/85 px-4 backdrop-blur-xl sm:px-7 lg:px-9">
-          <button className="grid size-10 place-items-center rounded-xl border border-black/10 bg-white lg:hidden" onClick={() => setOpen(true)} aria-label="Buka menu"><Menu size={20} /></button>
+        <header className="sticky top-0 z-[900] flex h-14 sm:h-16 items-center justify-between border-b border-black/7 bg-[#f4f3ed]/85 px-3.5 backdrop-blur-xl sm:px-7 lg:px-9">
+          <div className="flex items-center gap-3">
+            <button className="grid size-9 sm:size-10 place-items-center rounded-xl border border-black/10 bg-white shadow-sm lg:hidden" onClick={() => setOpen(true)} aria-label="Buka menu"><Menu size={18} /></button>
+            <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
+              <span className="grid size-8 place-items-center rounded-lg bg-[#c9f260] text-xs font-black text-[#10201d]">L</span>
+              <span className="font-black text-sm tracking-tight text-[#10201d]">LAJU</span>
+            </Link>
+          </div>
           <div className="hidden items-center gap-2 text-xs font-semibold text-[#64726e] lg:flex"><span className="size-2 rounded-full bg-emerald-500" />Sistem operasional</div>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2.5 sm:gap-3">
             <span className="hidden text-right sm:block"><strong className="block text-xs">Operator Demo</strong><small className="text-[10px] text-[#64726e]">Asia/Jakarta</small></span>
-            <span className="grid size-9 place-items-center rounded-full bg-[#ff7849] text-xs font-black text-white">OD</span>
+            <span className="grid size-8 sm:size-9 place-items-center rounded-full bg-[#ff7849] text-xs font-black text-white shadow-sm">OD</span>
           </div>
         </header>
-        <main className="mx-auto max-w-[1500px] p-4 pb-24 sm:p-7 lg:p-9">{children}</main>
+        <main className="mx-auto max-w-[1500px] p-3.5 pb-28 sm:p-7 lg:p-9">{children}</main>
       </div>
-      <nav className="fixed inset-x-3 bottom-3 z-[950] flex justify-around rounded-2xl border border-white/10 bg-[#102c27]/95 p-2 text-white shadow-2xl backdrop-blur-xl lg:hidden">
-        {nav.slice(0, 5).map((item) => {
+      <nav className="fixed inset-x-2 bottom-2 z-[950] grid grid-cols-6 gap-0.5 rounded-2xl border border-white/10 bg-[#102c27]/95 p-1 text-white shadow-2xl backdrop-blur-xl lg:hidden">
+        {nav.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return <Link key={item.href} href={item.href} className={cn("grid min-w-12 place-items-center gap-1 rounded-xl p-2 text-[9px] font-bold", active && "bg-[#c9f260] text-[#10201d]")}><item.icon size={17} /><span>{item.label.split(" ")[0]}</span></Link>;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 rounded-xl py-1.5 px-0.5 text-[8px] font-bold transition",
+                active ? "bg-[#c9f260] text-[#10201d]" : "text-white/65 hover:text-white"
+              )}
+            >
+              <item.icon size={16} strokeWidth={active ? 2.5 : 2} />
+              <span className="truncate max-w-full">{item.label.split(" ")[0]}</span>
+            </Link>
+          );
         })}
       </nav>
     </div>

@@ -64,11 +64,12 @@ export interface Pothole {
   longitude: number;
   road_name: string | null;
   confidence: number;
-  severity: "low" | "medium" | "high";
+  severity: "unknown" | "low" | "medium" | "high";
   image_path: string | null;
   detected_at: string;
   status: "active" | "repaired" | "unverified";
 }
+
 
 export interface Route {
   id: number;
@@ -83,6 +84,11 @@ export interface Route {
   notification_time: string | null;
   is_active: boolean;
   created_at: string;
+}
+
+export interface RouteTraffic {
+  route: Route;
+  cameras: TrafficCurrent[];
 }
 
 export interface Briefing {

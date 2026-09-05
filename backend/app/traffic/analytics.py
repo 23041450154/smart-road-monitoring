@@ -58,6 +58,25 @@ def camera_metrics(db: Session, camera: Camera, now: datetime | None = None) -> 
             .order_by(TrafficSnapshot.timestamp.desc())
         )
     )
+    if not snapshots:
+        latest_snap = db.scalar(
+            select(TrafficSnapshot)
+            .where(TrafficSnapshot.camera_id == camera.id)
+            .order_by(TrafficSnapshot.timestamp.desc())
+            .limit(1)
+        )
+        if latest_snap is not None:
+            now = _aware(latest_snap.timestamp)
+            snapshots = list(
+                db.scalars(
+                    select(TrafficSnapshot)
+                    .where(
+                        TrafficSnapshot.camera_id == camera.id,
+                        TrafficSnapshot.timestamp >= now - timedelta(minutes=20),
+                    )
+                    .order_by(TrafficSnapshot.timestamp.desc())
+                )
+            )
     recent_5 = [s for s in snapshots if _aware(s.timestamp) >= now - timedelta(minutes=5)]
     recent_15 = [s for s in snapshots if _aware(s.timestamp) >= now - timedelta(minutes=15)]
     previous_5 = [

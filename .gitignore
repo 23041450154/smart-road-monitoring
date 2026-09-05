@@ -7,6 +7,8 @@ __pycache__/
 .mypy_cache/
 backend/test.db
 backend/*.db
+*.db
+
 frontend/node_modules/
 frontend/.next/
 frontend/out/
@@ -32,5 +34,6 @@ predictions/
 *.pt
 *.onnx
 *.engine
+*_openvino_model/
 *.mp4
 .DS_Store
