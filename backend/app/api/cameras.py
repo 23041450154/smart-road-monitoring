@@ -125,8 +125,23 @@ def _annotate_frame(
     frame,
     tracks: list[Track],
     counts: Counter[str],
+    is_fallback: bool = False,
 ) -> None:
     h, w = frame.shape[:2]
+
+    # Offline banner if camera feed fell back to simulation sample
+    if is_fallback:
+        cv2.rectangle(frame, (0, 0), (w, 22), (20, 20, 160), -1)
+        cv2.putText(
+            frame,
+            "CCTV PEMKOT SEDANG OFFLINE - MEMUTAR VIDEO SIMULASI",
+            (10, 15),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.38,
+            (255, 255, 255),
+            1,
+            cv2.LINE_AA,
+        )
 
     # 1. Draw vehicle bounding boxes and labels
     colors = {
@@ -218,6 +233,7 @@ class ThreadedCameraReader:
         self.target_size = target_size
         self.frame = None
         self.frame_seq: int = 0
+        self.is_fallback: bool = False
         self.running = True
         self.lock = threading.Lock()
         self._proc: subprocess.Popen | None = None
@@ -249,6 +265,7 @@ class ThreadedCameraReader:
         w, h = self.target_size
         frame_bytes = w * h * 3
         reconnect_delay = 1.0
+        failed_attempts = 0
 
         while self.running:
             cmd = [
@@ -273,14 +290,25 @@ class ThreadedCameraReader:
                 )
                 self._proc = proc
             except Exception:
+                failed_attempts += 1
+                if failed_attempts >= 3 and not self.is_fallback:
+                    sample_path = PROJECT_ROOT / "vision" / "samples" / "traffic.mp4"
+                    if sample_path.exists():
+                        self.source = str(sample_path)
+                        self.is_live = False
+                        self.is_fallback = True
+                        return self._opencv_loop()
                 time.sleep(reconnect_delay)
                 continue
 
+            got_any_frame = False
             try:
                 while self.running and proc.poll() is None:
                     raw = self._read_exact(proc.stdout, frame_bytes)
                     if not raw:
                         break
+                    got_any_frame = True
+                    failed_attempts = 0
                     f = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
                     with self.lock:
                         self.frame = f
@@ -302,6 +330,16 @@ class ThreadedCameraReader:
                     except Exception:
                         pass
                 self._proc = None
+
+            if not got_any_frame:
+                failed_attempts += 1
+                if failed_attempts >= 3 and not self.is_fallback:
+                    sample_path = PROJECT_ROOT / "vision" / "samples" / "traffic.mp4"
+                    if sample_path.exists():
+                        self.source = str(sample_path)
+                        self.is_live = False
+                        self.is_fallback = True
+                        return self._opencv_loop()
 
             if self.running:
                 time.sleep(reconnect_delay)
@@ -519,6 +557,7 @@ class CameraStreamWorker:
                     frame_small,
                     latest_tracks,
                     session_counts,
+                    is_fallback=reader.is_fallback,
                 )
 
                 # 3. High-speed JPEG encoding (Quality 65 for low latency and smooth frame delivery)
