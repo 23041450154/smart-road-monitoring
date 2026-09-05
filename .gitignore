@@ -8,6 +8,8 @@ __pycache__/
 backend/test.db
 backend/*.db
 *.db
+*.db-shm
+*.db-wal
 
 frontend/node_modules/
 frontend/.next/
