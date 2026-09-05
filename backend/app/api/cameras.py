@@ -13,6 +13,7 @@ from pathlib import Path
 os.environ["OMP_NUM_THREADS"] = "2"
 os.environ["OPENVINO_NUM_THREADS"] = "2"
 os.environ["MKL_NUM_THREADS"] = "2"
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;5000000"
 try:
     import torch
 
@@ -171,42 +172,52 @@ def _annotate_frame(
         "truck": (245, 130, 48),      # Deep Sky Blue / Teal
     }
     for track in tracks:
-        left, top, right, bottom = map(int, track.bounding_box)
-        left = max(0, min(w - 1, left))
-        top = max(0, min(h - 1, top))
-        right = max(0, min(w - 1, right))
-        bottom = max(0, min(h - 1, bottom))
-        color = colors.get(track.vehicle_type, (48, 209, 88))
-        cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
+        try:
+            b = track.bounding_box
+            if not b or len(b) < 4:
+                continue
+            left, top, right, bottom = [
+                int(x) if math.isfinite(x) else 0 for x in b[:4]
+            ]
+            left = max(0, min(w - 1, left))
+            top = max(0, min(h - 1, top))
+            right = max(0, min(w - 1, right))
+            bottom = max(0, min(h - 1, bottom))
+            if right <= left or bottom <= top:
+                continue
+            color = colors.get(track.vehicle_type, (48, 209, 88))
+            cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
 
-        vehicle_label = {
-            "car": "MOBIL",
-            "motorcycle": "MOTOR",
-            "bus": "BUS",
-            "truck": "TRUK",
-        }.get(track.vehicle_type, track.vehicle_type.upper())
-        tag = f"{vehicle_label} #{track.tracker_id.replace('vehicle_', '')}"
-        (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
-        tag_y1 = top - th - 6 if top - th - 6 >= 0 else top
-        tag_y2 = top if top - th - 6 >= 0 else top + th + 6
-        text_y = max(th + 2, top - 4) if top - th - 6 >= 0 else top + th + 2
-        cv2.rectangle(
-            frame,
-            (left, tag_y1),
-            (left + tw + 8, tag_y2),
-            color,
-            -1,
-        )
-        cv2.putText(
-            frame,
-            tag,
-            (left + 4, text_y),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.42,
-            (16, 24, 20),
-            1,
-            cv2.LINE_AA,
-        )
+            vehicle_label = {
+                "car": "MOBIL",
+                "motorcycle": "MOTOR",
+                "bus": "BUS",
+                "truck": "TRUK",
+            }.get(track.vehicle_type, track.vehicle_type.upper())
+            tag = f"{vehicle_label} #{track.tracker_id.replace('vehicle_', '')}"
+            (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, 0.42, 1)
+            tag_y1 = top - th - 6 if top - th - 6 >= 0 else top
+            tag_y2 = top if top - th - 6 >= 0 else top + th + 6
+            text_y = max(th + 2, top - 4) if top - th - 6 >= 0 else top + th + 2
+            cv2.rectangle(
+                frame,
+                (left, tag_y1),
+                (left + tw + 8, tag_y2),
+                color,
+                -1,
+            )
+            cv2.putText(
+                frame,
+                tag,
+                (left + 4, text_y),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.42,
+                (16, 24, 20),
+                1,
+                cv2.LINE_AA,
+            )
+        except Exception:
+            continue
 
     # 3. HUD footer bar
     total = sum(counts.values())
@@ -229,52 +240,66 @@ def _annotate_frame(
 
 
 class ThreadedCameraReader:
-    """Non-blocking background video capture reader for smooth live streaming."""
+    """Bulletproof non-blocking background video capture reader for smooth live streaming."""
 
     def __init__(self, source: str, is_live: bool = True) -> None:
         self.source = source
         self.is_live = is_live
-        self.cap: cv2.VideoCapture | None = None
         self.frame = None
         self.running = True
         self.lock = threading.Lock()
-        self.thread = threading.Thread(target=self._reader_loop, daemon=True)
+        self.thread = threading.Thread(
+            target=self._reader_loop,
+            daemon=True,
+            name=f"Reader-{hash(source) % 10000}",
+        )
         self.thread.start()
 
     def _reader_loop(self) -> None:
+        cap = None
+        reconnect_delay = 0.5
         while self.running:
-            if self.cap is None or not self.cap.isOpened():
+            if cap is None or not cap.isOpened():
                 try:
-                    cap = cv2.VideoCapture(self.source)
-                    if self.is_live:
-                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG)
                     if not cap.isOpened():
-                        time.sleep(0.5)
+                        time.sleep(reconnect_delay)
                         continue
-                    self.cap = cap
                 except Exception:
-                    time.sleep(0.5)
+                    time.sleep(reconnect_delay)
                     continue
 
-            ok, f = self.cap.read()
-            if ok and f is not None:
+            try:
+                ok, f = cap.read()
+            except Exception:
+                ok = False
+                f = None
+
+            if ok and f is not None and f.size > 0:
                 with self.lock:
                     self.frame = f
                 if not self.is_live:
                     time.sleep(0.033)
                 else:
-                    time.sleep(0.015)
+                    time.sleep(0.012)
             else:
-                if self.is_live:
+                if cap is not None:
                     try:
-                        self.cap.release()
+                        cap.release()
                     except Exception:
                         pass
-                    self.cap = None
-                    time.sleep(0.5)
+                    cap = None
+                if self.is_live:
+                    time.sleep(reconnect_delay)
                 else:
-                    self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                     time.sleep(0.01)
+
+        # Cleanup: cap is strictly released on this same thread
+        if cap is not None:
+            try:
+                cap.release()
+            except Exception:
+                pass
 
     def read(self):
         with self.lock:
@@ -284,13 +309,8 @@ class ThreadedCameraReader:
 
     def stop(self) -> None:
         self.running = False
-        with self.lock:
-            if self.cap is not None:
-                try:
-                    self.cap.release()
-                except Exception:
-                    pass
-                self.cap = None
+        if self.thread and self.thread.is_alive() and threading.current_thread() != self.thread:
+            self.thread.join(timeout=0.6)
 
 
 class CameraStreamWorker:
@@ -332,6 +352,14 @@ class CameraStreamWorker:
         with self.lock:
             self._clients = max(0, self._clients - 1)
             self._last_client_seen = time.monotonic()
+
+    def is_healthy(self) -> bool:
+        with self.lock:
+            if not self.running:
+                return False
+            if self.thread is None or not self.thread.is_alive():
+                return False
+            return True
 
     def _worker_loop(self) -> None:
         is_live = self.video_source.startswith("http://") or self.video_source.startswith("https://")
@@ -491,7 +519,7 @@ class CameraStreamHub:
     ) -> CameraStreamWorker:
         with self._workers_lock:
             worker = self._workers.get(camera_id)
-            if worker is None:
+            if worker is None or not worker.is_healthy():
                 worker = CameraStreamWorker(
                     camera_id=camera_id,
                     camera_name=camera_name,

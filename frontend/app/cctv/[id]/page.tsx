@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowLeft, Bike, Bus, Car, Clock3, Radio, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -14,6 +15,7 @@ import { dateTime } from "@/lib/utils";
 
 export default function CameraDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [streamKey, setStreamKey] = useState(0);
   const { data: camera, error } = useSWR<Camera>(`/api/cameras/${id}`, fetcher);
   const { data: current } = useSWR<TrafficCurrent>(`/api/cameras/${id}/traffic/current`, fetcher, { refreshInterval: 10_000 });
   const { data: history } = useSWR<Snapshot[]>(`/api/cameras/${id}/traffic/history?hours=24`, fetcher, { refreshInterval: 60_000 });
@@ -37,9 +39,13 @@ export default function CameraDetailPage() {
           {/* Live Video Stream with Real YOLO Annotations & Tracking from Backend */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`${API_URL}/api/cameras/${camera.id}/stream/video`}
+            key={streamKey}
+            src={`${API_URL}/api/cameras/${camera.id}/stream/video?v=${streamKey}`}
             alt={`Live stream ${camera.name}`}
             className="h-full w-full object-cover"
+            onError={() => {
+              setTimeout(() => setStreamKey((k) => k + 1), 1200);
+            }}
           />
           <p className="pointer-events-none absolute bottom-8 left-3 rounded bg-black/60 px-2 py-1 text-[9px] text-white/80">
             {camera.is_demo ? "Feed demo aktif · YOLOv11 & ByteTrack real-time" : "Live Stream Diskominfo Palembang · YOLOv11 & ByteTrack real-time"}
