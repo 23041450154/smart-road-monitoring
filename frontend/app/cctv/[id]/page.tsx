@@ -39,12 +39,11 @@ export default function CameraDetailPage() {
           {/* Live Video Stream with Real YOLO Annotations & Tracking from Backend */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            key={streamKey}
             src={`${API_URL}/api/cameras/${camera.id}/stream/video?v=${streamKey}`}
             alt={`Live stream ${camera.name}`}
             className="h-full w-full object-cover"
             onError={() => {
-              setTimeout(() => setStreamKey((k) => k + 1), 1200);
+              setTimeout(() => setStreamKey((k) => k + 1), 1000);
             }}
           />
           <p className="pointer-events-none absolute bottom-8 left-3 rounded bg-black/60 px-2 py-1 text-[9px] text-white/80">

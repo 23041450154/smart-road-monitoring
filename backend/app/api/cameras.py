@@ -234,6 +234,16 @@ class ThreadedCameraReader:
         else:
             self._opencv_loop()
 
+    @staticmethod
+    def _read_exact(stream, n: int) -> bytes | None:
+        buf = bytearray()
+        while len(buf) < n:
+            chunk = stream.read(n - len(buf))
+            if not chunk:
+                return None
+            buf.extend(chunk)
+        return bytes(buf)
+
     def _ffmpeg_loop(self) -> None:
         w, h = self.target_size
         frame_bytes = w * h * 3
@@ -266,13 +276,12 @@ class ThreadedCameraReader:
 
             try:
                 while self.running and proc.poll() is None:
-                    raw = proc.stdout.read(frame_bytes)
-                    if len(raw) != frame_bytes:
+                    raw = self._read_exact(proc.stdout, frame_bytes)
+                    if not raw:
                         break
                     f = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
                     with self.lock:
                         self.frame = f
-                    time.sleep(0.010)
             except Exception:
                 pass
             finally:
@@ -550,7 +559,7 @@ class CameraStreamHub:
             return worker
 
 
-async def _generate_video_stream(camera: Camera, video_source: str, request: Request):
+async def _generate_video_stream(camera: Camera, video_source: str):
     exclusion_zones = CAMERA_EXCLUSION_ZONES.get(camera.id, [])
     if not exclusion_zones and camera.name and "masjid agung" in camera.name.lower():
         exclusion_zones = CAMERA_EXCLUSION_ZONES.get(4, [])
@@ -566,28 +575,28 @@ async def _generate_video_stream(camera: Camera, video_source: str, request: Req
     )
     worker.add_client()
     last_sent_frame_id = -1
-    loop = asyncio.get_running_loop()
-
-    def wait_for_frame():
-        with worker.condition:
-            if worker.frame_id == last_sent_frame_id or worker.latest_jpeg is None:
-                worker.condition.wait(timeout=0.08)
-            return worker.frame_id, worker.latest_jpeg
+    last_sent_time = 0.0
 
     try:
         while True:
-            if await request.is_disconnected():
-                break
+            now = time.monotonic()
+            current_fid = worker.frame_id
+            latest_bytes = worker.latest_jpeg
 
-            fid, frame_bytes = await loop.run_in_executor(None, wait_for_frame)
-            if frame_bytes is not None and fid != last_sent_frame_id:
-                last_sent_frame_id = fid
+            # Yield frame if new detection is ready, OR every 150ms as keep-alive heartbeat
+            # so the client browser never experiences stalled connections or image errors.
+            if latest_bytes is not None and (current_fid != last_sent_frame_id or (now - last_sent_time >= 0.15)):
+                last_sent_frame_id = current_fid
+                last_sent_time = now
                 yield (
                     b"--frame\r\n"
-                    b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
+                    b"Content-Type: image/jpeg\r\n"
+                    + f"Content-Length: {len(latest_bytes)}\r\n\r\n".encode("ascii")
+                    + latest_bytes
+                    + b"\r\n"
                 )
-            else:
-                await asyncio.sleep(0.01)
+
+            await asyncio.sleep(0.025)
     finally:
         worker.remove_client()
 
@@ -604,8 +613,14 @@ async def stream_video(camera_id: int, request: Request, db: Session = Depends(g
             raise HTTPException(status_code=404, detail="Video sample not found")
         video_source = str(video_path)
     return StreamingResponse(
-        _generate_video_stream(camera, video_source, request),
+        _generate_video_stream(camera, video_source),
         media_type="multipart/x-mixed-replace; boundary=frame",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, pre-check=0, post-check=0, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 
