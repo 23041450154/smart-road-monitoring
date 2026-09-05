@@ -91,8 +91,84 @@ def _point_in_polygon(x: float, y: float, polygon: list[tuple[float, float]]) ->
     return inside
 
 
+def _compatible_classes(type1: str, type2: str) -> bool:
+    """Check if two vehicle classes are compatible for tracking identity."""
+    if type1 == type2:
+        return True
+    four_wheelers = {"car", "truck", "bus"}
+    return type1 in four_wheelers and type2 in four_wheelers
+
+
+def _calculate_match_cost(
+    det_box: list[float],
+    det_type: str,
+    track_info: dict[str, Any],
+    now: float,
+) -> float:
+    """Calculates association cost [0.0, 1.0] between a detection and an existing track.
+    Returns float('inf') if physically incompatible."""
+    if not _compatible_classes(det_type, track_info.get("type", "")):
+        return float("inf")
+
+    dt = max(0.01, now - track_info.get("last_seen", now))
+    if dt > 2.5:
+        return float("inf")
+
+    det_cx = (det_box[0] + det_box[2]) / 2.0
+    det_cy = (det_box[1] + det_box[3]) / 2.0
+    track_cx, track_cy = track_info.get("center", (det_cx, det_cy))
+    vx_sec, vy_sec = track_info.get("velocity_sec", (0.0, 0.0))
+
+    # Motion-compensated predicted position
+    pred_cx = track_cx + vx_sec * dt
+    pred_cy = track_cy + vy_sec * dt
+
+    dist_pred = math.hypot(det_cx - pred_cx, det_cy - pred_cy)
+    dist_raw = math.hypot(det_cx - track_cx, det_cy - track_cy)
+    dist_eff = min(dist_pred, dist_raw)
+
+    # Dynamic search radius based on speed and time delta
+    speed = math.hypot(vx_sec, vy_sec)
+    max_radius = max(65.0, min(240.0, speed * dt * 1.5 + 45.0))
+
+    if dist_eff > max_radius:
+        return float("inf")
+
+    # Direction vector consistency (for moving vehicles)
+    if speed > 25.0:
+        move_dx = det_cx - track_cx
+        move_dy = det_cy - track_cy
+        move_mag = math.hypot(move_dx, move_dy)
+        if move_mag > 15.0:
+            cos_angle = (move_dx * vx_sec + move_dy * vy_sec) / (move_mag * speed)
+            if cos_angle < -0.25:  # Sharp reverse movement is physically impossible
+                return float("inf")
+
+    # Bounding box area ratio check
+    det_area = max(1.0, (det_box[2] - det_box[0]) * (det_box[3] - det_box[1]))
+    tr_box = track_info.get("box", det_box)
+    tr_area = max(1.0, (tr_box[2] - tr_box[0]) * (tr_box[3] - tr_box[1]))
+    area_ratio = min(det_area, tr_area) / max(det_area, tr_area)
+    if area_ratio < 0.25:
+        return float("inf")
+
+    # IoU overlap bonus
+    iou = _box_iou(det_box, tr_box)
+    if iou > 0.40:
+        return 0.05
+
+    # Cost normalized between 0.0 and 1.0
+    dist_cost = dist_eff / max_radius
+    size_cost = 1.0 - area_ratio
+    type_cost = 0.0 if det_type == track_info.get("type") else 0.15
+    iou_bonus = iou * 0.40
+
+    cost = dist_cost * 0.65 + size_cost * 0.20 + type_cost - iou_bonus
+    return max(0.0, cost)
+
+
 class YoloByteTrackProcessor:
-    """Ultralytics YOLO detection with ByteTrack tracking and spatial continuity fallback."""
+    """Ultralytics YOLO detection with ByteTrack tracking and two-phase anti-ID-switch trajectory re-identification."""
 
     def __init__(
         self,
@@ -126,9 +202,15 @@ class YoloByteTrackProcessor:
         self.device = device
         self.exclusion_zones = exclusion_zones or []
         self._next_id: int = 1
-        # Map tracker_id -> {"box": list, "type": str, "last_seen": float}
+        # Map canonical tracker_id -> dict state
         self._active_tracks: dict[str, dict[str, Any]] = {}
-        self._max_lost_seconds: float = 1.5
+        # Persistent mapping from ByteTrack native integer ID -> canonical track ID (e.g. 250 -> "vehicle_247")
+        self._bytetrack_remap: dict[int, str] = {}
+        self._reid_memory_seconds: float = 2.5
+
+        # Path to custom tracker config
+        custom_tracker = Path(__file__).parent / "bytetrack_custom.yaml"
+        self._tracker_cfg = str(custom_tracker) if custom_tracker.exists() else "bytetrack.yaml"
 
     def process(self, frame: Any) -> list[Track]:
         classes = list(VEHICLE_CLASSES.keys())
@@ -136,7 +218,7 @@ class YoloByteTrackProcessor:
             result = self.model.track(
                 frame,
                 persist=True,
-                tracker="bytetrack.yaml",
+                tracker=self._tracker_cfg,
                 conf=self.confidence,
                 classes=classes,
                 device=self.device,
@@ -151,12 +233,14 @@ class YoloByteTrackProcessor:
                 verbose=False,
             )[0]
 
+        now = time.monotonic()
         if not hasattr(result, "boxes") or len(result.boxes) == 0:
-            now = time.monotonic()
+            for tid, tinfo in self._active_tracks.items():
+                tinfo["missed_count"] = tinfo.get("missed_count", 0) + 1
             self._active_tracks = {
                 tid: info
                 for tid, info in self._active_tracks.items()
-                if now - info["last_seen"] < self._max_lost_seconds
+                if now - info["last_seen"] < self._reid_memory_seconds
             }
             return []
 
@@ -192,100 +276,150 @@ class YoloByteTrackProcessor:
         # Apply NMS to filter redundant overlapping detections
         keep_indices = _nms(raw_boxes, raw_confs, raw_clss, iou_thresh=0.50)
 
-        now = time.monotonic()
+        det_boxes = [raw_boxes[i] for i in keep_indices]
+        det_confs = [raw_confs[i] for i in keep_indices]
+        det_types = [VEHICLE_CLASSES.get(raw_clss[i], "car") for i in keep_indices]
+        det_nids = [native_ids[i] for i in keep_indices]
+        num_dets = len(det_boxes)
+
+        assigned_cids: list[str | None] = [None] * num_dets
+        claimed_tracks: set[str] = set()
+
+        # Phase 1: Direct Mappings from ByteTrack (or existing mapped canonical IDs)
+        for i in range(num_dets):
+            nid = det_nids[i]
+            if nid is None:
+                continue
+
+            mapped_cid = self._bytetrack_remap.get(nid)
+            if mapped_cid is None:
+                direct_cid = f"vehicle_{nid}"
+                if direct_cid in self._active_tracks:
+                    mapped_cid = direct_cid
+
+            if mapped_cid is not None and mapped_cid in self._active_tracks and mapped_cid not in claimed_tracks:
+                cost = _calculate_match_cost(det_boxes[i], det_types[i], self._active_tracks[mapped_cid], now)
+                if cost <= 0.70:
+                    assigned_cids[i] = mapped_cid
+                    claimed_tracks.add(mapped_cid)
+                    self._bytetrack_remap[nid] = mapped_cid
+
+        # Phase 2: Trajectory & Spatial Re-Identification for Unmatched Detections
+        # (Stitches fast-moving vehicles whose ByteTrack track dropped or switched ID)
+        unmatched_indices = [i for i in range(num_dets) if assigned_cids[i] is None]
+        available_tracks = [tid for tid in self._active_tracks if tid not in claimed_tracks]
+
+        if unmatched_indices and available_tracks:
+            candidate_pairs: list[tuple[float, int, str]] = []
+            for i in unmatched_indices:
+                for tid in available_tracks:
+                    cost = _calculate_match_cost(det_boxes[i], det_types[i], self._active_tracks[tid], now)
+                    if cost <= 0.65:
+                        candidate_pairs.append((cost, i, tid))
+
+            # Greedy Hungarian-style assignment: lowest cost first
+            candidate_pairs.sort(key=lambda x: x[0])
+            for cost, i, tid in candidate_pairs:
+                if assigned_cids[i] is None and tid not in claimed_tracks:
+                    assigned_cids[i] = tid
+                    claimed_tracks.add(tid)
+                    nid = det_nids[i]
+                    if nid is not None:
+                        # Lock ByteTrack's new ID permanently to this canonical track ID
+                        self._bytetrack_remap[nid] = tid
+
+        # Phase 3: Newly appeared vehicles
+        for i in range(num_dets):
+            if assigned_cids[i] is None:
+                nid = det_nids[i]
+                if nid is not None:
+                    new_id = f"vehicle_{nid}"
+                    self._bytetrack_remap[nid] = new_id
+                else:
+                    new_id = f"vehicle_{self._next_id}"
+                    self._next_id += 1
+                assigned_cids[i] = new_id
+                claimed_tracks.add(new_id)
+
+        # Phase 4: State Update and Velocity Smoothing
         tracks: list[Track] = []
-        matched_active_ids: set[str] = set()
+        for i in range(num_dets):
+            cid = assigned_cids[i]
+            box = [float(x) for x in det_boxes[i]]
+            conf = det_confs[i]
+            vtype = det_types[i]
+            new_cx = (box[0] + box[2]) / 2.0
+            new_cy = (box[1] + box[3]) / 2.0
 
-        for idx in keep_indices:
-            box = [float(x) for x in raw_boxes[idx]]
-            conf = raw_confs[idx]
-            cls_id = raw_clss[idx]
-            vtype = VEHICLE_CLASSES.get(cls_id, "car")
-            assigned_id: str | None = None
+            prev_info = self._active_tracks.get(cid)
+            if prev_info is not None:
+                dt = max(0.02, now - prev_info["last_seen"])
+                old_cx, old_cy = prev_info["center"]
+                raw_vx_sec = (new_cx - old_cx) / dt
+                raw_vy_sec = (new_cy - old_cy) / dt
 
-            # Case A: ByteTrack provided a persistent ID
-            if native_ids[idx] is not None:
-                assigned_id = f"vehicle_{native_ids[idx]}"
+                old_vx_sec, old_vy_sec = prev_info.get("velocity_sec", (0.0, 0.0))
+                alpha = 0.65
+                vx_sec = alpha * raw_vx_sec + (1.0 - alpha) * old_vx_sec
+                vy_sec = alpha * raw_vy_sec + (1.0 - alpha) * old_vy_sec
+                vx_step = vx_sec * 0.10
+                vy_step = vy_sec * 0.10
+            else:
+                vx_sec, vy_sec = 0.0, 0.0
+                vx_step, vy_step = 0.0, 0.0
 
-            # Case B: Match against internal active track history
-            if assigned_id is None:
-                best_match_id = None
-                best_iou = 0.0
-                best_dist = float("inf")
-
-                for tid, tinfo in self._active_tracks.items():
-                    if tid in matched_active_ids:
-                        continue
-                    iou_val = _box_iou(box, tinfo["box"])
-                    dist_val = _center_dist(box, tinfo["box"])
-
-                    if iou_val > 0.20 and iou_val > best_iou:
-                        best_iou = iou_val
-                        best_match_id = tid
-                    elif iou_val <= 0.20 and dist_val < 65.0 and dist_val < best_dist:
-                        best_dist = dist_val
-                        best_match_id = tid
-
-                if best_match_id is not None:
-                    assigned_id = best_match_id
-
-            # Case C: Newly appeared vehicle
-            if assigned_id is None:
-                assigned_id = f"vehicle_{self._next_id}"
-                self._next_id += 1
-
-            matched_active_ids.add(assigned_id)
-            prev_info = self._active_tracks.get(assigned_id)
-            vx, vy = 0.0, 0.0
-            if prev_info:
-                old_c = ((prev_info["box"][0] + prev_info["box"][2]) / 2, (prev_info["box"][1] + prev_info["box"][3]) / 2)
-                new_c = ((box[0] + box[2]) / 2, (box[1] + box[3]) / 2)
-                vx = new_c[0] - old_c[0]
-                vy = new_c[1] - old_c[1]
-
-            self._active_tracks[assigned_id] = {
+            self._active_tracks[cid] = {
+                "canonical_id": cid,
                 "box": box,
                 "type": vtype,
                 "conf": conf,
+                "center": (new_cx, new_cy),
+                "velocity_sec": (vx_sec, vy_sec),
+                "velocity": (vx_step, vy_step),
                 "last_seen": now,
-                "velocity": (vx, vy),
                 "missed_count": 0,
             }
 
             tracks.append(
                 Track(
-                    tracker_id=assigned_id,
+                    tracker_id=cid,
                     vehicle_type=vtype,
                     confidence=conf,
                     bounding_box=box,
-                    velocity=(vx, vy),
+                    velocity=(vx_step, vy_step),
                 )
             )
 
-        # Stable track continuity: keep active tracks visible briefly during occlusion without phantom drifting
+        # Phase 5: Display continuity: brief 1-frame hold during occlusion without phantom drifting
         for tid, tinfo in list(self._active_tracks.items()):
-            if tid in matched_active_ids:
+            if tid in claimed_tracks:
                 continue
             missed = tinfo.get("missed_count", 0) + 1
             tinfo["missed_count"] = missed
-            if missed <= 2 and (now - tinfo["last_seen"]) < 0.5:
-                b = tinfo["box"]
+            if missed <= 1 and (now - tinfo["last_seen"]) < 0.25:
                 tracks.append(
                     Track(
                         tracker_id=tid,
                         vehicle_type=tinfo["type"],
                         confidence=max(0.05, tinfo.get("conf", 0.20) * 0.8),
-                        bounding_box=b,
+                        bounding_box=tinfo["box"],
                         velocity=(0.0, 0.0),
                     )
                 )
 
-        # Prune dead tracks older than max lost window
+        # Phase 6: Memory Pruning (retains tracks for up to self._reid_memory_seconds for Re-ID)
         self._active_tracks = {
             tid: info
             for tid, info in self._active_tracks.items()
-            if now - info["last_seen"] < 0.5 and info.get("missed_count", 0) <= 2
+            if now - info["last_seen"] < self._reid_memory_seconds
         }
+        if len(self._bytetrack_remap) > 500:
+            active_cids = set(self._active_tracks.keys())
+            self._bytetrack_remap = {
+                nid: cid
+                for nid, cid in self._bytetrack_remap.items()
+                if cid in active_cids
+            }
 
         return tracks
 
