@@ -253,6 +253,8 @@ class ThreadedCameraReader:
             cmd = [
                 "ffmpeg",
                 "-loglevel", "error",
+                "-fflags", "+nobuffer",
+                "-flags", "+low_delay",
                 "-reconnect", "1",
                 "-reconnect_streamed", "1",
                 "-reconnect_delay_max", "2",
@@ -433,13 +435,13 @@ class CameraStreamWorker:
         latest_tracks: list[Track] = []
         last_frame_time = time.monotonic()
         last_inference_time = 0.0
-        min_inference_interval = 0.070  # ~14 inferences/sec max for CPU balance
+        min_inference_interval = 0.100  # ~10 inferences/sec: balanced CPU & smooth tracking
         frame_interval = 0.038  # ~26 FPS smooth target
 
         try:
             while self.running:
                 with self.lock:
-                    if self._clients <= 0 and (time.monotonic() - self._last_client_seen > 15.0):
+                    if self._clients <= 0 and (time.monotonic() - self._last_client_seen > 3.0):
                         break
 
                 loop_start = time.monotonic()
@@ -559,6 +561,23 @@ class CameraStreamHub:
             return worker
 
 
+def _create_placeholder_jpeg(text: str = "Menghubungkan ke CCTV...") -> bytes:
+    img = np.zeros((360, 640, 3), dtype=np.uint8)
+    img[:] = (18, 24, 20)  # Dark slate background matching UI
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.65
+    thickness = 1
+    (tw, th), _ = cv2.getTextSize(text, font, font_scale, thickness)
+    tx = (640 - tw) // 2
+    ty = (360 + th) // 2
+    cv2.putText(img, text, (tx, ty), font, font_scale, (201, 242, 96), thickness, cv2.LINE_AA)
+    ret, buf = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 70])
+    return buf.tobytes() if ret else b""
+
+
+LOADING_JPEG = _create_placeholder_jpeg("Menghubungkan ke CCTV...")
+
+
 async def _generate_video_stream(camera: Camera, video_source: str):
     exclusion_zones = CAMERA_EXCLUSION_ZONES.get(camera.id, [])
     if not exclusion_zones and camera.name and "masjid agung" in camera.name.lower():
@@ -575,17 +594,27 @@ async def _generate_video_stream(camera: Camera, video_source: str):
     )
     worker.add_client()
     last_sent_frame_id = -1
-    last_sent_time = 0.0
 
     try:
+        # Immediately yield a loading frame within 5ms so the browser connection never times out
+        first_frame = worker.latest_jpeg or LOADING_JPEG
+        yield (
+            b"--frame\r\n"
+            b"Content-Type: image/jpeg\r\n"
+            + f"Content-Length: {len(first_frame)}\r\n\r\n".encode("ascii")
+            + first_frame
+            + b"\r\n"
+        )
+        last_sent_time = time.monotonic()
+
         while True:
             now = time.monotonic()
             current_fid = worker.frame_id
-            latest_bytes = worker.latest_jpeg
+            latest_bytes = worker.latest_jpeg or LOADING_JPEG
 
             # Yield frame if new detection is ready, OR every 150ms as keep-alive heartbeat
             # so the client browser never experiences stalled connections or image errors.
-            if latest_bytes is not None and (current_fid != last_sent_frame_id or (now - last_sent_time >= 0.15)):
+            if current_fid != last_sent_frame_id or (now - last_sent_time >= 0.15):
                 last_sent_frame_id = current_fid
                 last_sent_time = now
                 yield (

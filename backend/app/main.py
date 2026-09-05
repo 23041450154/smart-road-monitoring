@@ -20,6 +20,17 @@ async def lifespan(_: FastAPI):
         if settings.demo_mode:
             with SessionLocal() as session:
                 seed_demo(session)
+
+    # Warm up YOLO model asynchronously at startup
+    try:
+        from vision.traffic_worker.tracking import YoloByteTrackProcessor
+
+        model_p = PROJECT_ROOT / "yolo11n.pt"
+        if model_p.exists():
+            YoloByteTrackProcessor(model_path=str(model_p))
+    except Exception:
+        pass
+
     yield
 
 

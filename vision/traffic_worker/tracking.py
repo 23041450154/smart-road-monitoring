@@ -1,10 +1,14 @@
 import math
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from vision.traffic_worker.detection import VEHICLE_CLASSES
+
+_GLOBAL_MODELS: dict[str, Any] = {}
+_MODEL_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -107,10 +111,16 @@ class YoloByteTrackProcessor:
         # Prefer OpenVINO optimized model if available for ~18x CPU acceleration
         p = Path(model_path)
         ov_dir = p.parent / f"{p.stem}_openvino_model"
-        if ov_dir.exists() and (any(ov_dir.glob("*.xml")) or (ov_dir / "metadata.yaml").exists()):
-            self.model = YOLO(str(ov_dir), task="detect")
-        else:
-            self.model = YOLO(model_path)
+        use_ov = ov_dir.exists() and (any(ov_dir.glob("*.xml")) or (ov_dir / "metadata.yaml").exists())
+        model_key = str(ov_dir) if use_ov else str(model_path)
+
+        with _MODEL_LOCK:
+            if model_key not in _GLOBAL_MODELS:
+                if use_ov:
+                    _GLOBAL_MODELS[model_key] = YOLO(str(ov_dir), task="detect")
+                else:
+                    _GLOBAL_MODELS[model_key] = YOLO(model_path)
+            self.model = _GLOBAL_MODELS[model_key]
 
         self.confidence = confidence
         self.device = device
