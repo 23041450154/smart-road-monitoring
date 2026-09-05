@@ -1,6 +1,7 @@
 import math
 import threading
 import time
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -43,13 +44,23 @@ def _center_dist(b1: list[float], b2: list[float]) -> float:
     return math.hypot(c1[0] - c2[0], c1[1] - c2[1])
 
 
+def _same_class_group(cls1: int, cls2: int) -> bool:
+    two_wheelers = {0, 1, 3}  # person rider, bicycle, motorcycle
+    if cls1 in two_wheelers and cls2 in two_wheelers:
+        return True
+    four_wheelers = {2, 5, 7}  # car, bus, truck
+    if cls1 in four_wheelers and cls2 in four_wheelers:
+        return True
+    return cls1 == cls2
+
+
 def _nms(
     boxes: list[list[float]],
     scores: list[float],
     classes: list[int],
     iou_thresh: float = 0.50,
 ) -> list[int]:
-    """Non-Maximum Suppression to remove redundant overlapping candidate boxes."""
+    """Non-Maximum Suppression to remove redundant candidate boxes within the same class group."""
     if not boxes:
         return []
     indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
@@ -60,7 +71,10 @@ def _nms(
         indices = [
             i
             for i in indices
-            if _box_iou(boxes[current], boxes[i]) < iou_thresh
+            if not (
+                _box_iou(boxes[current], boxes[i]) >= iou_thresh
+                and _same_class_group(classes[current], classes[i])
+            )
         ]
     return keep
 
@@ -91,12 +105,18 @@ def _point_in_polygon(x: float, y: float, polygon: list[tuple[float, float]]) ->
     return inside
 
 
-def _compatible_classes(type1: str, type2: str) -> bool:
+def _compatible_classes(type1: str, type2: str, area1: float = 0.0, area2: float = 0.0) -> bool:
     """Check if two vehicle classes are compatible for tracking identity."""
     if type1 == type2:
         return True
     four_wheelers = {"car", "truck", "bus"}
-    return type1 in four_wheelers and type2 in four_wheelers
+    if type1 in four_wheelers and type2 in four_wheelers:
+        return True
+    # In CCTV surveillance, distant or small two-wheelers (area < 1600 px²)
+    # frequently fluctuate in YOLO predictions between 'motorcycle' and 'car'
+    if max(area1, area2) < 1600.0 and ({"motorcycle", "car"} == {type1, type2}):
+        return True
+    return False
 
 
 def _calculate_match_cost(
@@ -107,11 +127,15 @@ def _calculate_match_cost(
 ) -> float:
     """Calculates association cost [0.0, 1.0] between a detection and an existing track.
     Returns float('inf') if physically incompatible."""
-    if not _compatible_classes(det_type, track_info.get("type", "")):
+    det_area = max(1.0, (det_box[2] - det_box[0]) * (det_box[3] - det_box[1]))
+    tr_box = track_info.get("box", det_box)
+    tr_area = max(1.0, (tr_box[2] - tr_box[0]) * (tr_box[3] - tr_box[1]))
+
+    if not _compatible_classes(det_type, track_info.get("type", ""), det_area, tr_area):
         return float("inf")
 
     dt = max(0.01, now - track_info.get("last_seen", now))
-    if dt > 2.5:
+    if dt > 3.0:
         return float("inf")
 
     det_cx = (det_box[0] + det_box[2]) / 2.0
@@ -127,9 +151,16 @@ def _calculate_match_cost(
     dist_raw = math.hypot(det_cx - track_cx, det_cy - track_cy)
     dist_eff = min(dist_pred, dist_raw)
 
-    # Dynamic search radius based on speed and time delta
     speed = math.hypot(vx_sec, vy_sec)
-    max_radius = max(65.0, min(240.0, speed * dt * 1.5 + 45.0))
+    is_motor = (
+        det_type == "motorcycle"
+        or track_info.get("type") == "motorcycle"
+        or min(det_area, tr_area) < 1200.0
+    )
+
+    # Dynamic search radius (generous for nimble/fast motorcycles)
+    base_r = 85.0 if is_motor else 65.0
+    max_radius = max(base_r, min(260.0, speed * dt * 1.8 + base_r * 0.7))
 
     if dist_eff > max_radius:
         return float("inf")
@@ -139,28 +170,28 @@ def _calculate_match_cost(
         move_dx = det_cx - track_cx
         move_dy = det_cy - track_cy
         move_mag = math.hypot(move_dx, move_dy)
-        if move_mag > 15.0:
+        if move_mag > 10.0:
             cos_angle = (move_dx * vx_sec + move_dy * vy_sec) / (move_mag * speed)
-            if cos_angle < -0.25:  # Sharp reverse movement is physically impossible
+            # Motorcycles turn sharply around corners and roundabouts (allow up to ~125 deg)
+            min_cos = -0.55 if is_motor else -0.25
+            if cos_angle < min_cos:
                 return float("inf")
 
     # Bounding box area ratio check
-    det_area = max(1.0, (det_box[2] - det_box[0]) * (det_box[3] - det_box[1]))
-    tr_box = track_info.get("box", det_box)
-    tr_area = max(1.0, (tr_box[2] - tr_box[0]) * (tr_box[3] - tr_box[1]))
     area_ratio = min(det_area, tr_area) / max(det_area, tr_area)
-    if area_ratio < 0.25:
+    min_ratio = 0.10 if is_motor else 0.22
+    if area_ratio < min_ratio:
         return float("inf")
 
     # IoU overlap bonus
     iou = _box_iou(det_box, tr_box)
-    if iou > 0.40:
+    if iou > 0.35:
         return 0.05
 
     # Cost normalized between 0.0 and 1.0
     dist_cost = dist_eff / max_radius
     size_cost = 1.0 - area_ratio
-    type_cost = 0.0 if det_type == track_info.get("type") else 0.15
+    type_cost = 0.0 if det_type == track_info.get("type") else 0.12
     iou_bonus = iou * 0.40
 
     cost = dist_cost * 0.65 + size_cost * 0.20 + type_cost - iou_bonus
@@ -298,8 +329,17 @@ class YoloByteTrackProcessor:
                     mapped_cid = direct_cid
 
             if mapped_cid is not None and mapped_cid in self._active_tracks and mapped_cid not in claimed_tracks:
-                cost = _calculate_match_cost(det_boxes[i], det_types[i], self._active_tracks[mapped_cid], now)
-                if cost <= 0.70:
+                tinfo = self._active_tracks[mapped_cid]
+                # Spatial jump feasibility check for ByteTrack's native tracking
+                det_c = ((det_boxes[i][0] + det_boxes[i][2]) / 2.0, (det_boxes[i][1] + det_boxes[i][3]) / 2.0)
+                raw_dist = math.hypot(det_c[0] - tinfo["center"][0], det_c[1] - tinfo["center"][1])
+                dt = max(0.01, now - tinfo["last_seen"])
+                vx_sec, vy_sec = tinfo.get("velocity_sec", (0.0, 0.0))
+                speed = math.hypot(vx_sec, vy_sec)
+                max_jump = max(110.0, speed * dt * 2.0 + 85.0)
+
+                # ByteTrack's own tracking is accepted if within feasible spatial bounds
+                if raw_dist <= max_jump:
                     assigned_cids[i] = mapped_cid
                     claimed_tracks.add(mapped_cid)
                     self._bytetrack_remap[nid] = mapped_cid
@@ -314,7 +354,7 @@ class YoloByteTrackProcessor:
             for i in unmatched_indices:
                 for tid in available_tracks:
                     cost = _calculate_match_cost(det_boxes[i], det_types[i], self._active_tracks[tid], now)
-                    if cost <= 0.65:
+                    if cost <= 0.72:
                         candidate_pairs.append((cost, i, tid))
 
             # Greedy Hungarian-style assignment: lowest cost first
@@ -341,7 +381,7 @@ class YoloByteTrackProcessor:
                 assigned_cids[i] = new_id
                 claimed_tracks.add(new_id)
 
-        # Phase 4: State Update and Velocity Smoothing
+        # Phase 4: State Update, Velocity Smoothing, and Consensus Class Voting
         tracks: list[Track] = []
         for i in range(num_dets):
             cid = assigned_cids[i]
@@ -364,26 +404,34 @@ class YoloByteTrackProcessor:
                 vy_sec = alpha * raw_vy_sec + (1.0 - alpha) * old_vy_sec
                 vx_step = vx_sec * 0.10
                 vy_step = vy_sec * 0.10
+
+                class_votes = Counter(prev_info.get("class_votes", {}))
             else:
                 vx_sec, vy_sec = 0.0, 0.0
                 vx_step, vy_step = 0.0, 0.0
+                class_votes = Counter()
+
+            class_votes[vtype] += 1
+            # Canonical vehicle type from consensus majority voting across track lifetime
+            canonical_type = class_votes.most_common(1)[0][0]
 
             self._active_tracks[cid] = {
                 "canonical_id": cid,
                 "box": box,
-                "type": vtype,
+                "type": canonical_type,
                 "conf": conf,
                 "center": (new_cx, new_cy),
                 "velocity_sec": (vx_sec, vy_sec),
                 "velocity": (vx_step, vy_step),
                 "last_seen": now,
                 "missed_count": 0,
+                "class_votes": class_votes,
             }
 
             tracks.append(
                 Track(
                     tracker_id=cid,
-                    vehicle_type=vtype,
+                    vehicle_type=canonical_type,
                     confidence=conf,
                     bounding_box=box,
                     velocity=(vx_step, vy_step),
