@@ -68,14 +68,23 @@ def _nms(
     while indices:
         current = indices.pop(0)
         keep.append(current)
-        indices = [
-            i
-            for i in indices
-            if not (
-                _box_iou(boxes[current], boxes[i]) >= iou_thresh
+        curr_box = list(boxes[current])
+        new_indices = []
+        for i in indices:
+            if (
+                _box_iou(curr_box, boxes[i]) >= iou_thresh
                 and _same_class_group(classes[current], classes[i])
-            )
-        ]
+            ):
+                # When rider (0) and motorcycle (3) are both detected on same bike, encompass whole vehicle
+                if {classes[current], classes[i]} == {0, 3} or {classes[current], classes[i]} == {1, 3}:
+                    curr_box[0] = min(curr_box[0], boxes[i][0])
+                    curr_box[1] = min(curr_box[1], boxes[i][1])
+                    curr_box[2] = max(curr_box[2], boxes[i][2])
+                    curr_box[3] = max(curr_box[3], boxes[i][3])
+            else:
+                new_indices.append(i)
+        boxes[current] = curr_box
+        indices = new_indices
     return keep
 
 
@@ -208,7 +217,7 @@ class YoloByteTrackProcessor:
     def __init__(
         self,
         model_path: str,
-        confidence: float = 0.12,
+        confidence: float = 0.07,
         device: str = "cpu",
         exclusion_zones: list[list[tuple[float, float]]] | None = None,
     ) -> None:
@@ -274,7 +283,7 @@ class YoloByteTrackProcessor:
             for tid, tinfo in list(self._active_tracks.items()):
                 missed = tinfo.get("missed_count", 0) + 1
                 tinfo["missed_count"] = missed
-                if missed <= 3 and (now - tinfo["last_seen"]) < 0.45:
+                if missed <= 4 and (now - tinfo["last_seen"]) < 0.60:
                     tracks.append(
                         Track(
                             tracker_id=tid,
@@ -325,7 +334,16 @@ class YoloByteTrackProcessor:
 
         det_boxes = [raw_boxes[i] for i in keep_indices]
         det_confs = [raw_confs[i] for i in keep_indices]
-        det_types = [VEHICLE_CLASSES.get(raw_clss[i], "car") for i in keep_indices]
+        det_types: list[str] = []
+        for i in keep_indices:
+            vtype = VEHICLE_CLASSES.get(raw_clss[i], "car")
+            b = raw_boxes[i]
+            bw = max(1.0, b[2] - b[0])
+            bh = max(1.0, b[3] - b[1])
+            # Narrow vertical bounding boxes in CCTV perspective are physically two-wheelers (motorcycles)
+            if vtype in ("car", "truck") and (bw / bh) < 0.68 and bw < 65:
+                vtype = "motorcycle"
+            det_types.append(vtype)
         det_nids = [native_ids[i] for i in keep_indices]
         num_dets = len(det_boxes)
 
@@ -460,7 +478,7 @@ class YoloByteTrackProcessor:
                 continue
             missed = tinfo.get("missed_count", 0) + 1
             tinfo["missed_count"] = missed
-            if missed <= 3 and (now - tinfo["last_seen"]) < 0.45:
+            if missed <= 4 and (now - tinfo["last_seen"]) < 0.60:
                 tracks.append(
                     Track(
                         tracker_id=tid,
