@@ -217,6 +217,7 @@ class ThreadedCameraReader:
         self.is_live = is_live
         self.target_size = target_size
         self.frame = None
+        self.frame_seq: int = 0
         self.running = True
         self.lock = threading.Lock()
         self._proc: subprocess.Popen | None = None
@@ -253,8 +254,7 @@ class ThreadedCameraReader:
             cmd = [
                 "ffmpeg",
                 "-loglevel", "error",
-                "-fflags", "+nobuffer",
-                "-flags", "+low_delay",
+                "-re",
                 "-reconnect", "1",
                 "-reconnect_streamed", "1",
                 "-reconnect_delay_max", "2",
@@ -269,7 +269,7 @@ class ThreadedCameraReader:
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.DEVNULL,
-                    bufsize=frame_bytes * 2,
+                    bufsize=frame_bytes * 4,
                 )
                 self._proc = proc
             except Exception:
@@ -284,6 +284,7 @@ class ThreadedCameraReader:
                     f = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
                     with self.lock:
                         self.frame = f
+                        self.frame_seq += 1
             except Exception:
                 pass
             finally:
@@ -328,6 +329,7 @@ class ThreadedCameraReader:
             if ok and f is not None and f.size > 0:
                 with self.lock:
                     self.frame = f
+                    self.frame_seq += 1
                 if not self.is_live:
                     time.sleep(0.033)
                 else:
@@ -350,11 +352,11 @@ class ThreadedCameraReader:
             except Exception:
                 pass
 
-    def read(self):
+    def read(self) -> tuple[np.ndarray | None, int]:
         with self.lock:
             if self.frame is not None:
-                return self.frame.copy()
-            return None
+                return self.frame.copy(), self.frame_seq
+            return None, 0
 
     def stop(self) -> None:
         self.running = False
@@ -448,7 +450,7 @@ class CameraStreamWorker:
         last_frame_time = time.monotonic()
         last_inference_time = 0.0
         min_inference_interval = 0.100  # ~10 inferences/sec: balanced CPU & smooth tracking
-        frame_interval = 0.038  # ~26 FPS smooth target
+        last_read_seq = -1
 
         try:
             while self.running:
@@ -457,10 +459,14 @@ class CameraStreamWorker:
                         break
 
                 loop_start = time.monotonic()
-                frame = reader.read()
+                frame, seq = reader.read()
                 if frame is None:
-                    time.sleep(0.015)
+                    time.sleep(0.010)
                     continue
+                if seq == last_read_seq:
+                    time.sleep(0.008)
+                    continue
+                last_read_seq = seq
 
                 h, w = frame.shape[:2]
                 target_w = 640
@@ -523,10 +529,6 @@ class CameraStreamWorker:
                         self.latest_jpeg = frame_bytes
                         self.frame_id += 1
                         self.condition.notify_all()
-
-                elapsed = time.monotonic() - loop_start
-                sleep_time = max(0.005, frame_interval - elapsed)
-                time.sleep(sleep_time)
         finally:
             reader.stop()
             executor.shutdown(wait=False)
