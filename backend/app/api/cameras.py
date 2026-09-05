@@ -1,5 +1,6 @@
 import asyncio
 import math
+import os
 import sys
 import threading
 import time
@@ -7,6 +8,17 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+# Limit CPU threads for deep learning to keep 2 cores free for HLS decoding & streaming
+os.environ["OMP_NUM_THREADS"] = "2"
+os.environ["OPENVINO_NUM_THREADS"] = "2"
+os.environ["MKL_NUM_THREADS"] = "2"
+try:
+    import torch
+
+    torch.set_num_threads(2)
+except Exception:
+    pass
 
 import cv2
 from fastapi import (
@@ -118,13 +130,32 @@ def _annotate_frame(
     ly1 = int(line[0][1] * h)
     lx2 = int(line[1][0] * w)
     ly2 = int(line[1][1] * h)
-    line_color = (0, 255, 255) if recently_crossed else (0, 215, 255)
+
+    # Dynamic line feedback (glow lime green on vehicle count)
+    line_color = (60, 255, 60) if recently_crossed else (0, 230, 255)
     thickness = 3 if recently_crossed else 2
     cv2.line(frame, (lx1, ly1), (lx2, ly2), line_color, thickness)
+
+    # Direction arrow in the middle of counting line
+    mx = (lx1 + lx2) // 2
+    my = (ly1 + ly2) // 2
+    dx = lx2 - lx1
+    dy = ly2 - ly1
+    length = math.hypot(dx, dy)
+    if length > 0:
+        nx = -dy / length
+        ny = dx / length
+        if ny < 0:  # Point downward along road flow
+            nx, ny = -nx, -ny
+        ax = int(mx + nx * 14)
+        ay = int(my + ny * 14)
+        cv2.arrowedLine(frame, (mx, my), (ax, ay), line_color, 2, tipLength=0.35)
+
+    tag_label = "TERHITUNG!" if recently_crossed else "GARIS HITUNG"
     cv2.putText(
         frame,
-        "GARIS HITUNG",
-        (max(10, min(lx1, lx2) + 20), max(20, min(ly1, ly2) - 8)),
+        tag_label,
+        (max(10, min(lx1, lx2) + 12), max(20, min(ly1, ly2) - 8)),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.45,
         line_color,
@@ -132,7 +163,7 @@ def _annotate_frame(
         cv2.LINE_AA,
     )
 
-    # 2. Draw tracks
+    # 2. Draw vehicle bounding boxes and labels
     colors = {
         "car": (48, 209, 88),         # Vibrant Green
         "motorcycle": (0, 140, 255),  # Vibrant Orange (BGR)
@@ -177,7 +208,7 @@ def _annotate_frame(
             cv2.LINE_AA,
         )
 
-    # 3. HUD footer
+    # 3. HUD footer bar
     total = sum(counts.values())
     hud = (
         f"YOLO TRACKING | Terhitung: {total} "
@@ -262,51 +293,93 @@ class ThreadedCameraReader:
                 self.cap = None
 
 
-async def _generate_video_stream(camera: Camera, video_source: str, request: Request):
-    is_live = video_source.startswith("http://") or video_source.startswith("https://")
-    exclusion_zones = CAMERA_EXCLUSION_ZONES.get(camera.id, [])
-    if not exclusion_zones and camera.name and "masjid agung" in camera.name.lower():
-        exclusion_zones = CAMERA_EXCLUSION_ZONES.get(4, [])
+class CameraStreamWorker:
+    """Singleton worker per camera to avoid duplicate YOLO inferences and HLS decoding."""
 
-    processor = YoloByteTrackProcessor(
-        model_path=str(PROJECT_ROOT / "yolo11n.pt"),
-        confidence=0.08,
-        device="cpu",
-        exclusion_zones=exclusion_zones,
-    )
-    line = camera.counting_line or [[0.1, 0.55], [0.9, 0.55]]
-    counter = LineCrossingCounter(line)
-    session_counts: Counter[str] = Counter()
-    window_counts: Counter[str] = Counter()
-    events: list[tuple[Track, str]] = []
-    last_db_save = time.monotonic()
-    last_crossed_time = 0.0
+    def __init__(
+        self,
+        camera_id: int,
+        camera_name: str,
+        video_source: str,
+        counting_line: list[list[float]],
+        exclusion_zones: list[list[tuple[float, float]]],
+    ) -> None:
+        self.camera_id = camera_id
+        self.camera_name = camera_name
+        self.video_source = video_source
+        self.counting_line = counting_line
+        self.exclusion_zones = exclusion_zones
 
-    reader = ThreadedCameraReader(video_source, is_live=is_live)
-    executor = ThreadPoolExecutor(max_workers=1)
-    future = None
-    latest_tracks: list[Track] = []
-    frame_interval = 0.040  # ~25 FPS smooth playback
+        self._clients: int = 0
+        self._last_client_seen: float = time.monotonic()
+        self.running: bool = False
+        self.thread: threading.Thread | None = None
+        self.lock = threading.Lock()
+        self.condition = threading.Condition()
+        self.latest_jpeg: bytes | None = None
+        self.frame_id: int = 0
 
-    try:
-        while True:
-            if await request.is_disconnected():
-                break
+    def add_client(self) -> None:
+        with self.lock:
+            self._clients += 1
+            self._last_client_seen = time.monotonic()
+            if not self.running:
+                self.running = True
+                self.thread = threading.Thread(target=self._worker_loop, daemon=True)
+                self.thread.start()
 
-            loop_start = time.monotonic()
-            frame = reader.read()
-            if frame is None:
-                await asyncio.sleep(0.02)
-                continue
+    def remove_client(self) -> None:
+        with self.lock:
+            self._clients = max(0, self._clients - 1)
+            self._last_client_seen = time.monotonic()
 
-            h, w = frame.shape[:2]
-            target_w = 640
-            target_h = int(h * target_w / w)
-            frame_small = cv2.resize(frame, (target_w, target_h))
+    def _worker_loop(self) -> None:
+        is_live = self.video_source.startswith("http://") or self.video_source.startswith("https://")
+        reader = ThreadedCameraReader(self.video_source, is_live=is_live)
+        processor = YoloByteTrackProcessor(
+            model_path=str(PROJECT_ROOT / "yolo11n.pt"),
+            confidence=0.08,
+            device="cpu",
+            exclusion_zones=self.exclusion_zones,
+        )
+        counter = LineCrossingCounter(self.counting_line)
+        session_counts: Counter[str] = Counter()
+        window_counts: Counter[str] = Counter()
+        events: list[tuple[Track, str]] = []
+        last_db_save = time.monotonic()
+        last_crossed_time = 0.0
 
-            # 1. Asynchronously retrieve completed inference or dispatch new one
-            if future is None or future.done():
-                if future is not None:
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = None
+        latest_tracks: list[Track] = []
+        last_frame_time = time.monotonic()
+        last_inference_time = 0.0
+        min_inference_interval = 0.070  # ~14 inferences/sec max for CPU balance
+        frame_interval = 0.038  # ~26 FPS smooth target
+
+        try:
+            while self.running:
+                with self.lock:
+                    if self._clients <= 0 and (time.monotonic() - self._last_client_seen > 15.0):
+                        break
+
+                loop_start = time.monotonic()
+                frame = reader.read()
+                if frame is None:
+                    time.sleep(0.015)
+                    continue
+
+                h, w = frame.shape[:2]
+                target_w = 640
+                target_h = int(h * target_w / w)
+                frame_small = cv2.resize(frame, (target_w, target_h))
+
+                now = time.monotonic()
+                dt = min(0.1, max(0.01, now - last_frame_time))
+                last_frame_time = now
+
+                # 1. Check completed inference or submit new frame with cadence pacing
+                if future is not None and future.done():
                     try:
                         latest_tracks = future.result()
                         for track in latest_tracks:
@@ -315,64 +388,164 @@ async def _generate_video_stream(camera: Camera, video_source: str, request: Req
                                 session_counts[track.vehicle_type] += 1
                                 window_counts[track.vehicle_type] += 1
                                 events.append((track, direction))
-                                last_crossed_time = time.monotonic()
+                                last_crossed_time = now
                     except Exception:
                         pass
-                # Submit current frame copy to background thread without blocking video stream
-                future = executor.submit(processor.process, frame_small.copy())
-            else:
-                # Smooth inter-frame box motion: glide boxes smoothly between inferences
-                interp_tracks = []
-                for t in latest_tracks:
-                    vx, vy = t.velocity
-                    if 0.2 < math.hypot(vx, vy) < 25.0:
-                        dx = vx * 0.10
-                        dy = vy * 0.10
-                        b = t.bounding_box
-                        nb = [b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy]
-                        interp_tracks.append(
-                            Track(
-                                tracker_id=t.tracker_id,
-                                vehicle_type=t.vehicle_type,
-                                confidence=t.confidence,
-                                bounding_box=nb,
-                                velocity=t.velocity,
+                    future = None
+
+                if future is None and (now - last_inference_time >= min_inference_interval):
+                    last_inference_time = now
+                    future = executor.submit(processor.process, frame_small.copy())
+                else:
+                    # Smooth inter-frame box motion: glide boxes smoothly using physical dt
+                    interp_tracks = []
+                    for t in latest_tracks:
+                        vx, vy = t.velocity
+                        speed = math.hypot(vx, vy)
+                        if 0.1 < speed < 35.0:
+                            factor = dt * 25.0
+                            dx = vx * factor
+                            dy = vy * factor
+                            b = t.bounding_box
+                            nb = [b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy]
+                            interp_tracks.append(
+                                Track(
+                                    tracker_id=t.tracker_id,
+                                    vehicle_type=t.vehicle_type,
+                                    confidence=t.confidence,
+                                    bounding_box=nb,
+                                    velocity=t.velocity,
+                                )
                             )
-                        )
-                    else:
-                        interp_tracks.append(t)
-                latest_tracks = interp_tracks
+                        else:
+                            interp_tracks.append(t)
+                    latest_tracks = interp_tracks
 
-            recently_crossed = (time.monotonic() - last_crossed_time < 1.2)
+                recently_crossed = (now - last_crossed_time < 1.0)
 
-            # Save real counts to database every 6 seconds
-            if time.monotonic() - last_db_save >= 6:
-                if window_counts or events:
-                    with SessionLocal() as db_session:
-                        cam_in_db = db_session.get(Camera, camera.id)
-                        if cam_in_db:
-                            save_window(db_session, cam_in_db, window_counts, events)
-                    window_counts, events = Counter(), []
-                last_db_save = time.monotonic()
+                # Periodic database snapshot persistence every 6 seconds
+                if now - last_db_save >= 6.0:
+                    if window_counts or events:
+                        try:
+                            with SessionLocal() as db_session:
+                                cam_in_db = db_session.get(Camera, self.camera_id)
+                                if cam_in_db:
+                                    save_window(db_session, cam_in_db, window_counts, events)
+                        except Exception:
+                            pass
+                        window_counts, events = Counter(), []
+                    last_db_save = now
 
-            # 2. Annotate and render frame smoothly
-            _annotate_frame(frame_small, latest_tracks, line, session_counts, recently_crossed)
+                # 2. Annotate frame
+                _annotate_frame(
+                    frame_small,
+                    latest_tracks,
+                    self.counting_line,
+                    session_counts,
+                    recently_crossed,
+                )
 
-            ret, buf = cv2.imencode(".jpg", frame_small, [cv2.IMWRITE_JPEG_QUALITY, 70])
-            if not ret:
-                continue
-            yield (
-                b"--frame\r\n"
-                b"Content-Type: image/jpeg\r\n\r\n" + buf.tobytes() + b"\r\n"
-            )
+                # 3. High-speed JPEG encoding (Quality 65 for low latency and smooth frame delivery)
+                ret, buf = cv2.imencode(".jpg", frame_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                if ret:
+                    frame_bytes = buf.tobytes()
+                    with self.condition:
+                        self.latest_jpeg = frame_bytes
+                        self.frame_id += 1
+                        self.condition.notify_all()
 
-            # Keep video streaming at steady, smooth 25 FPS
-            elapsed = time.monotonic() - loop_start
-            sleep_time = max(0.005, frame_interval - elapsed)
-            await asyncio.sleep(sleep_time)
+                elapsed = time.monotonic() - loop_start
+                sleep_time = max(0.005, frame_interval - elapsed)
+                time.sleep(sleep_time)
+        finally:
+            reader.stop()
+            executor.shutdown(wait=False)
+            with self.lock:
+                self.running = False
+
+
+class CameraStreamHub:
+    """Registry of active CameraStreamWorker singletons."""
+
+    _instance = None
+    _lock = threading.Lock()
+
+    def __init__(self) -> None:
+        self._workers: dict[int, CameraStreamWorker] = {}
+        self._workers_lock = threading.Lock()
+
+    @classmethod
+    def get_hub(cls) -> "CameraStreamHub":
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
+
+    def get_or_create(
+        self,
+        camera_id: int,
+        camera_name: str,
+        video_source: str,
+        counting_line: list[list[float]],
+        exclusion_zones: list[list[tuple[float, float]]],
+    ) -> CameraStreamWorker:
+        with self._workers_lock:
+            worker = self._workers.get(camera_id)
+            if worker is None:
+                worker = CameraStreamWorker(
+                    camera_id=camera_id,
+                    camera_name=camera_name,
+                    video_source=video_source,
+                    counting_line=counting_line,
+                    exclusion_zones=exclusion_zones,
+                )
+                self._workers[camera_id] = worker
+            else:
+                worker.counting_line = counting_line
+                worker.exclusion_zones = exclusion_zones
+            return worker
+
+
+async def _generate_video_stream(camera: Camera, video_source: str, request: Request):
+    exclusion_zones = CAMERA_EXCLUSION_ZONES.get(camera.id, [])
+    if not exclusion_zones and camera.name and "masjid agung" in camera.name.lower():
+        exclusion_zones = CAMERA_EXCLUSION_ZONES.get(4, [])
+
+    counting_line = camera.counting_line or [[0.1, 0.55], [0.9, 0.55]]
+    hub = CameraStreamHub.get_hub()
+    worker = hub.get_or_create(
+        camera_id=camera.id,
+        camera_name=camera.name or "",
+        video_source=video_source,
+        counting_line=counting_line,
+        exclusion_zones=exclusion_zones,
+    )
+    worker.add_client()
+    last_sent_frame_id = -1
+    loop = asyncio.get_running_loop()
+
+    def wait_for_frame():
+        with worker.condition:
+            if worker.frame_id == last_sent_frame_id or worker.latest_jpeg is None:
+                worker.condition.wait(timeout=0.08)
+            return worker.frame_id, worker.latest_jpeg
+
+    try:
+        while True:
+            if await request.is_disconnected():
+                break
+
+            fid, frame_bytes = await loop.run_in_executor(None, wait_for_frame)
+            if frame_bytes is not None and fid != last_sent_frame_id:
+                last_sent_frame_id = fid
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n\r\n" + frame_bytes + b"\r\n"
+                )
+            else:
+                await asyncio.sleep(0.01)
     finally:
-        reader.stop()
-        executor.shutdown(wait=False)
+        worker.remove_client()
 
 
 

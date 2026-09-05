@@ -58,7 +58,7 @@ REAL_CAMERAS = [
         "stream_type": "hls",
         "is_demo": False,
         "thresholds": (22, 45, 70),
-        "counting_line": [[0.48, 0.38], [0.55, 0.72]],
+        "counting_line": [[0.40, 0.67], [0.72, 0.76]],
     },
     {
         "id": 5,
