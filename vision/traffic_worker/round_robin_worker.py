@@ -182,27 +182,27 @@ def sample_camera(
 
             start_time = time.monotonic()
             last_inference_time = 0.0
-            inference_interval = float(os.getenv("YOLO_INFERENCE_INTERVAL", "0.140"))  # ~7 inferences/sec
-            target_pacing = float(os.getenv("VIDEO_PACING_INTERVAL", "0.055"))          # ~18 FPS pacing
+            inference_interval = float(os.getenv("YOLO_INFERENCE_INTERVAL", "0.150"))  # ~6-7 inferences/sec
+            target_pacing = float(os.getenv("VIDEO_PACING_INTERVAL", "0.100"))          # ~10 FPS video pacing
 
             while time.monotonic() - start_time < duration_seconds:
                 loop_start = time.monotonic()
                 ok, frame = cap.read()
                 if not ok or frame is None:
-                    time.sleep(0.06)
+                    time.sleep(0.08)
                     continue
-
-                h, w = frame.shape[:2]
-                target_w = 640
-                target_h = int(h * target_w / w)
-                if (w, h) != (target_w, target_h):
-                    frame_small = cv2.resize(frame, (target_w, target_h))
-                else:
-                    frame_small = frame
 
                 now = time.monotonic()
                 if now - last_inference_time >= inference_interval:
                     last_inference_time = now
+                    h, w = frame.shape[:2]
+                    target_w = 640
+                    target_h = int(h * target_w / w)
+                    if (w, h) != (target_w, target_h):
+                        frame_small = cv2.resize(frame, (target_w, target_h))
+                    else:
+                        frame_small = frame
+
                     try:
                         tracks = processor.process(frame_small)
                         for track in tracks:
@@ -214,8 +214,8 @@ def sample_camera(
                         log.debug("Inference error: %s", err)
 
                 elapsed = time.monotonic() - loop_start
-                # Ensure at least 20ms sleep per frame to guarantee CPU cores never throttle
-                sleep_rem = max(0.020, target_pacing - elapsed)
+                # Ensure at least 35ms sleep per frame to guarantee CPU cores stay cool
+                sleep_rem = max(0.035, target_pacing - elapsed)
                 time.sleep(sleep_rem)
 
             # Sampling window finished, save to database
