@@ -27,7 +27,14 @@ if str(PROJECT_ROOT) not in sys.path:
 os.environ["OMP_NUM_THREADS"] = os.getenv("OMP_NUM_THREADS", "1")
 os.environ["OPENVINO_NUM_THREADS"] = os.getenv("OPENVINO_NUM_THREADS", "1")
 os.environ["MKL_NUM_THREADS"] = os.getenv("MKL_NUM_THREADS", "1")
+os.environ["CPU_THREADS_NUM"] = os.getenv("CPU_THREADS_NUM", "1")
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;5000000"
+
+try:
+    import torch
+    torch.set_num_threads(1)
+except Exception:
+    pass
 
 import cv2
 from sqlalchemy import select
@@ -175,14 +182,14 @@ def sample_camera(
 
             start_time = time.monotonic()
             last_inference_time = 0.0
-            inference_interval = float(os.getenv("YOLO_INFERENCE_INTERVAL", "0.100"))  # ~10 inferences/sec
-            target_pacing = float(os.getenv("VIDEO_PACING_INTERVAL", "0.045"))          # ~22 FPS pacing
+            inference_interval = float(os.getenv("YOLO_INFERENCE_INTERVAL", "0.140"))  # ~7 inferences/sec
+            target_pacing = float(os.getenv("VIDEO_PACING_INTERVAL", "0.055"))          # ~18 FPS pacing
 
             while time.monotonic() - start_time < duration_seconds:
                 loop_start = time.monotonic()
                 ok, frame = cap.read()
                 if not ok or frame is None:
-                    time.sleep(0.05)
+                    time.sleep(0.06)
                     continue
 
                 h, w = frame.shape[:2]
@@ -207,7 +214,8 @@ def sample_camera(
                         log.debug("Inference error: %s", err)
 
                 elapsed = time.monotonic() - loop_start
-                sleep_rem = max(0.005, target_pacing - elapsed)
+                # Ensure at least 20ms sleep per frame to guarantee CPU cores never throttle
+                sleep_rem = max(0.020, target_pacing - elapsed)
                 time.sleep(sleep_rem)
 
             # Sampling window finished, save to database
