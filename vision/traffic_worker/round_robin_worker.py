@@ -23,10 +23,10 @@ if str(PROJECT_ROOT / "backend") not in sys.path:
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Throttling CPU cores for VPS stability (safe for 4-core VPS)
-os.environ["OMP_NUM_THREADS"] = "2"
-os.environ["OPENVINO_NUM_THREADS"] = "2"
-os.environ["MKL_NUM_THREADS"] = "2"
+# Throttling CPU cores for VPS stability (1 core per worker when running 4 workers)
+os.environ["OMP_NUM_THREADS"] = os.getenv("OMP_NUM_THREADS", "1")
+os.environ["OPENVINO_NUM_THREADS"] = os.getenv("OPENVINO_NUM_THREADS", "1")
+os.environ["MKL_NUM_THREADS"] = os.getenv("MKL_NUM_THREADS", "1")
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "timeout;5000000"
 
 import cv2
@@ -43,12 +43,13 @@ from vision.traffic_worker.tracking import (
     YoloByteTrackProcessor,
 )
 
+WORKER_TAG = os.getenv("WORKER_TAG", "RR-WORKER")
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] [RR-WORKER] %(message)s",
+    format=f"%(asctime)s [%(levelname)s] [{WORKER_TAG}] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-log = logging.getLogger("round-robin-worker")
+log = logging.getLogger(WORKER_TAG)
 
 
 def save_camera_window(
@@ -174,8 +175,8 @@ def sample_camera(
 
             start_time = time.monotonic()
             last_inference_time = 0.0
-            inference_interval = 0.080  # ~12 inferences/sec: CPU friendly
-            target_pacing = 0.040  # 25 FPS pacing
+            inference_interval = float(os.getenv("YOLO_INFERENCE_INTERVAL", "0.100"))  # ~10 inferences/sec
+            target_pacing = float(os.getenv("VIDEO_PACING_INTERVAL", "0.045"))          # ~22 FPS pacing
 
             while time.monotonic() - start_time < duration_seconds:
                 loop_start = time.monotonic()
