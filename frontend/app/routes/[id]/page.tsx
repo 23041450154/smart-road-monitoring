@@ -17,22 +17,139 @@ export default function RouteDetailPage() {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const { data: route, error } = useSWR<Route>(`/api/routes/${id}`, fetcher);
-  const { data: briefing } = useSWR<Briefing>(`/api/routes/${id}/briefing`, fetcher, { refreshInterval: 30_000 });
+  const { data: briefing } = useSWR<Briefing>(
+    `/api/routes/${id}/briefing`,
+    fetcher,
+    { refreshInterval: 30_000 },
+  );
   const { data: cameras } = useSWR<Camera[]>("/api/cameras", fetcher);
-  async function remove() { if (!confirm("Hapus rute ini?")) return; await mutateApi(`/api/routes/${id}`, "DELETE"); router.push("/routes"); }
+
+  async function remove() {
+    if (!confirm("Hapus rute ini dari daftar pantauan?")) return;
+    await mutateApi(`/api/routes/${id}`, "DELETE");
+    router.push("/routes");
+  }
+
   if (error) return <ErrorState message="Rute tidak ditemukan." />;
-  if (!route || !briefing) return <div className="skeleton h-[70vh] rounded-3xl" />;
+  if (!route || !briefing) return <div className="skeleton h-[70vh] rounded-xl border border-zinc-200" />;
   if (editing) return <RouteEditor route={route} onCancel={() => setEditing(false)} />;
-  return <>
-    <Link href="/routes" className="mb-5 inline-flex items-center gap-2 text-xs font-bold text-[#64726e]"><ArrowLeft size={15} /> Semua rute</Link>
-    <PageHeading eyebrow={routeLabel(route.route_type)} title={route.name} description={`${route.path.length} titik geometri · buffer CCTV 500 m · buffer lubang 100 m`} action={<div className="flex gap-2"><button onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-3 text-xs font-bold"><Edit3 size={15} /> Edit</button><button onClick={remove} className="grid size-10 place-items-center rounded-xl bg-red-50 text-red-700"><Trash2 size={15} /></button></div>} />
-    <div className="grid gap-5 xl:grid-cols-[1.25fr_.75fr]">
-      <div className="h-[340px] sm:h-[450px] xl:h-[520px] overflow-hidden rounded-2xl border border-black/8"><MapPanel routes={[route]} cameras={cameras} potholes={briefing.potholes} traffic={briefing.traffic} /></div>
-      <div className="space-y-4">
-        <article className="rounded-2xl bg-[#102c27] p-5 text-white"><div className="mb-5 flex items-start justify-between"><span className="grid size-10 place-items-center rounded-xl bg-white/10"><MessageSquareText size={18} /></span><StatusBadge status={briefing.overall_status} /></div><h2 className="mb-3 font-bold">Briefing perjalanan</h2><p className="whitespace-pre-line text-sm leading-7 text-white/70">{briefing.message}</p></article>
-        <div className="grid grid-cols-2 gap-3"><div className="rounded-2xl border border-black/8 bg-[#fffef9] p-4"><MapPin size={17} className="mb-5 text-[#64726e]" /><strong className="display text-4xl">{briefing.traffic.length}</strong><p className="text-xs text-[#64726e]">CCTV dekat rute</p></div><div className="rounded-2xl border border-black/8 bg-[#fffef9] p-4"><Construction size={17} className="mb-5 text-[#ff7849]" /><strong className="display text-4xl">{briefing.potholes.length}</strong><p className="text-xs text-[#64726e]">Lubang dekat rute</p></div></div>
-        {briefing.traffic.map(item => <div key={item.camera_id} className="rounded-xl border border-black/8 bg-white p-4"><div className="flex justify-between gap-3"><div><b className="text-sm">{item.road_name}</b><p className="text-[11px] text-[#64726e]">{item.camera_name}</p></div><StatusBadge status={item.traffic_status} /></div><div className="mt-3 flex justify-between"><span className="text-xs"><b>{item.vehicles_per_minute}</b> kend./menit</span><TrendView trend={item.trend} /></div></div>)}
+
+  return (
+    <>
+      <Link
+        href="/routes"
+        className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+      >
+        <ArrowLeft size={14} />
+        <span>Kembali ke Semua Rute</span>
+      </Link>
+
+      <PageHeading
+        eyebrow={routeLabel(route.route_type)}
+        title={route.name}
+        description={`${route.path.length} titik koordinat · Buffer deteksi CCTV 500 m · Buffer jalan berlubang 100 m`}
+        action={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs hover:bg-zinc-50 transition-colors"
+            >
+              <Edit3 size={14} />
+              <span>Edit Rute</span>
+            </button>
+            <button
+              onClick={remove}
+              className="grid size-8 place-items-center rounded-lg border border-rose-200/80 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors"
+              title="Hapus Rute"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        }
+      />
+
+      <div className="grid gap-6 xl:grid-cols-[1.25fr_.75fr]">
+        <div className="h-[360px] sm:h-[450px] xl:h-[540px] overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-xs">
+          <MapPanel
+            routes={[route]}
+            cameras={cameras}
+            potholes={briefing.potholes}
+            traffic={briefing.traffic}
+          />
+        </div>
+
+        <div className="space-y-4">
+          {/* Briefing Box */}
+          <article className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-xs">
+            <div className="mb-4 flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <span className="grid size-8 place-items-center rounded-lg bg-zinc-100 text-zinc-700">
+                  <MessageSquareText size={16} />
+                </span>
+                <h2 className="text-sm font-semibold text-zinc-900">
+                  Ringkasan Kondisi Rute
+                </h2>
+              </div>
+              <StatusBadge status={briefing.overall_status} />
+            </div>
+            <p className="whitespace-pre-line text-xs sm:text-sm leading-relaxed text-zinc-600 bg-zinc-50/70 p-3.5 rounded-lg border border-zinc-100">
+              {briefing.message}
+            </p>
+          </article>
+
+          {/* Metric Summary */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500 mb-2">
+                <span className="text-xs font-medium text-zinc-600">CCTV Terdekat</span>
+                <MapPin size={15} className="text-zinc-400" />
+              </div>
+              <strong className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 tabular block">
+                {briefing.traffic.length}
+              </strong>
+            </div>
+
+            <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-500 mb-2">
+                <span className="text-xs font-medium text-zinc-600">Titik Lubang</span>
+                <Construction size={15} className="text-amber-500" />
+              </div>
+              <strong className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 tabular block">
+                {briefing.potholes.length}
+              </strong>
+            </div>
+          </div>
+
+          {/* Near Route Traffic Feeds */}
+          <div className="space-y-2.5">
+            {briefing.traffic.map((item) => (
+              <div
+                key={item.camera_id}
+                className="rounded-xl border border-zinc-200/80 bg-white p-3.5 shadow-xs"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <strong className="block text-xs sm:text-sm font-semibold text-zinc-900">
+                      {item.road_name}
+                    </strong>
+                    <p className="text-[11px] text-zinc-400">{item.camera_name}</p>
+                  </div>
+                  <StatusBadge status={item.traffic_status} />
+                </div>
+                <div className="mt-2.5 flex items-center justify-between border-t border-zinc-100 pt-2 text-xs">
+                  <span className="text-zinc-500">
+                    <b className="text-zinc-900 font-semibold tabular">
+                      {item.vehicles_per_minute}
+                    </b>{" "}
+                    kend./menit
+                  </span>
+                  <TrendView trend={item.trend} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
-  </>;
+    </>
+  );
 }

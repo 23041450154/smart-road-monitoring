@@ -2,16 +2,88 @@ import { Bell, Bot, Database, LockKeyhole, MonitorCog } from "lucide-react";
 import { PageHeading } from "@/components/ui";
 
 const settings = [
-  { icon: Database, title: "PostgreSQL + PostGIS", note: "Geometri rute dan proximity query", value: "postgres:5432", state: "Docker service" },
-  { icon: MonitorCog, title: "Sumber kamera", note: "Local video / HLS / RTSP terotorisasi", value: "CAMERA_SOURCE", state: "local (demo)" },
-  { icon: Bell, title: "Jadwal perjalanan", note: "Dijalankan oleh n8n remote · Asia/Jakarta", value: "06:45 / 16:45", state: "remote schedule" },
-  { icon: Bot, title: "WhatsApp", note: "Outbox siap; provider dan credential disambungkan nanti", value: "ready_to_send=false", state: "draft" },
+  {
+    icon: Database,
+    title: "PostgreSQL + PostGIS",
+    note: "Penyimpanan geometri rute spasial dan proximity query",
+    value: "postgres:5432",
+    state: "Docker Service",
+  },
+  {
+    icon: MonitorCog,
+    title: "Sumber Ingestion Kamera",
+    note: "Local video / HLS / RTSP terotorisasi",
+    value: "CAMERA_SOURCE",
+    state: "Local (Demo)",
+  },
+  {
+    icon: Bell,
+    title: "Jadwal Briefing Perjalanan",
+    note: "Dikelola oleh remote worker n8n · Zona Asia/Jakarta",
+    value: "06:45 / 16:45",
+    state: "Remote Schedule",
+  },
+  {
+    icon: Bot,
+    title: "Integrasi WhatsApp Notification",
+    note: "Outbox messaging siap; credential provider eksternal",
+    value: "ready_to_send=false",
+    state: "Draft Mode",
+  },
 ];
 
 export default function SettingsPage() {
-  return <>
-    <PageHeading eyebrow="Konfigurasi sistem" title="Pengaturan" description="Nilai sensitif dikelola lewat file .env dan credential store n8n, bukan melalui browser." />
-    <div className="grid gap-4 md:grid-cols-2">{settings.map(item => <article key={item.title} className="rounded-2xl border border-black/8 bg-[#fffef9] p-5"><div className="flex items-start gap-4"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#eef0e8]"><item.icon size={19} /></span><div><h2 className="font-bold">{item.title}</h2><p className="mt-1 text-xs text-[#64726e]">{item.note}</p><code className="mt-4 inline-block rounded-lg bg-[#102c27] px-2.5 py-1.5 text-[10px] text-[#c9f260]">{item.value}</code><span className="ml-2 text-[10px] font-bold uppercase text-[#8a9591]">{item.state}</span></div></div></article>)}</div>
-        <div className="mt-5 rounded-2xl border border-[#cedfa0] bg-[#eff8d8] p-5"><div className="flex gap-4"><LockKeyhole className="shrink-0 text-[#31552c]" /><div><h2 className="font-bold text-[#25451f]">Aturan integrasi CCTV</h2><p className="mt-1 max-w-3xl text-sm leading-relaxed text-[#4e6649]">Hanya gunakan stream yang memang tersedia untuk publik dan diizinkan untuk dilihat. Sistem tidak memiliki mekanisme bypass autentikasi atau pencarian credential.</p><code className="mt-3 inline-block text-xs font-bold text-[#25451f]">docs/cctv-integration.md</code></div></div></div>
-  </>;
+  return (
+    <>
+      <PageHeading
+        eyebrow="Konfigurasi Backend & Pipeline"
+        title="Pengaturan Sistem"
+        description="Nilai kredensial dan parameter sensitif diisolasi pada file environment (.env) dan secret store worker, bukan melalui form input browser."
+      />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {settings.map((item) => (
+          <article
+            key={item.title}
+            className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-xs transition hover:border-zinc-300"
+          >
+            <div className="flex items-start gap-3.5">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-700">
+                <item.icon size={17} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold text-zinc-900">{item.title}</h2>
+                <p className="mt-0.5 text-xs text-zinc-500">{item.note}</p>
+                <div className="mt-3.5 flex items-center gap-2">
+                  <code className="rounded-md bg-zinc-100 px-2 py-1 font-mono text-xs text-zinc-800 border border-zinc-200/60">
+                    {item.value}
+                  </code>
+                  <span className="rounded-md border border-zinc-200/80 bg-zinc-50 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
+                    {item.state}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-6 rounded-xl border border-blue-200/70 bg-blue-50/50 p-5 shadow-xs">
+        <div className="flex items-start gap-3">
+          <LockKeyhole size={18} className="shrink-0 text-blue-600 mt-0.5" />
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">
+              Kebijakan Integrasi Feed CCTV
+            </h2>
+            <p className="mt-1 max-w-3xl text-xs sm:text-sm leading-relaxed text-zinc-600">
+              Sistem LAJU dirancang mematuhi etika pengawasan publik. Pemrosesan visual hanya menerima stream video yang dibuka secara sah oleh instansi terkait. Seluruh proses inferensi dilakukan tanpa menyimpan rekaman data pribadi wajah atau plat nomor.
+            </p>
+            <code className="mt-2.5 inline-block text-xs font-mono font-medium text-blue-700">
+              docs/cctv-integration.md
+            </code>
+          </div>
+        </div>
+      </div>
+    </>
+  );
 }

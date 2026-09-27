@@ -5,7 +5,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Camera, TrafficSnapshot, TrafficStatus
-from app.schemas.api import TrafficCurrent
+from app.schemas.api import (
+    HourlyProfileItem,
+    HourlyProfileResponse,
+    TrafficCurrent,
+    TrafficPredictionResponse,
+)
 
 STATUS_WEIGHT = {
     TrafficStatus.LANCAR: 0,
@@ -112,3 +117,138 @@ def camera_metrics(db: Session, camera: Camera, now: datetime | None = None) -> 
 
 def _aware(value: datetime) -> datetime:
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value
+
+
+def get_camera_hourly_profile(db: Session, camera: Camera) -> HourlyProfileResponse:
+    snapshots = list(
+        db.scalars(
+            select(TrafficSnapshot)
+            .where(TrafficSnapshot.camera_id == camera.id)
+            .order_by(TrafficSnapshot.timestamp)
+        )
+    )
+
+    hour_buckets: dict[int, list[TrafficSnapshot]] = {h: [] for h in range(24)}
+    for s in snapshots:
+        ts = _aware(s.timestamp)
+        hour_buckets[ts.hour].append(s)
+
+    profile_items: list[HourlyProfileItem] = []
+
+    # Typical daily pattern curve as baseline (urban traffic Palembang)
+    typical_factors = [
+        0.10, 0.07, 0.05, 0.05, 0.08, 0.25, 0.55, 0.90, 0.85, 0.65, 0.60, 0.65,
+        0.70, 0.65, 0.65, 0.75, 0.95, 1.00, 0.85, 0.70, 0.55, 0.40, 0.25, 0.15
+    ]
+
+    for h in range(24):
+        bucket = hour_buckets[h]
+        if bucket:
+            avg_count = sum(s.total_count for s in bucket) / len(bucket)
+            avg_score = sum(s.congestion_score for s in bucket) / len(bucket)
+            # Volume scaled to 5-minute window equivalent to match camera thresholds
+            scaled_volume = int((avg_score / 100.0) * camera.high_threshold)
+            classification = classify_traffic(
+                scaled_volume, camera.low_threshold, camera.medium_threshold, camera.high_threshold
+            )
+            vpm = round(avg_count, 1) if avg_count > 0 else 0.0
+            score = round(avg_score, 1)
+            status = classification.status
+            sample_count = len(bucket)
+        else:
+            factor = typical_factors[h]
+            estimated_volume = int(camera.high_threshold * factor)
+            classification = classify_traffic(
+                estimated_volume, camera.low_threshold, camera.medium_threshold, camera.high_threshold
+            )
+            avg_count = float(estimated_volume)
+            vpm = round(estimated_volume / 5.0, 1)
+            score = classification.score
+            status = classification.status
+            sample_count = 0
+
+        profile_items.append(
+            HourlyProfileItem(
+                hour=h,
+                hour_label=f"{h:02d}:00",
+                avg_total_count=round(avg_count, 1),
+                avg_vehicles_per_minute=vpm,
+                avg_congestion_score=score,
+                traffic_status=status,
+                sample_count=sample_count,
+                is_peak_hour=False,
+            )
+        )
+
+    morning_candidates = [item for item in profile_items if 6 <= item.hour <= 9]
+    evening_candidates = [item for item in profile_items if 16 <= item.hour <= 19]
+
+    morning_peak = max(morning_candidates, key=lambda x: x.avg_congestion_score) if morning_candidates else None
+    evening_peak = max(evening_candidates, key=lambda x: x.avg_congestion_score) if evening_candidates else None
+
+    morning_label = None
+    evening_label = None
+    if morning_peak and morning_peak.avg_congestion_score >= 50:
+        morning_peak.is_peak_hour = True
+        morning_label = f"{morning_peak.hour:02d}:00 - {morning_peak.hour + 1:02d}:00"
+    if evening_peak and evening_peak.avg_congestion_score >= 50:
+        evening_peak.is_peak_hour = True
+        evening_label = f"{evening_peak.hour:02d}:00 - {evening_peak.hour + 1:02d}:00"
+
+    return HourlyProfileResponse(
+        camera_id=camera.id,
+        camera_name=camera.name,
+        road_name=camera.road_name,
+        profile=profile_items,
+        morning_peak=morning_label,
+        evening_peak=evening_label,
+        total_samples=len(snapshots),
+    )
+
+
+def predict_camera_traffic(db: Session, camera: Camera, hour: int) -> TrafficPredictionResponse:
+    if not 0 <= hour <= 23:
+        raise ValueError("Hour must be between 0 and 23")
+
+    profile_res = get_camera_hourly_profile(db, camera)
+    target = profile_res.profile[hour]
+
+    confidence = "TINGGI" if target.sample_count >= 10 else ("SEDANG" if target.sample_count > 0 else "MODEL")
+    time_label = f"{hour:02d}:00"
+
+    if target.traffic_status == TrafficStatus.MACET:
+        recommendation = (
+            f"Lalu lintas pada pukul {time_label} di {camera.road_name} diprediksi MACET (puncak kemacetan). "
+            f"Disarankan menunda keberangkatan atau mencari jalur alternatif."
+        )
+    elif target.traffic_status == TrafficStatus.PADAT:
+        recommendation = (
+            f"Lalu lintas pada pukul {time_label} di {camera.road_name} diprediksi PADAT merayap. "
+            f"Estimasi waktu tempuh bertambah ~15-20 menit. Berangkat lebih awal disarankan."
+        )
+    elif target.traffic_status == TrafficStatus.SEDANG:
+        recommendation = (
+            f"Lalu lintas pada pukul {time_label} cukup ramai namun kendaraan masih mengalir normal. "
+            f"Waktu tempuh relatif aman dan lancar."
+        )
+    else:
+        recommendation = (
+            f"Lalu lintas pada pukul {time_label} diprediksi LANCAR tanpa hambatan berarti. "
+            f"Waktu yang sangat ideal untuk melintasi ruas {camera.road_name}."
+        )
+
+    return TrafficPredictionResponse(
+        camera_id=camera.id,
+        camera_name=camera.name,
+        road_name=camera.road_name,
+        queried_hour=hour,
+        queried_time_label=time_label,
+        predicted_status=target.traffic_status,
+        congestion_score=target.avg_congestion_score,
+        avg_vehicles_per_minute=target.avg_vehicles_per_minute,
+        confidence_level=confidence,
+        is_peak_hour=target.is_peak_hour,
+        sample_count=target.sample_count,
+        recommendation=recommendation,
+    )
+

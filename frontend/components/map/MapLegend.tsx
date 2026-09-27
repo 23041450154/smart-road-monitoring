@@ -7,13 +7,13 @@ export function MapLegend() {
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <div className="absolute bottom-6 right-6 z-[1000] max-w-xs rounded-2xl border border-black/10 bg-white/95 p-3 shadow-xl backdrop-blur-md transition-all">
+    <div className="absolute bottom-6 right-6 z-[1000] max-w-xs rounded-xl border border-zinc-200/80 bg-white/95 p-3 shadow-sm backdrop-blur-md transition-all">
       <div
         className="flex cursor-pointer items-center justify-between gap-3"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-          <Layers size={14} className="text-emerald-700" />
+        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-800">
+          <Layers size={14} className="text-zinc-600" />
           <span>Legenda Peta</span>
         </div>
         <button

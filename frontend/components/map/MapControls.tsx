@@ -81,14 +81,14 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
   };
 
   return (
-    <div className="absolute left-4 top-4 z-[1000] flex flex-col gap-2">
+    <div className="absolute left-4 top-4 z-[1000] flex flex-col gap-1.5">
       <button
         type="button"
         onClick={handleResetToPalembang}
-        className="flex items-center gap-1.5 rounded-xl border border-black/10 bg-white/95 px-3 py-2 text-xs font-bold text-slate-800 shadow-md backdrop-blur hover:bg-slate-50 transition"
+        className="flex items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs backdrop-blur hover:bg-zinc-50 transition"
         title="Pusatkan peta ke Kota Palembang"
       >
-        <MapPin size={14} className="text-emerald-700" />
+        <MapPin size={13} className="text-zinc-600" />
         <span className="hidden sm:inline">Pusat Palembang</span>
       </button>
 
@@ -96,10 +96,10 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
         <button
           type="button"
           onClick={handleFitRoute}
-          className="flex items-center gap-1.5 rounded-xl border border-black/10 bg-emerald-700 px-3 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-800 transition"
+          className="flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white shadow-xs hover:bg-zinc-800 transition"
           title="Fokuskan ke rute terpilih"
         >
-          <Maximize2 size={14} />
+          <Maximize2 size={13} />
           <span className="hidden sm:inline">Fokus Rute</span>
         </button>
       )}
@@ -108,13 +108,13 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
         type="button"
         onClick={handleUserLocation}
         disabled={locating}
-        className="flex items-center gap-1.5 rounded-xl border border-black/10 bg-white/95 px-3 py-2 text-xs font-bold text-slate-800 shadow-md backdrop-blur hover:bg-slate-50 transition disabled:opacity-50"
+        className="flex items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs backdrop-blur hover:bg-zinc-50 transition disabled:opacity-50"
         title="Tampilkan lokasi saya saat ini"
       >
         {locating ? (
-          <Crosshair size={14} className="animate-spin text-blue-600" />
+          <Crosshair size={13} className="animate-spin text-blue-600" />
         ) : (
-          <Locate size={14} className="text-blue-600" />
+          <Locate size={13} className="text-blue-600" />
         )}
         <span className="hidden sm:inline">
           {locating ? "Mencari..." : "Lokasi Saya"}

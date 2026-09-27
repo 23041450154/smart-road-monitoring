@@ -60,6 +60,42 @@ class SnapshotRead(BaseModel):
     traffic_status: TrafficStatus
 
 
+class HourlyProfileItem(BaseModel):
+    hour: int
+    hour_label: str
+    avg_total_count: float
+    avg_vehicles_per_minute: float
+    avg_congestion_score: float
+    traffic_status: TrafficStatus
+    sample_count: int
+    is_peak_hour: bool = False
+
+
+class HourlyProfileResponse(BaseModel):
+    camera_id: int
+    camera_name: str
+    road_name: str
+    profile: list[HourlyProfileItem]
+    morning_peak: str | None = None
+    evening_peak: str | None = None
+    total_samples: int
+
+
+class TrafficPredictionResponse(BaseModel):
+    camera_id: int
+    camera_name: str
+    road_name: str
+    queried_hour: int
+    queried_time_label: str
+    predicted_status: TrafficStatus
+    congestion_score: float
+    avg_vehicles_per_minute: float
+    confidence_level: str
+    is_peak_hour: bool
+    sample_count: int
+    recommendation: str
+
+
 class TrafficCurrent(BaseModel):
     camera_id: int
     camera_name: str

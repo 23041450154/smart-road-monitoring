@@ -53,8 +53,19 @@ from vision.traffic_worker.worker import save_window  # noqa: E402
 from app.db.geometry import database_geometry, point_wkt  # noqa: E402
 from app.db.session import SessionLocal, get_db  # noqa: E402
 from app.models import Camera, TrafficSnapshot, VehicleEvent  # noqa: E402
-from app.schemas.api import CameraCreate, CameraRead, SnapshotRead, TrafficCurrent  # noqa: E402
-from app.traffic.analytics import camera_metrics  # noqa: E402
+from app.schemas.api import (  # noqa: E402
+    CameraCreate,
+    CameraRead,
+    HourlyProfileResponse,
+    SnapshotRead,
+    TrafficCurrent,
+    TrafficPredictionResponse,
+)
+from app.traffic.analytics import (  # noqa: E402
+    camera_metrics,
+    get_camera_hourly_profile,
+    predict_camera_traffic,
+)
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 
@@ -119,6 +130,25 @@ def get_traffic_history(
         )
         history.reverse()
     return history
+
+
+@router.get("/{camera_id}/traffic/hourly-profile", response_model=HourlyProfileResponse)
+def get_hourly_profile(
+    camera_id: int,
+    db: Session = Depends(get_db),
+) -> HourlyProfileResponse:
+    camera = get_camera_or_404(db, camera_id)
+    return get_camera_hourly_profile(db, camera)
+
+
+@router.get("/{camera_id}/traffic/predict", response_model=TrafficPredictionResponse)
+def predict_traffic(
+    camera_id: int,
+    hour: int = Query(default=17, ge=0, le=23, description="Hour of day (0-23) to predict"),
+    db: Session = Depends(get_db),
+) -> TrafficPredictionResponse:
+    camera = get_camera_or_404(db, camera_id)
+    return predict_camera_traffic(db, camera, hour)
 
 
 def _annotate_frame(
@@ -363,17 +393,37 @@ class ThreadedCameraReader:
     def _opencv_loop(self) -> None:
         cap = None
         reconnect_delay = 0.5
+        consecutive_failures = 0
+        target_interval = 0.040  # 25 FPS = smooth natural 1.0x playback
+        open_failures = 0
+
         while self.running:
             if cap is None or not cap.isOpened():
                 try:
                     cap = cv2.VideoCapture(self.source, cv2.CAP_FFMPEG)
                     if not cap.isOpened():
+                        open_failures += 1
+                        if open_failures >= 3 and not self.is_fallback:
+                            sample_path = PROJECT_ROOT / "vision" / "samples" / "traffic.mp4"
+                            if sample_path.exists():
+                                self.source = str(sample_path)
+                                self.is_live = False
+                                self.is_fallback = True
+                                open_failures = 0
                         time.sleep(reconnect_delay)
                         continue
+                    fps = cap.get(cv2.CAP_PROP_FPS)
+                    if fps and 10 <= fps <= 60:
+                        target_interval = 1.0 / fps
+                    else:
+                        target_interval = 0.040
+                    consecutive_failures = 0
+                    open_failures = 0
                 except Exception:
                     time.sleep(reconnect_delay)
                     continue
 
+            frame_start = time.monotonic()
             try:
                 ok, f = cap.read()
             except Exception:
@@ -381,24 +431,39 @@ class ThreadedCameraReader:
                 f = None
 
             if ok and f is not None and f.size > 0:
+                consecutive_failures = 0
                 with self.lock:
                     self.frame = f
                     self.frame_seq += 1
-                if not self.is_live:
-                    time.sleep(0.033)
-                else:
-                    time.sleep(0.012)
+
+                # Smooth wall-clock pacing: prevents fast-forwarding & stabilizes frame cadence
+                elapsed = time.monotonic() - frame_start
+                sleep_time = max(0.005, target_interval - elapsed)
+                time.sleep(sleep_time)
             else:
-                if cap is not None:
-                    try:
-                        cap.release()
-                    except Exception:
-                        pass
-                    cap = None
-                if self.is_live:
-                    time.sleep(reconnect_delay)
+                consecutive_failures += 1
+                # When stream packet is momentarily delayed, retry on existing connection
+                if consecutive_failures < 35:
+                    time.sleep(0.025)
                 else:
-                    time.sleep(0.01)
+                    # After ~1s of sustained empty reads, gracefully reset capture
+                    if cap is not None:
+                        try:
+                            cap.release()
+                        except Exception:
+                            pass
+                        cap = None
+                    consecutive_failures = 0
+                    if not self.is_fallback and (self.source.startswith("http://") or self.source.startswith("https://")):
+                        open_failures += 1
+                        if open_failures >= 3:
+                            sample_path = PROJECT_ROOT / "vision" / "samples" / "traffic.mp4"
+                            if sample_path.exists():
+                                self.source = str(sample_path)
+                                self.is_live = False
+                                self.is_fallback = True
+                                open_failures = 0
+                    time.sleep(reconnect_delay)
 
         if cap is not None:
             try:
@@ -695,8 +760,8 @@ async def _generate_video_stream(camera: Camera, video_source: str):
                     + latest_bytes
                     + b"\r\n"
                 )
-            elif now - last_sent_time >= 3.0:
-                # Keep-alive heartbeat only if no frames were generated for 3 full seconds
+            elif now - last_sent_time >= 1.0:
+                # Keep-alive heartbeat every 1s to prevent browser connection timeout
                 last_sent_time = now
                 frame_to_send = latest_bytes or LOADING_JPEG
                 yield (

@@ -88,3 +88,21 @@ def test_pothole_api_defaults_severity_to_unknown(client):
 
     assert response.status_code == 201, response.text
     assert response.json()["severity"] == "unknown"
+
+
+def test_camera_hourly_profile_and_prediction(client):
+    res_profile = client.get("/api/cameras/1/traffic/hourly-profile")
+    assert res_profile.status_code == 200, res_profile.text
+    profile_data = res_profile.json()
+    assert profile_data["camera_id"] == 1
+    assert len(profile_data["profile"]) == 24
+    assert profile_data["profile"][0]["hour"] == 0
+    assert profile_data["profile"][23]["hour"] == 23
+
+    res_pred = client.get("/api/cameras/1/traffic/predict?hour=17")
+    assert res_pred.status_code == 200, res_pred.text
+    pred_data = res_pred.json()
+    assert pred_data["camera_id"] == 1
+    assert pred_data["queried_hour"] == 17
+    assert pred_data["predicted_status"] in {"LANCAR", "SEDANG", "PADAT", "MACET"}
+    assert len(pred_data["recommendation"]) > 10

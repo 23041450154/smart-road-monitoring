@@ -49,6 +49,9 @@ vision-install:
 traffic-worker:
 	PYTHONPATH=backend:. .venv/bin/python -m vision.traffic_worker.worker --camera-id 1 --show
 
+round-robin-worker:
+	PYTHONPATH=backend:. .venv/bin/python -m vision.traffic_worker.round_robin_worker --duration 120
+
 dataset-check:
 	$(PYTHON) scripts/dataset/validate_labels.py --images datasets/raw/rdd2022/converted/images --labels datasets/raw/rdd2022/converted/labels --report datasets/reports/rdd2022_label_validation.csv
 	$(PYTHON) scripts/dataset/check_images.py --input datasets/raw/rdd2022/converted/images

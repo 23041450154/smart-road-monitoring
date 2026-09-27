@@ -58,6 +58,42 @@ export interface Snapshot {
   traffic_status: TrafficStatus;
 }
 
+export interface HourlyProfileItem {
+  hour: number;
+  hour_label: string;
+  avg_total_count: number;
+  avg_vehicles_per_minute: number;
+  avg_congestion_score: number;
+  traffic_status: TrafficStatus;
+  sample_count: number;
+  is_peak_hour: boolean;
+}
+
+export interface HourlyProfileResponse {
+  camera_id: number;
+  camera_name: string;
+  road_name: string;
+  profile: HourlyProfileItem[];
+  morning_peak: string | null;
+  evening_peak: string | null;
+  total_samples: number;
+}
+
+export interface TrafficPredictionResponse {
+  camera_id: number;
+  camera_name: string;
+  road_name: string;
+  queried_hour: number;
+  queried_time_label: string;
+  predicted_status: TrafficStatus;
+  congestion_score: number;
+  avg_vehicles_per_minute: number;
+  confidence_level: string;
+  is_peak_hour: boolean;
+  sample_count: number;
+  recommendation: string;
+}
+
 export interface Pothole {
   id: number;
   latitude: number;

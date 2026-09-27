@@ -1,7 +1,14 @@
 "use client";
 
 import {
-  Camera, CircleGauge, Construction, Map, Menu, Route, Settings, X,
+  Camera,
+  CircleGauge,
+  Construction,
+  Map,
+  Menu,
+  Route,
+  Settings,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,68 +27,173 @@ const nav = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[250px_1fr]">
-      <aside className={cn(
-        "fixed inset-y-0 left-0 z-[1001] w-[250px] bg-[#102c27] p-5 text-white transition-transform lg:translate-x-0",
-        open ? "translate-x-0" : "-translate-x-full",
-      )}>
-        <div className="mb-9 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-            <span className="grid size-10 place-items-center rounded-xl bg-[#c9f260] font-black text-[#10201d]">L</span>
-            <span><strong className="display block text-xl leading-none">LAJU</strong><small className="text-[10px] tracking-[.22em] text-white/55">PALEMBANG</small></span>
-          </Link>
-          <button className="lg:hidden" onClick={() => setOpen(false)} aria-label="Tutup menu"><X /></button>
+    <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr] bg-zinc-50/50">
+      {/* Sidebar Desktop */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-[1001] w-[260px] bg-zinc-950 p-4 flex flex-col justify-between border-r border-zinc-800/80 text-zinc-200 transition-transform lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div>
+          {/* Logo & Brand */}
+          <div className="mb-6 flex items-center justify-between px-2 pt-1">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2.5 group"
+              onClick={() => setOpen(false)}
+            >
+              <span className="grid size-8 place-items-center rounded-lg bg-white font-bold text-zinc-950 text-sm shadow-xs transition group-hover:scale-105">
+                L
+              </span>
+              <div>
+                <span className="block text-sm font-semibold tracking-tight text-white leading-tight">
+                  LAJU
+                </span>
+                <span className="block text-[10px] font-medium tracking-wider text-zinc-400 uppercase">
+                  Palembang Smart Road
+                </span>
+              </div>
+            </Link>
+            <button
+              className="lg:hidden text-zinc-400 hover:text-white p-1"
+              onClick={() => setOpen(false)}
+              aria-label="Tutup menu"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Navigation Links */}
+          <div className="px-2 mb-2">
+            <span className="text-[11px] font-medium text-zinc-300 uppercase tracking-wider">
+              Pusat Kendali
+            </span>
+          </div>
+          <nav className="space-y-1">
+            {nav.map((item) => {
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+                    active
+                      ? "bg-zinc-800/90 text-white font-semibold border border-zinc-700/60 shadow-xs"
+                      : "text-zinc-300 hover:bg-zinc-900/80 hover:text-zinc-100",
+                  )}
+                >
+                  <item.icon
+                    size={16}
+                    className={cn(
+                      "shrink-0",
+                      active ? "text-blue-400" : "text-zinc-400",
+                    )}
+                  />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-        <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-white/35">Pusat Kendali</p>
-        <nav className="space-y-1">
-          {nav.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link key={item.href} href={item.href} onClick={() => setOpen(false)}
-                className={cn("flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition",
-                  active ? "bg-[#c9f260] text-[#10201d] shadow-[0_8px_24px_rgba(201,242,96,.15)]" : "text-white/65 hover:bg-white/7 hover:text-white")}
-              ><item.icon size={18} strokeWidth={2.2} />{item.label}</Link>
-            );
-          })}
-        </nav>
-        <div className="absolute inset-x-5 bottom-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-          <div className="mb-2 flex items-center gap-2 text-xs font-bold"><span className="size-2 rounded-full bg-[#c9f260] shadow-[0_0_10px_#c9f260]" /> MODE DEMO</div>
-          <p className="text-xs leading-relaxed text-white/45">Data simulasi untuk pengembangan. Bukan kondisi jalan aktual.</p>
+
+        {/* System / Demo Card */}
+        <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/60 p-3.5 text-xs text-zinc-400">
+          <div className="mb-1.5 flex items-center gap-2 font-medium text-zinc-200">
+            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Mode Aktif</span>
+          </div>
+          <p className="text-[11px] text-zinc-300 leading-relaxed">
+            Data live & simulasi untuk evaluasi pemantauan jalan Palembang.
+          </p>
         </div>
       </aside>
-      {open && <button className="fixed inset-0 z-[1000] bg-black/35 lg:hidden" onClick={() => setOpen(false)} aria-label="Tutup menu" />}
-      <div className="min-w-0 lg:col-start-2">
-        <header className="sticky top-0 z-[900] flex h-14 sm:h-16 items-center justify-between border-b border-black/7 bg-[#f4f3ed]/85 px-3.5 backdrop-blur-xl sm:px-7 lg:px-9">
+
+      {/* Backdrop for Mobile */}
+      {open && (
+        <button
+          className="fixed inset-0 z-[1000] bg-zinc-950/60 backdrop-blur-xs lg:hidden"
+          onClick={() => setOpen(false)}
+          aria-label="Tutup menu"
+        />
+      )}
+
+      {/* Main Content Area */}
+      <div className="min-w-0 lg:col-start-2 flex flex-col">
+        {/* Header Bar */}
+        <header className="sticky top-0 z-[900] flex h-14 items-center justify-between border-b border-zinc-200/80 bg-white/80 px-4 sm:px-8 backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <button className="grid size-9 sm:size-10 place-items-center rounded-xl border border-black/10 bg-white shadow-sm lg:hidden" onClick={() => setOpen(true)} aria-label="Buka menu"><Menu size={18} /></button>
-            <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
-              <span className="grid size-8 place-items-center rounded-lg bg-[#c9f260] text-xs font-black text-[#10201d]">L</span>
-              <span className="font-black text-sm tracking-tight text-[#10201d]">LAJU</span>
+            <button
+              className="grid size-8 place-items-center rounded-lg border border-zinc-200 bg-white text-zinc-700 shadow-xs hover:bg-zinc-50 lg:hidden"
+              onClick={() => setOpen(true)}
+              aria-label="Buka menu"
+            >
+              <Menu size={16} />
+            </button>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 lg:hidden"
+            >
+              <span className="grid size-7 place-items-center rounded-md bg-zinc-950 text-xs font-bold text-white">
+                L
+              </span>
+              <span className="font-semibold text-sm tracking-tight text-zinc-900">
+                LAJU
+              </span>
             </Link>
+            <div className="hidden items-center gap-2 text-xs font-medium text-zinc-500 lg:flex">
+              <span className="size-2 rounded-full bg-emerald-500" />
+              <span>Sistem Operasional Aktif</span>
+            </div>
           </div>
-          <div className="hidden items-center gap-2 text-xs font-semibold text-[#64726e] lg:flex"><span className="size-2 rounded-full bg-emerald-500" />Sistem operasional</div>
-          <div className="ml-auto flex items-center gap-2.5 sm:gap-3">
-            <span className="hidden text-right sm:block"><strong className="block text-xs">Operator Demo</strong><small className="text-[10px] text-[#64726e]">Asia/Jakarta</small></span>
-            <span className="grid size-8 sm:size-9 place-items-center rounded-full bg-[#ff7849] text-xs font-black text-white shadow-sm">OD</span>
+
+          <div className="ml-auto flex items-center gap-3">
+            <div className="hidden text-right sm:block">
+              <strong className="block text-xs font-semibold text-zinc-800">
+                Operator Pengawas
+              </strong>
+              <small className="text-[11px] text-zinc-400">Asia/Jakarta</small>
+            </div>
+            <div className="grid size-8 place-items-center rounded-full bg-zinc-900 text-xs font-semibold text-white shadow-xs">
+              OP
+            </div>
           </div>
         </header>
-        <main className="mx-auto max-w-[1500px] p-3.5 pb-28 sm:p-7 lg:p-9">{children}</main>
+
+        {/* Main Content */}
+        <main className="mx-auto w-full max-w-[1400px] p-4 sm:p-6 lg:p-8 pb-24 lg:pb-12">
+          {children}
+        </main>
       </div>
-      <nav className="fixed inset-x-2 bottom-2 z-[950] grid grid-cols-6 gap-0.5 rounded-2xl border border-white/10 bg-[#102c27]/95 p-1 text-white shadow-2xl backdrop-blur-xl lg:hidden">
+
+      {/* Mobile Bottom Dock */}
+      <nav className="fixed inset-x-3 bottom-3 z-[950] grid grid-cols-6 gap-1 rounded-2xl border border-zinc-800/80 bg-zinc-950/90 p-1.5 text-zinc-400 shadow-2xl backdrop-blur-xl lg:hidden">
         {nav.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 rounded-xl py-1.5 px-0.5 text-[8px] font-bold transition",
-                active ? "bg-[#c9f260] text-[#10201d]" : "text-white/65 hover:text-white"
+                "flex flex-col items-center justify-center gap-1 rounded-xl py-2 px-1 text-[9px] font-medium transition",
+                active
+                  ? "bg-zinc-800 text-white font-semibold shadow-xs"
+                  : "hover:text-zinc-200",
               )}
             >
-              <item.icon size={16} strokeWidth={active ? 2.5 : 2} />
-              <span className="truncate max-w-full">{item.label.split(" ")[0]}</span>
+              <item.icon
+                size={16}
+                className={active ? "text-blue-400" : "text-zinc-400"}
+              />
+              <span className="truncate max-w-full">
+                {item.label.split(" ")[0]}
+              </span>
             </Link>
           );
         })}
