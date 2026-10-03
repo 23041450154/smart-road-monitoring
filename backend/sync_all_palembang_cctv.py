@@ -77,16 +77,15 @@ def sync_all():
     now = datetime.now(UTC).replace(second=0, microsecond=0)
 
     with SessionLocal() as db:
-        # Delete demo cameras if they start with DEMO
-        demo_cams = db.query(Camera).filter(Camera.name.like("DEMO %")).all()
-        for dc in demo_cams:
-            db.delete(dc)
+        # Keep only the 8 primary cameras configured in CUSTOM_CONFIGS
+        db.query(Camera).filter(Camera.name.like("DEMO %")).delete(synchronize_session=False)
+        db.query(Camera).filter(~Camera.stream_url.in_(list(CUSTOM_CONFIGS.keys()))).delete(synchronize_session=False)
         db.commit()
 
         synced_count = 0
         for item in cctv_list:
             stream_url = item.get("cctv_link")
-            if not stream_url:
+            if not stream_url or stream_url not in CUSTOM_CONFIGS:
                 continue
 
             title = item.get("cctv_title", "CCTV Palembang")
