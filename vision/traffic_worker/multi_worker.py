@@ -52,11 +52,13 @@ def get_active_camera_ids() -> list[int]:
 
 
 def split_cameras_into_groups(camera_ids: list[int], num_workers: int = 4) -> list[list[int]]:
-    """Divides camera IDs evenly among num_workers."""
-    groups: list[list[int]] = [[] for _ in range(num_workers)]
-    for idx, cam_id in enumerate(camera_ids):
-        groups[idx % num_workers].append(cam_id)
-    return [g for g in groups if g]
+    """Divides camera IDs evenly into sequential pairs/chunks for each worker."""
+    import math
+
+    if not camera_ids:
+        return []
+    chunk_size = math.ceil(len(camera_ids) / num_workers)
+    return [camera_ids[i : i + chunk_size] for i in range(0, len(camera_ids), chunk_size)]
 
 
 class MultiWorkerSupervisor:
@@ -75,6 +77,13 @@ class MultiWorkerSupervisor:
         env["OPENVINO_NUM_THREADS"] = "1"
         env["MKL_NUM_THREADS"] = "1"
         env["WORKER_TAG"] = f"WORKER-{worker_id}"
+
+        # Ensure python paths are properly configured
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        paths = [str(PROJECT_ROOT / "backend"), str(PROJECT_ROOT)]
+        if existing_pythonpath:
+            paths.append(existing_pythonpath)
+        env["PYTHONPATH"] = ":".join(paths)
 
         cmd = [
             sys.executable,

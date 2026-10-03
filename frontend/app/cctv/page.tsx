@@ -1,20 +1,50 @@
 "use client";
 
-import { ArrowRight, Camera as CameraIcon, MapPin, Plus, Radio } from "lucide-react";
+import { ArrowRight, Camera as CameraIcon, MapPin, Plus, Radio, Search, X } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { ErrorState, LoadingCards, PageHeading, StatusBadge } from "@/components/ui";
 import { fetcher, mutateApi } from "@/lib/api";
 import type { Camera, TrafficCurrent } from "@/lib/types";
 
+function useDebounce<T>(value: T, delay: number = 300): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export default function CctvPage() {
   const [adding, setAdding] = useState(false);
   const [message, setMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedQuery = useDebounce(searchQuery, 300);
+
   const { data: cameras, error, mutate } = useSWR<Camera[]>("/api/cameras", fetcher);
   const { data: traffic } = useSWR<TrafficCurrent[]>("/api/traffic/current", fetcher, {
     refreshInterval: 15_000,
   });
+
+  const filteredCameras = useMemo(() => {
+    if (!cameras) return [];
+    if (!debouncedQuery.trim()) return cameras;
+    const q = debouncedQuery.toLowerCase().trim();
+    return cameras.filter(
+      (camera) =>
+        camera.name.toLowerCase().includes(q) ||
+        camera.road_name.toLowerCase().includes(q)
+    );
+  }, [cameras, debouncedQuery]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -154,13 +184,72 @@ export default function CctvPage() {
         </form>
       )}
 
+      {/* Search Input Bar with Debouncing */}
+      <div className="mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-zinc-400">
+            <Search size={16} />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari CCTV berdasarkan nama atau jalan (contoh: Charitas, Polda, Sudirman)..."
+            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-9 text-xs text-zinc-900 placeholder:text-zinc-400 shadow-xs focus:border-zinc-400 focus:outline-none transition-colors"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-600 transition-colors"
+              title="Hapus pencarian"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        {cameras && (
+          <div className="text-xs text-zinc-500 font-medium">
+            {debouncedQuery.trim() ? (
+              <span>
+                Menampilkan <b className="text-zinc-900">{filteredCameras.length}</b> dari {cameras.length} CCTV
+              </span>
+            ) : (
+              <span>
+                Total <b className="text-zinc-900">{cameras.length}</b> titik CCTV
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
       {error ? (
         <ErrorState />
       ) : !cameras ? (
         <LoadingCards count={3} />
+      ) : filteredCameras.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-zinc-300 bg-white py-14 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-400">
+            <Search size={22} />
+          </div>
+          <h3 className="mt-3 text-sm font-semibold text-zinc-900">
+            Tidak ada CCTV yang ditemukan
+          </h3>
+          <p className="mt-1 text-xs text-zinc-500">
+            Tidak ditemukan kamera CCTV yang cocok dengan kata kunci &ldquo;{debouncedQuery}&rdquo;.
+          </p>
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs hover:bg-zinc-50 transition-colors"
+          >
+            Reset Pencarian
+          </button>
+        </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {cameras.map((camera) => {
+          {filteredCameras.map((camera) => {
             const current = traffic?.find((item) => item.camera_id === camera.id);
             return (
               <Link

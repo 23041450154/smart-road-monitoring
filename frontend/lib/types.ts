@@ -94,6 +94,39 @@ export interface TrafficPredictionResponse {
   recommendation: string;
 }
 
+export interface AreaHourlyInsight {
+  camera_id: number;
+  camera_name: string;
+  road_name: string;
+  morning_peak: string | null;
+  evening_peak: string | null;
+  peak_score: number;
+  hourly_status: TrafficStatus[];
+  hourly_scores: number[];
+  hourly_vpm: number[];
+}
+
+export interface PeakAreaHighlight {
+  camera_id: number;
+  camera_name: string;
+  road_name: string;
+  peak_window: string;
+  traffic_status: TrafficStatus;
+  congestion_score: number;
+  avg_vehicles_per_minute: number;
+}
+
+export interface CityHourlyInsightsResponse {
+  current_hour: number;
+  current_time_label: string;
+  areas: AreaHourlyInsight[];
+  city_morning_peak: string;
+  city_evening_peak: string;
+  morning_peak_areas: PeakAreaHighlight[];
+  evening_peak_areas: PeakAreaHighlight[];
+  quietest_hours: string[];
+}
+
 export interface Pothole {
   id: number;
   latitude: number;

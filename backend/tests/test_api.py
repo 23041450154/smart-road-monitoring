@@ -106,3 +106,18 @@ def test_camera_hourly_profile_and_prediction(client):
     assert pred_data["queried_hour"] == 17
     assert pred_data["predicted_status"] in {"LANCAR", "SEDANG", "PADAT", "MACET"}
     assert len(pred_data["recommendation"]) > 10
+
+
+def test_city_hourly_insights(client):
+    res = client.get("/api/traffic/hourly-insights")
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert "current_hour" in data
+    assert "areas" in data
+    assert len(data["areas"]) > 0
+    first_area = data["areas"][0]
+    assert len(first_area["hourly_status"]) == 24
+    assert len(first_area["hourly_scores"]) == 24
+    assert len(first_area["hourly_vpm"]) == 24
+    assert "city_morning_peak" in data
+    assert "city_evening_peak" in data

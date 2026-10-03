@@ -7,10 +7,16 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, get_settings
 from app.db.session import get_db
 from app.models import Camera, Pothole, PotholeStatus, TrafficSnapshot, TrafficStatus
-from app.schemas.api import TrafficCurrent, TrafficSummary
-from app.traffic.analytics import camera_metrics
+from app.schemas.api import CityHourlyInsightsResponse, TrafficCurrent, TrafficSummary
+from app.traffic.analytics import camera_metrics, get_city_hourly_insights
 
 router = APIRouter(prefix="/traffic", tags=["traffic"])
+
+
+@router.get("/hourly-insights", response_model=CityHourlyInsightsResponse)
+def city_hourly_insights(db: Session = Depends(get_db)) -> CityHourlyInsightsResponse:
+    """Return citywide hourly traffic matrix, peak hours, and congested area highlights."""
+    return get_city_hourly_insights(db)
 
 
 @router.get("/current", response_model=list[TrafficCurrent])

@@ -21,3 +21,4 @@ export function routeLabel(value: string) {
     custom: "Rute Kustom",
   }[value] ?? value;
 }
+

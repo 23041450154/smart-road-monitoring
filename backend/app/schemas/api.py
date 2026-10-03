@@ -96,6 +96,39 @@ class TrafficPredictionResponse(BaseModel):
     recommendation: str
 
 
+class AreaHourlyInsight(BaseModel):
+    camera_id: int
+    camera_name: str
+    road_name: str
+    morning_peak: str | None = None
+    evening_peak: str | None = None
+    peak_score: float = 0.0
+    hourly_status: list[TrafficStatus]
+    hourly_scores: list[float]
+    hourly_vpm: list[float]
+
+
+class PeakAreaHighlight(BaseModel):
+    camera_id: int
+    camera_name: str
+    road_name: str
+    peak_window: str
+    traffic_status: TrafficStatus
+    congestion_score: float
+    avg_vehicles_per_minute: float
+
+
+class CityHourlyInsightsResponse(BaseModel):
+    current_hour: int
+    current_time_label: str
+    areas: list[AreaHourlyInsight]
+    city_morning_peak: str
+    city_evening_peak: str
+    morning_peak_areas: list[PeakAreaHighlight]
+    evening_peak_areas: list[PeakAreaHighlight]
+    quietest_hours: list[str]
+
+
 class TrafficCurrent(BaseModel):
     camera_id: int
     camera_name: str

@@ -1,5 +1,5 @@
 [Unit]
-Description=Smart Road Monitoring Autonomous Round-Robin Traffic Worker
+Description=Smart Road Monitoring Autonomous Traffic Multi-Worker Supervisor
 After=network.target
 
 [Service]
@@ -7,13 +7,15 @@ Type=simple
 User=root
 WorkingDirectory=/root/capstone
 Environment=PYTHONPATH=/root/capstone/backend:/root/capstone
-Environment=ROUND_ROBIN_DURATION_SECONDS=120
-Environment=OMP_NUM_THREADS=2
-Environment=OPENVINO_NUM_THREADS=2
-Environment=MKL_NUM_THREADS=2
-ExecStart=/root/capstone/.venv/bin/python -m vision.traffic_worker.round_robin_worker --duration 120
+Environment=NUM_TRAFFIC_WORKERS=4
+Environment=ROUND_ROBIN_DURATION_SECONDS=60
+Environment=OMP_NUM_THREADS=1
+Environment=OPENVINO_NUM_THREADS=1
+Environment=MKL_NUM_THREADS=1
+ExecStart=/root/capstone/.venv/bin/python -m vision.traffic_worker.multi_worker --workers 4 --duration 60
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
+

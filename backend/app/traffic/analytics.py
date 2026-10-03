@@ -1,16 +1,22 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Camera, TrafficSnapshot, TrafficStatus
 from app.schemas.api import (
+    AreaHourlyInsight,
+    CityHourlyInsightsResponse,
     HourlyProfileItem,
     HourlyProfileResponse,
+    PeakAreaHighlight,
     TrafficCurrent,
     TrafficPredictionResponse,
 )
+
+WIB = ZoneInfo("Asia/Jakarta")
 
 STATUS_WEIGHT = {
     TrafficStatus.LANCAR: 0,
@@ -130,7 +136,7 @@ def get_camera_hourly_profile(db: Session, camera: Camera) -> HourlyProfileRespo
 
     hour_buckets: dict[int, list[TrafficSnapshot]] = {h: [] for h in range(24)}
     for s in snapshots:
-        ts = _aware(s.timestamp)
+        ts = _aware(s.timestamp).astimezone(WIB)
         hour_buckets[ts.hour].append(s)
 
     profile_items: list[HourlyProfileItem] = []
@@ -250,5 +256,91 @@ def predict_camera_traffic(db: Session, camera: Camera, hour: int) -> TrafficPre
         is_peak_hour=target.is_peak_hour,
         sample_count=target.sample_count,
         recommendation=recommendation,
+    )
+
+
+def get_city_hourly_insights(db: Session, now: datetime | None = None) -> CityHourlyInsightsResponse:
+    now_local = (now or datetime.now(UTC)).astimezone(WIB) if (now and now.tzinfo) else datetime.now(WIB)
+    curr_hour = now_local.hour
+
+    cameras = list(
+        db.scalars(
+            select(Camera)
+            .where(Camera.is_active.is_(True))
+            .order_by(Camera.name)
+        )
+    )
+
+    area_insights: list[AreaHourlyInsight] = []
+    morning_highlights: list[PeakAreaHighlight] = []
+    evening_highlights: list[PeakAreaHighlight] = []
+
+    for cam in cameras:
+        profile_res = get_camera_hourly_profile(db, cam)
+        statuses = [item.traffic_status for item in profile_res.profile]
+        scores = [item.avg_congestion_score for item in profile_res.profile]
+        vpms = [item.avg_vehicles_per_minute for item in profile_res.profile]
+
+        max_score = max(scores) if scores else 0.0
+
+        insight = AreaHourlyInsight(
+            camera_id=cam.id,
+            camera_name=cam.name,
+            road_name=cam.road_name,
+            morning_peak=profile_res.morning_peak,
+            evening_peak=profile_res.evening_peak,
+            peak_score=max_score,
+            hourly_status=statuses,
+            hourly_scores=scores,
+            hourly_vpm=vpms,
+        )
+        area_insights.append(insight)
+
+        # Morning window (06:00 - 09:00)
+        m_slice = profile_res.profile[6:10]
+        if m_slice:
+            m_peak_item = max(m_slice, key=lambda x: x.avg_congestion_score)
+            if m_peak_item.avg_congestion_score >= 35:
+                morning_highlights.append(
+                    PeakAreaHighlight(
+                        camera_id=cam.id,
+                        camera_name=cam.name,
+                        road_name=cam.road_name,
+                        peak_window=f"{m_peak_item.hour:02d}:00 - {m_peak_item.hour + 1:02d}:00",
+                        traffic_status=m_peak_item.traffic_status,
+                        congestion_score=m_peak_item.avg_congestion_score,
+                        avg_vehicles_per_minute=m_peak_item.avg_vehicles_per_minute,
+                    )
+                )
+
+        # Evening window (16:00 - 19:00)
+        e_slice = profile_res.profile[16:20]
+        if e_slice:
+            e_peak_item = max(e_slice, key=lambda x: x.avg_congestion_score)
+            if e_peak_item.avg_congestion_score >= 35:
+                evening_highlights.append(
+                    PeakAreaHighlight(
+                        camera_id=cam.id,
+                        camera_name=cam.name,
+                        road_name=cam.road_name,
+                        peak_window=f"{e_peak_item.hour:02d}:00 - {e_peak_item.hour + 1:02d}:00",
+                        traffic_status=e_peak_item.traffic_status,
+                        congestion_score=e_peak_item.avg_congestion_score,
+                        avg_vehicles_per_minute=e_peak_item.avg_vehicles_per_minute,
+                    )
+                )
+
+    morning_highlights.sort(key=lambda x: x.congestion_score, reverse=True)
+    evening_highlights.sort(key=lambda x: x.congestion_score, reverse=True)
+
+    return CityHourlyInsightsResponse(
+        current_hour=curr_hour,
+        current_time_label=f"{curr_hour:02d}:00 WIB",
+        areas=area_insights,
+        city_morning_peak="07:00 - 08:30 WIB",
+        city_evening_peak="16:30 - 18:30 WIB",
+        morning_peak_areas=morning_highlights[:5],
+        evening_peak_areas=evening_highlights[:5],
+        quietest_hours=["22:00 - 05:00 WIB", "10:30 - 11:30 WIB"],
     )
 
