@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMap } from "react-leaflet";
-import { Crosshair, Locate, MapPin, Maximize2 } from "lucide-react";
+import { Crosshair, Locate, MapPin, Maximize2, Minimize2 } from "lucide-react";
 import L from "leaflet";
 import { PALEMBANG_CENTER, PALEMBANG_DEFAULT_ZOOM } from "@/lib/map-utils";
 
@@ -13,7 +13,25 @@ interface MapControlsProps {
 export function MapControls({ selectedRouteBounds }: MapControlsProps) {
   const map = useMap();
   const [locating, setLocating] = useState(false);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [userLocationMarker, setUserLocationMarker] = useState<L.Marker | null>(null);
+
+  useEffect(() => {
+    const onChange = () => {
+      setIsMapFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const handleToggleFullscreen = () => {
+    const container = map.getContainer();
+    if (!document.fullscreenElement) {
+      container.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  };
 
   const handleResetToPalembang = () => {
     map.setView(PALEMBANG_CENTER, PALEMBANG_DEFAULT_ZOOM, { animate: true });
@@ -118,6 +136,22 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
         )}
         <span className="hidden sm:inline">
           {locating ? "Mencari..." : "Lokasi Saya"}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        onClick={handleToggleFullscreen}
+        className="flex items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs backdrop-blur hover:bg-zinc-50 transition"
+        title={isMapFullscreen ? "Keluar Layar Penuh Peta" : "Mode Layar Penuh Peta"}
+      >
+        {isMapFullscreen ? (
+          <Minimize2 size={13} className="text-zinc-700" />
+        ) : (
+          <Maximize2 size={13} className="text-zinc-700" />
+        )}
+        <span className="hidden sm:inline">
+          {isMapFullscreen ? "Keluar Fullscreen" : "Fullscreen Peta"}
         </span>
       </button>
     </div>

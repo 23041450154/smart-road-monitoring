@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, Bike, Bus, Car, Clock3, Flame, Info, Sparkles, Truck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Bike, Bus, Car, Clock3, Flame, Info, Maximize2, Minimize2, Sparkles, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -35,6 +35,38 @@ export default function CameraDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [streamKey, setStreamKey] = useState(0);
   const [selectedHour, setSelectedHour] = useState<number>(17);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  const toggleFullscreen = async () => {
+    if (!videoContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      try {
+        await videoContainerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      } catch (err) {
+        console.error("Gagal masuk mode layar penuh:", err);
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      } catch (err) {
+        console.error("Gagal keluar mode layar penuh:", err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
   const { data: camera, error } = useSWR<Camera>(`/api/cameras/${id}`, fetcher);
   const { data: current } = useSWR<TrafficCurrent>(
     `/api/cameras/${id}/traffic/current`,
@@ -96,38 +128,124 @@ export default function CameraDetailPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_.7fr]">
-        {/* Live Video Feed Frame */}
-        <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 shadow-sm">
-          <div className="flex items-center justify-between border-b border-zinc-800/80 px-4 py-3 text-white">
-            <span className="inline-flex items-center gap-2 text-xs font-medium text-zinc-200">
-              <span className="relative flex size-2">
+        {/* Live Video Feed Frame with Fullscreen Support */}
+        <div
+          ref={videoContainerRef}
+          className={`overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 shadow-sm flex flex-col transition-all ${
+            isFullscreen
+              ? "fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none justify-between bg-black"
+              : ""
+          }`}
+        >
+          {/* Player Header Bar */}
+          <div className="flex items-center justify-between border-b border-zinc-800/80 px-4 py-3 text-white bg-zinc-950/95 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex size-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
               </span>
-              <span>LIVE VISION INFERENCE</span>
-            </span>
-            <span className="font-mono text-[11px] text-zinc-400">
-              YOLO11 · ByteTrack · 30 FPS
-            </span>
+              <span className="text-xs font-bold tracking-wider uppercase text-zinc-100">
+                LIVE STREAMING
+              </span>
+              {isFullscreen && (
+                <span className="hidden sm:inline-block text-xs font-medium text-zinc-400 truncate">
+                  · {camera.name} ({camera.road_name})
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              {isFullscreen && (
+                <div className="hidden sm:block">
+                  <StatusBadge status={current.traffic_status} />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/90 px-3 py-1 text-xs font-medium text-white hover:bg-zinc-700 transition-colors shadow-xs"
+                title={isFullscreen ? "Keluar Layar Penuh (Esc)" : "Mode Layar Penuh (Fullscreen)"}
+              >
+                {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                <span>{isFullscreen ? "Keluar Fullscreen" : "Layar Penuh"}</span>
+              </button>
+            </div>
           </div>
 
-          <div className="relative aspect-video overflow-hidden bg-black">
+          {/* Video Player Box */}
+          <div
+            className={`relative overflow-hidden bg-black flex items-center justify-center ${
+              isFullscreen ? "flex-1 w-full h-full" : "aspect-video"
+            }`}
+            onDoubleClick={toggleFullscreen}
+          >
             {/* Live Video Stream with Real YOLO Annotations & Tracking from Backend */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`${API_URL}/api/cameras/${camera.id}/stream/video?v=${streamKey}`}
               alt={`Live stream ${camera.name}`}
-              className="h-full w-full object-cover"
+              className={`h-full w-full ${isFullscreen ? "object-contain" : "object-cover"}`}
               onError={() => {
                 setTimeout(() => setStreamKey((k: number) => k + 1), 1000);
               }}
             />
-            <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-white/10 bg-black/70 px-2.5 py-1 text-[10px] font-medium text-white/90 backdrop-blur-xs">
-              {camera.is_demo
-                ? "Feed Demo Aktif · YOLO & ByteTrack Real-time"
-                : "Live Stream Diskominfo Palembang · YOLO & ByteTrack"}
+
+            {/* Bottom-left overlay info */}
+            <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-white/10 bg-black/75 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-xs flex items-center gap-2 shadow-sm">
+              <span className="size-2 rounded-full bg-emerald-400" />
+              <span>
+                {camera.is_demo
+                  ? "Feed Demo Aktif · Deteksi Kendaraan Real-time"
+                  : "Live Stream Diskominfo Palembang"}
+              </span>
+              <span className="text-zinc-500">|</span>
+              <span className="font-semibold text-emerald-400">
+                {current.vehicles_per_minute} kend/menit
+              </span>
             </div>
+
+            {/* Bottom-right Fullscreen Button Overlay */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="absolute bottom-3 right-3 rounded-lg border border-white/20 bg-black/70 p-2 text-white hover:bg-black/90 hover:scale-105 transition shadow-lg cursor-pointer"
+              title={isFullscreen ? "Keluar Layar Penuh (Esc)" : "Layar Penuh (Klik ganda pada video)"}
+            >
+              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
           </div>
+
+          {/* In Fullscreen mode: Bottom Telemetry HUD */}
+          {isFullscreen && (
+            <div className="bg-zinc-950/95 border-t border-zinc-800/80 px-6 py-2.5 text-white flex items-center justify-between text-xs shrink-0">
+              <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+                <div>
+                  <span className="text-zinc-400">Motor: </span>
+                  <b className="text-white">{current.motorcycle_count}</b>
+                </div>
+                <div>
+                  <span className="text-zinc-400">Mobil: </span>
+                  <b className="text-white">{current.car_count}</b>
+                </div>
+                <div>
+                  <span className="text-zinc-400">Bus: </span>
+                  <b className="text-white">{current.bus_count}</b>
+                </div>
+                <div>
+                  <span className="text-zinc-400">Truk: </span>
+                  <b className="text-white">{current.truck_count}</b>
+                </div>
+                <div>
+                  <span className="text-zinc-400">Volume 5 Menit: </span>
+                  <b className="text-emerald-400">{current.rolling_5_minute} kend</b>
+                </div>
+              </div>
+
+              <div className="hidden sm:block text-zinc-400 text-[11px]">
+                Tekan <kbd className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">Esc</kbd> atau klik dua kali untuk keluar
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Realtime Metrics Column */}
