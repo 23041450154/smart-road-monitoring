@@ -80,7 +80,7 @@ class MultiWorkerSupervisor:
 
         # Ensure python paths are properly configured
         existing_pythonpath = env.get("PYTHONPATH", "")
-        paths = [str(PROJECT_ROOT / "backend"), str(PROJECT_ROOT)]
+        paths = ["/app", "/", str(PROJECT_ROOT / "backend"), str(PROJECT_ROOT)]
         if existing_pythonpath:
             paths.append(existing_pythonpath)
         env["PYTHONPATH"] = ":".join(paths)
@@ -102,9 +102,10 @@ class MultiWorkerSupervisor:
             self.duration,
         )
 
+        cwd = str(PROJECT_ROOT) if (PROJECT_ROOT / "vision").exists() else "/app"
         proc = subprocess.Popen(
             cmd,
-            cwd=str(PROJECT_ROOT),
+            cwd=cwd,
             env=env,
         )
         return proc

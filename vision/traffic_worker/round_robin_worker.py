@@ -122,6 +122,21 @@ def save_camera_window(
     )
 
 
+def resolve_model_path(path_str: str = "yolo11n.pt") -> str:
+    """Robustly resolves YOLO model path across local host, docker, and project roots."""
+    candidates = [
+        Path(path_str),
+        PROJECT_ROOT / path_str,
+        Path("/app") / path_str,
+        Path("/") / path_str,
+        PROJECT_ROOT / "yolo11n.pt",
+    ]
+    for c in candidates:
+        if c.exists():
+            return str(c)
+    return path_str
+
+
 def sample_camera(
     camera_id: int,
     duration_seconds: int = 120,
@@ -129,6 +144,7 @@ def sample_camera(
     confidence: float = 0.08,
 ) -> None:
     """Samples a single camera for duration_seconds, then cleanly disconnects."""
+    effective_model = resolve_model_path(model_path)
     with SessionLocal() as db:
         camera = db.get(Camera, camera_id)
         if not camera or not camera.is_active:
@@ -151,7 +167,7 @@ def sample_camera(
         )
 
         processor = YoloByteTrackProcessor(
-            model_path=model_path,
+            model_path=effective_model,
             confidence=confidence,
             device="cpu",
             exclusion_zones=exclusion_zones,

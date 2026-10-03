@@ -27,10 +27,13 @@ services:
       POTHOLE_ROUTE_BUFFER_METERS: ${POTHOLE_ROUTE_BUFFER_METERS:-100}
       POTHOLE_DUPLICATE_RADIUS_METERS: ${POTHOLE_DUPLICATE_RADIUS_METERS:-10}
       BRIEFING_MODE: ${BRIEFING_MODE:-template}
+      PYTHONPATH: /app:/
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./vision:/vision
+      - ./yolo11n.pt:/app/yolo11n.pt
+      - ./yolo11n_openvino_model:/app/yolo11n_openvino_model
     depends_on:
       postgres:
         condition: service_healthy
@@ -39,6 +42,30 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: python -m vision.traffic_worker.multi_worker --workers 4 --duration 60
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      DEMO_MODE: ${DEMO_MODE:-true}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smartroad}:${POSTGRES_PASSWORD:-smartroad}@postgres:5432/${POSTGRES_DB:-smartroad}
+      PYTHONPATH: /app:/
+      NUM_TRAFFIC_WORKERS: 4
+      ROUND_ROBIN_DURATION_SECONDS: 60
+      OMP_NUM_THREADS: "1"
+      OPENVINO_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    volumes:
+      - ./vision:/vision
+      - ./yolo11n.pt:/app/yolo11n.pt
+      - ./yolo11n_openvino_model:/app/yolo11n_openvino_model
+    depends_on:
+      backend:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
