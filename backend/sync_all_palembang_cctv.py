@@ -10,48 +10,56 @@ from app.traffic.analytics import classify_traffic
 
 CUSTOM_CONFIGS = {
     "https://stream.palembang.go.id/cam8/index.m3u8": {
+        "id": 1,
         "name": "CCTV SP Charitas (Palembang)",
         "road_name": "Jl. Jenderal Sudirman",
         "thresholds": (25, 50, 80),
         "counting_line": [[0.20, 0.60], [0.80, 0.60]],
     },
     "https://stream.palembang.go.id/cam3/index.m3u8": {
+        "id": 2,
         "name": "CCTV Simpang Polda (Palembang)",
         "road_name": "Jl. Demang Lebar Daun",
         "thresholds": (20, 45, 75),
         "counting_line": [[0.20, 0.55], [0.85, 0.55]],
     },
-    "https://stream.palembang.go.id/cam2/index.m3u8": {
-        "name": "CCTV Benteng Kuto Besak (Palembang)",
-        "road_name": "Jl. Merdeka / BKB",
-        "thresholds": (18, 38, 65),
-        "counting_line": [[0.10, 0.55], [0.90, 0.55]],
+    "https://stream.palembang.go.id/cam6/index.m3u8": {
+        "id": 3,
+        "name": "CCTV Simpang Cinde (Palembang)",
+        "road_name": "Jl. Jenderal Sudirman (Cinde)",
+        "thresholds": (20, 45, 75),
+        "counting_line": [[0.15, 0.70], [0.85, 0.70]],
     },
     "https://stream.palembang.go.id/cam9/index.m3u8": {
+        "id": 4,
         "name": "CCTV Masjid Agung (Palembang)",
-        "road_name": "Jl. Jenderal Sudirman",
+        "road_name": "Jl. Jenderal Sudirman (Air Mancur)",
         "thresholds": (22, 45, 70),
         "counting_line": [[0.40, 0.67], [0.72, 0.76]],
     },
     "https://stream.palembang.go.id/cam5/index.m3u8": {
+        "id": 5,
         "name": "CCTV Simpang Angkatan 45 (Palembang)",
         "road_name": "Jl. Angkatan 45 / POM IX",
         "thresholds": (20, 45, 75),
         "counting_line": [[0.15, 0.65], [0.85, 0.65]],
     },
     "https://stream.palembang.go.id/cam21/index.m3u8": {
+        "id": 6,
         "name": "CCTV SP Samsat (Palembang)",
         "road_name": "Jl. POM IX / Angkatan 45",
         "thresholds": (20, 45, 75),
         "counting_line": [[0.20, 0.60], [0.80, 0.60]],
     },
     "https://stream.palembang.go.id/cam13/index.m3u8": {
+        "id": 7,
         "name": "CCTV KM 12 (Palembang)",
         "road_name": "Jl. Kolonel H. Burlian KM 12",
         "thresholds": (20, 45, 75),
         "counting_line": [[0.15, 0.60], [0.85, 0.60]],
     },
     "https://stream.palembang.go.id/cam14/index.m3u8": {
+        "id": 8,
         "name": "CCTV Punti Kayu (Palembang)",
         "road_name": "Jl. Kolonel H. Burlian",
         "thresholds": (20, 42, 70),
@@ -77,23 +85,19 @@ def sync_all():
     now = datetime.now(UTC).replace(second=0, microsecond=0)
 
     with SessionLocal() as db:
-        # Keep only the 8 primary cameras configured in CUSTOM_CONFIGS
-        db.query(Camera).filter(Camera.name.like("DEMO %")).delete(synchronize_session=False)
-        db.query(Camera).filter(~Camera.stream_url.in_(list(CUSTOM_CONFIGS.keys()))).delete(synchronize_session=False)
-        db.commit()
-
         synced_count = 0
         for item in cctv_list:
             stream_url = item.get("cctv_link")
             if not stream_url or stream_url not in CUSTOM_CONFIGS:
                 continue
 
+            custom = CUSTOM_CONFIGS[stream_url]
+            cam_id = custom.get("id")
             title = item.get("cctv_title", "CCTV Palembang")
             coords = item.get("location", {}).get("coordinates", [104.75, -2.98])
             lon = float(coords[0])
             lat = float(coords[1])
 
-            custom = CUSTOM_CONFIGS.get(stream_url, {})
             name = custom.get("name", title)
             road_name = custom.get(
                 "road_name", title.replace("CCTV ", "").replace("SP ", "Simpang ")
@@ -101,12 +105,15 @@ def sync_all():
             low, med, high = custom.get("thresholds", (20, 45, 75))
             counting_line = custom.get("counting_line", [[0.20, 0.60], [0.80, 0.60]])
 
-            # Check if camera with same stream_url or name exists
-            cam = (
-                db.query(Camera)
-                .filter((Camera.stream_url == stream_url) | (Camera.name == name))
-                .first()
-            )
+            # Check if camera exists by fixed ID or stream URL
+            cam = db.get(Camera, cam_id) if cam_id else None
+            if not cam:
+                cam = (
+                    db.query(Camera)
+                    .filter((Camera.stream_url == stream_url) | (Camera.name == name))
+                    .first()
+                )
+
             if cam:
                 cam.name = name
                 cam.road_name = road_name
@@ -123,6 +130,7 @@ def sync_all():
                 cam.counting_line = counting_line
             else:
                 cam = Camera(
+                    id=cam_id,
                     name=name,
                     road_name=road_name,
                     latitude=lat,
