@@ -1,19 +1,25 @@
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  (typeof window !== "undefined" &&
-  window.location.hostname !== "localhost" &&
-  window.location.hostname !== "127.0.0.1"
-    ? ""
-    : "http://localhost:8000");
+export function getApiUrl(): string {
+  if (typeof window !== "undefined") {
+    if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+      return "";
+    }
+    return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "";
+}
+
+export const API_URL = "";
 
 export async function fetcher<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`);
+  const base = getApiUrl();
+  const response = await fetch(`${base}${path}`);
   if (!response.ok) throw new Error(`API ${response.status}: ${response.statusText}`);
   return response.json() as Promise<T>;
 }
 
 export async function mutateApi<T>(path: string, method: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
+  const base = getApiUrl();
+  const response = await fetch(`${base}${path}`, {
     method,
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
@@ -24,3 +30,4 @@ export async function mutateApi<T>(path: string, method: string, body?: unknown)
   }
   return (response.status === 204 ? undefined : response.json()) as Promise<T>;
 }
+

@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import { ErrorState, PageHeading, StatusBadge, TrendView } from "@/components/ui";
 import { MapPanel } from "@/components/map-panel";
-import { API_URL, fetcher } from "@/lib/api";
+import { fetcher, getApiUrl } from "@/lib/api";
 
 import type {
   Camera,
@@ -182,7 +182,7 @@ export default function CameraDetailPage() {
             {/* Live Video Stream with Real YOLO Annotations & Tracking from Backend */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`${API_URL}/api/cameras/${camera.id}/stream/video?v=${streamKey}`}
+              src={`${getApiUrl()}/api/cameras/${camera.id}/stream/video?v=${streamKey}`}
               alt={`Live stream ${camera.name}`}
               className={`h-full w-full ${isFullscreen ? "object-contain" : "object-cover"}`}
               onError={() => {

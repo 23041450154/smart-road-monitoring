@@ -4,7 +4,7 @@ import L from "leaflet";
 import { Marker, Popup } from "react-leaflet";
 import type { Pothole } from "@/lib/types";
 import { dateTime } from "@/lib/utils";
-import { API_URL } from "@/lib/api";
+import { getApiUrl } from "@/lib/api";
 
 interface PotholeMarkerProps {
   pothole: Pothole;
@@ -74,7 +74,7 @@ export function PotholeMarker({ pothole, isHighlighted, isDimmed }: PotholeMarke
 
   // Derive evidence image URL if available
   const evidenceFilename = pothole.image_path ? pothole.image_path.split("/").pop() : null;
-  const evidenceUrl = evidenceFilename ? `${API_URL}/evidence/${evidenceFilename}` : null;
+  const evidenceUrl = evidenceFilename ? `${getApiUrl()}/evidence/${evidenceFilename}` : null;
 
   return (
     <Marker position={[pothole.latitude, pothole.longitude]} icon={customIcon}>
