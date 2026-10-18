@@ -444,6 +444,14 @@ class ThreadedCameraReader:
                 sleep_time = max(0.005, target_interval - elapsed)
                 time.sleep(sleep_time)
             else:
+                # Instant seamless rewind for local or fallback video files (prevents 2s freezing when video loops)
+                if not self.is_live or not (self.source.startswith("http://") or self.source.startswith("https://")):
+                    if cap is not None and cap.isOpened():
+                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                        consecutive_failures = 0
+                        time.sleep(0.005)
+                        continue
+
                 consecutive_failures += 1
                 # When stream packet is momentarily delayed, retry on existing connection
                 if consecutive_failures < 35:
@@ -554,9 +562,21 @@ class CameraStreamWorker:
     def _worker_loop(self) -> None:
         is_live = self.video_source.startswith("http://") or self.video_source.startswith("https://")
         reader = ThreadedCameraReader(self.video_source, is_live=is_live, target_size=(640, 360))
+        model_candidates = [
+            PROJECT_ROOT / "yolo11n_openvino_model",
+            Path("/app/yolo11n_openvino_model"),
+            PROJECT_ROOT / "yolo11n.pt",
+            Path("/app/yolo11n.pt"),
+        ]
+        chosen_model = str(PROJECT_ROOT / "yolo11n.pt")
+        for mc in model_candidates:
+            if mc.exists():
+                chosen_model = str(mc)
+                break
+
         processor = YoloByteTrackProcessor(
-            model_path=str(PROJECT_ROOT / "yolo11n.pt"),
-            confidence=0.07,
+            model_path=chosen_model,
+            confidence=0.20,
             device="cpu",
             exclusion_zones=self.exclusion_zones,
         )
@@ -639,6 +659,32 @@ class CameraStreamWorker:
                     except Exception:
                         pass
                     future = None
+                elif future is not None and latest_tracks:
+                    # In-between inferences: extrapolate bounding box position smoothly using velocity
+                    extrapolated = []
+                    for tr in latest_tracks:
+                        vx, vy = tr.velocity
+                        if abs(vx) > 0.01 or abs(vy) > 0.01:
+                            b = tr.bounding_box
+                            step_factor = dt / 0.10
+                            nb = [
+                                b[0] + vx * step_factor,
+                                b[1] + vy * step_factor,
+                                b[2] + vx * step_factor,
+                                b[3] + vy * step_factor,
+                            ]
+                            extrapolated.append(
+                                Track(
+                                    tracker_id=tr.tracker_id,
+                                    vehicle_type=tr.vehicle_type,
+                                    confidence=tr.confidence,
+                                    bounding_box=nb,
+                                    velocity=tr.velocity,
+                                )
+                            )
+                        else:
+                            extrapolated.append(tr)
+                    latest_tracks = extrapolated
 
                 if future is None and (now - last_inference_time >= min_inference_interval):
                     last_inference_time = now

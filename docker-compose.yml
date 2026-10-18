@@ -28,6 +28,7 @@ services:
       POTHOLE_DUPLICATE_RADIUS_METERS: ${POTHOLE_DUPLICATE_RADIUS_METERS:-10}
       BRIEFING_MODE: ${BRIEFING_MODE:-template}
       PYTHONPATH: /app:/
+      YOLO_CONFIG_DIR: /tmp/ultralytics
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
@@ -46,14 +47,15 @@ services:
 
   worker:
     build: ./backend
-    command: python -m vision.traffic_worker.multi_worker --workers 4 --duration 60
+    command: python -m vision.traffic_worker.multi_worker --workers 2 --duration 60
     environment:
       APP_ENV: ${APP_ENV:-production}
       DEMO_MODE: ${DEMO_MODE:-true}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-smartroad}:${POSTGRES_PASSWORD:-smartroad}@postgres:5432/${POSTGRES_DB:-smartroad}
       PYTHONPATH: /app:/
-      NUM_TRAFFIC_WORKERS: 4
+      NUM_TRAFFIC_WORKERS: 2
       ROUND_ROBIN_DURATION_SECONDS: 60
+      YOLO_CONFIG_DIR: /tmp/ultralytics
       OMP_NUM_THREADS: "1"
       OPENVINO_NUM_THREADS: "1"
       MKL_NUM_THREADS: "1"
