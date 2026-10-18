@@ -11,7 +11,7 @@ import {
   RefreshCw,
   Search,
   ShieldAlert,
-  Sparkles,
+  Info,
   TrendingDown,
   TrendingUp,
   Video,
@@ -260,7 +260,6 @@ export default function Dashboard() {
                     <TrendingDown size={13} />
                     Rekomendasi Jalur Nyaman
                   </span>
-                  <Sparkles size={15} className="text-emerald-500" />
                 </div>
                 <h3 className="text-sm font-bold text-zinc-900 mt-1">
                   {smoothestRoads.length > 0
@@ -378,59 +377,69 @@ export default function Dashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="flex size-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                  <span className="flex size-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700">
                     <Clock size={16} />
                   </span>
                   <h2 className="text-base font-bold text-zinc-900">
                     Prediksi Lalu Lintas Berdasarkan Jam
                   </h2>
-                  <span className="rounded-full bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
-                    Simulasi Waktu
-                  </span>
                 </div>
                 <p className="text-xs text-zinc-500 mt-1">
                   Pilih jam keberangkatan untuk melihat estimasi kepadatan di seluruh koridor kota Palembang.
                 </p>
               </div>
 
-              {/* Indikator Jam Terpilih */}
-              <div className="flex items-center gap-2">
-                <div className="rounded-xl bg-zinc-900 text-white px-3.5 py-1.5 flex items-center gap-2 shadow-xs">
-                  <span className="text-xs text-zinc-400">Jam Dipilih:</span>
-                  <span className="text-sm font-bold tracking-tight">
-                    {String(selectedHour).padStart(2, "0")}:00 WIB
+              {/* Preset Waktu Filter */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { label: "Pagi (07:00)", hour: 7 },
+                  { label: "Siang (12:00)", hour: 12 },
+                  { label: "Sore (17:00)", hour: 17 },
+                  { label: "Malam (20:00)", hour: 20 },
+                  {
+                    label: `Sekarang (${new Date().getHours()}:00)`,
+                    hour: new Date().getHours(),
+                    isNow: true,
+                  },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setSelectedHour(preset.hour)}
+                    className={`text-xs px-2.5 py-1 rounded-lg transition-colors font-medium cursor-pointer ${
+                      selectedHour === preset.hour
+                        ? "bg-zinc-900 text-white shadow-xs"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                    }`}
+                  >
+                    {preset.isNow && (
+                      <span className="inline-block size-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+                    )}
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 24-Hour Timeline Bar Chart (Interactive Scrubber) */}
+            <div className="rounded-xl bg-zinc-50/80 border border-zinc-200/70 p-4 space-y-3">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span className="font-medium">Rentang Waktu 24 Jam</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-zinc-800 bg-white px-2.5 py-0.5 rounded-md border border-zinc-200 text-xs shadow-2xs">
+                    Pukul {String(selectedHour).padStart(2, "0")}:00 WIB
                   </span>
                   {selectedHour === new Date().getHours() && (
-                    <span className="rounded bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0.5 font-bold">
-                      Sekarang
+                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                      Waktu Saat Ini
                     </span>
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Slider & 24-Hour Timeline Bar Chart */}
-            <div className="rounded-xl bg-zinc-50/80 border border-zinc-200/70 p-4 space-y-3">
-              <div className="flex items-center justify-between text-xs font-medium text-zinc-600">
-                <span>00:00 (Dini Hari)</span>
-                <span className="font-bold text-zinc-900 bg-white px-2.5 py-0.5 rounded-md border border-zinc-200 shadow-2xs">
-                  Pukul {String(selectedHour).padStart(2, "0")}:00 WIB
-                </span>
-                <span>23:00 (Malam)</span>
-              </div>
-
-              <input
-                type="range"
-                min={0}
-                max={23}
-                value={selectedHour}
-                onChange={(e) => setSelectedHour(Number(e.target.value))}
-                className="w-full h-2.5 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
-              />
-
-              {/* 24-Hour Interactive Timeline Bar Chart */}
-              <div className="pt-2">
-                <div className="flex items-end gap-1 h-14 w-full">
+              {/* Bar Chart Container */}
+              <div className="pt-2 pb-1">
+                <div className="flex items-end gap-1.5 h-16 w-full">
                   {Array.from({ length: 24 }).map((_, h) => {
                     const hScore =
                       hourlyInsights && hourlyInsights.areas.length
@@ -444,111 +453,90 @@ export default function Dashboard() {
                     const isCurrent =
                       (hourlyInsights?.current_hour ?? new Date().getHours()) === h;
 
-                    let barColor = "bg-emerald-400 hover:bg-emerald-500";
-                    if (hScore >= 75) barColor = "bg-rose-500 hover:bg-rose-600";
-                    else if (hScore >= 50) barColor = "bg-amber-400 hover:bg-amber-500";
-                    else if (hScore >= 25) barColor = "bg-yellow-400 hover:bg-yellow-500";
+                    let barColor = "bg-emerald-400/80 hover:bg-emerald-500";
+                    if (hScore >= 75) barColor = "bg-rose-500/90 hover:bg-rose-600";
+                    else if (hScore >= 50) barColor = "bg-amber-400/90 hover:bg-amber-500";
+                    else if (hScore >= 25) barColor = "bg-amber-300/80 hover:bg-amber-400";
 
                     return (
                       <button
                         key={h}
                         type="button"
                         onClick={() => setSelectedHour(h)}
-                        title={`Pukul ${String(h).padStart(2, "0")}:00 - Rata-rata Skor: ${Math.round(hScore)}%`}
+                        title={`Pukul ${String(h).padStart(2, "0")}:00 - Estimasi Skor: ${Math.round(hScore)}%`}
                         className={`flex-1 flex flex-col items-center justify-end h-full transition-all group relative cursor-pointer ${
-                          isSelected ? "scale-105" : "opacity-80 hover:opacity-100"
+                          isSelected ? "opacity-100" : "opacity-70 hover:opacity-100"
                         }`}
                       >
+                        {isSelected && (
+                          <span className="absolute -top-5 text-[10px] font-bold text-zinc-800 bg-white px-1 rounded shadow-2xs border border-zinc-200">
+                            {Math.round(hScore)}%
+                          </span>
+                        )}
                         <div
-                          className={`w-full rounded-t-sm transition-all ${barColor} ${
-                            isSelected ? "ring-2 ring-indigo-600 ring-offset-1" : ""
+                          className={`w-full rounded-xs transition-all ${barColor} ${
+                            isSelected ? "ring-2 ring-zinc-900 ring-offset-1" : ""
                           }`}
-                          style={{ height: `${Math.max(15, Math.min(100, hScore))}%` }}
+                          style={{ height: `${Math.max(16, Math.min(100, hScore))}%` }}
                         />
                         <span
                           className={`text-[9px] mt-1 font-mono ${
-                            isSelected ? "font-bold text-indigo-700" : "text-zinc-400"
+                            isSelected ? "font-bold text-zinc-900" : "text-zinc-400"
                           }`}
                         >
                           {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
                         </span>
                         {isCurrent && (
-                          <span className="absolute -top-1 size-1.5 rounded-full bg-indigo-600" />
+                          <span className="absolute -bottom-1 size-1 rounded-full bg-zinc-900" />
                         )}
                       </button>
                     );
                   })}
                 </div>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-zinc-400 mt-2 gap-1.5">
-                  <span>Klik salah satu batang jam di atas untuk beralih waktu</span>
-                  <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center gap-1">
-                      <span className="size-2 rounded-xs bg-emerald-400" /> Lancar
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="size-2 rounded-xs bg-amber-400" /> Padat
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <span className="size-2 rounded-xs bg-rose-500" /> Macet
-                    </span>
-                  </div>
-                </div>
               </div>
 
-              {/* Quick Preset Buttons */}
-              <div className="flex items-center gap-1.5 pt-2 border-t border-zinc-200/60 flex-wrap">
-                <span className="text-[11px] text-zinc-400 font-medium">Pintas Cepat:</span>
-                {[
-                  { label: "🌅 Pagi (07:00)", hour: 7 },
-                  { label: "☀️ Siang (12:00)", hour: 12 },
-                  { label: "🌆 Sore (17:00)", hour: 17 },
-                  { label: "🌙 Malam (20:00)", hour: 20 },
-                  {
-                    label: `⏱️ Sekarang (${new Date().getHours()}:00)`,
-                    hour: new Date().getHours(),
-                  },
-                ].map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => setSelectedHour(preset.hour)}
-                    className={`text-xs px-2.5 py-1 rounded-lg transition-colors font-medium cursor-pointer ${
-                      selectedHour === preset.hour
-                        ? "bg-indigo-600 text-white shadow-xs"
-                        : "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+              {/* Legend & Instructions */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-zinc-400 pt-1 border-t border-zinc-200/50 gap-2">
+                <span>Klik batang jam untuk melihat proyeksi lalu lintas pada jam tersebut</span>
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="size-2 rounded-xs bg-emerald-400" /> Lancar
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="size-2 rounded-xs bg-amber-400" /> Padat
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="size-2 rounded-xs bg-rose-500" /> Macet
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Hasil Prediksi Kota pada Jam Terpilih */}
+            {/* Hasil Prediksi Kota pada Jam Terpilih (Clean, Professional Callout) */}
             {hourStats && (
-              <div className="rounded-xl border border-zinc-200 p-4 space-y-3 bg-zinc-50/50">
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 p-4 space-y-2.5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-zinc-600">Prediksi Umum Kota:</span>
+                    <span className="text-xs font-medium text-zinc-500">Estimasi Koridor Kota:</span>
                     <StatusBadge status={hourStats.cityStatus} />
                     {hourStats.isPeak && (
-                      <span className="rounded-full bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 text-[10px] font-bold">
-                        {hourStats.isMorningPeak ? "Puncak Pagi" : "Puncak Sore"}
+                      <span className="rounded-md bg-zinc-200/80 text-zinc-700 px-2 py-0.5 text-[10px] font-semibold">
+                        {hourStats.isMorningPeak ? "Puncak Pagi (07:00–08:30)" : "Puncak Sore (16:30–18:30)"}
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-zinc-500">
                     Rata-rata Kepadatan:{" "}
-                    <span className="font-bold text-zinc-800">
+                    <span className="font-semibold text-zinc-900">
                       {Math.round(hourStats.avgScore)}%
                     </span>
                   </div>
                 </div>
 
-                {/* Rekomendasi Pintar */}
-                <div className="rounded-lg bg-indigo-50/80 border border-indigo-100 p-3 flex items-start gap-2.5">
-                  <Sparkles size={16} className="text-indigo-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-indigo-950 leading-relaxed font-normal">
+                {/* Insight Callout (Clean neutral styling, Info icon) */}
+                <div className="rounded-lg bg-white border border-zinc-200/80 p-3 flex items-start gap-2.5 text-zinc-700 shadow-2xs">
+                  <Info size={16} className="text-zinc-500 shrink-0 mt-0.5" />
+                  <p className="text-xs leading-relaxed font-normal text-zinc-700">
                     {hourRecommendation}
                   </p>
                 </div>
@@ -574,36 +562,36 @@ export default function Dashboard() {
                     return (
                       <div
                         key={area.camera_id}
-                        className="rounded-xl border border-zinc-200 bg-white p-3.5 shadow-2xs hover:border-zinc-300 transition-all flex flex-col justify-between"
+                        className="rounded-xl border border-zinc-200/80 bg-white p-3.5 shadow-2xs hover:border-zinc-300 transition-all flex flex-col justify-between"
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[10px] font-bold text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-semibold text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">
                               CCTV #{area.camera_id}
                             </span>
                             <StatusBadge status={status} />
                           </div>
-                          <h4 className="text-xs font-bold text-zinc-900 line-clamp-1">
+                          <h4 className="text-xs font-semibold text-zinc-900 line-clamp-1">
                             {area.camera_name.replace(" (Palembang)", "")}
                           </h4>
                           <p className="text-[11px] text-zinc-500 line-clamp-1 mt-0.5">
                             {area.road_name}
                           </p>
 
-                          {/* Score bar */}
-                          <div className="mt-2.5 space-y-1">
+                          {/* Refined metric bar */}
+                          <div className="mt-3 space-y-1.5">
                             <div className="flex items-center justify-between text-[10px]">
-                              <span className="text-zinc-400">Skor: {Math.round(score)}%</span>
+                              <span className="text-zinc-400">Kepadatan: {Math.round(score)}%</span>
                               <span className="font-medium text-zinc-700">~{vpm} kend/mnt</span>
                             </div>
-                            <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="w-full bg-zinc-100 rounded-full h-1 overflow-hidden">
                               <div
-                                className={`h-full rounded-full ${
+                                className={`h-full rounded-full transition-all ${
                                   score >= 75
                                     ? "bg-rose-500"
                                     : score >= 50
-                                    ? "bg-amber-500"
-                                    : "bg-emerald-500"
+                                    ? "bg-amber-400"
+                                    : "bg-emerald-400"
                                 }`}
                                 style={{ width: `${Math.min(100, Math.max(5, score))}%` }}
                               />
@@ -611,9 +599,9 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <div className="mt-3 pt-2 border-t border-zinc-100 flex items-center justify-between text-[11px]">
+                        <div className="mt-3 pt-2.5 border-t border-zinc-100 flex items-center justify-between text-[11px]">
                           {isAreaPeak ? (
-                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">
                               Jam Sibuk
                             </span>
                           ) : (
@@ -621,7 +609,7 @@ export default function Dashboard() {
                           )}
                           <Link
                             href={`/cctv/${area.camera_id}`}
-                            className="font-semibold text-indigo-600 hover:text-indigo-700 inline-flex items-center gap-0.5"
+                            className="font-medium text-zinc-900 hover:text-zinc-600 inline-flex items-center gap-1 transition-colors"
                           >
                             Detail <ArrowRight size={10} />
                           </Link>

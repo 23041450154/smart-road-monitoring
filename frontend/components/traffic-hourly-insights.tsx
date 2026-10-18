@@ -8,7 +8,6 @@ import {
   Clock,
   Compass,
   Moon,
-  Sparkles,
   Sun,
   Sunset,
 } from "lucide-react";
@@ -539,8 +538,8 @@ export function TrafficHourlyInsights() {
               </div>
             </div>
 
-            <div className="flex items-start gap-2 rounded-lg border border-emerald-100 bg-white/90 p-2.5 shadow-2xs">
-              <Sparkles size={15} className="text-blue-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg border border-zinc-200/80 bg-white/90 p-2.5 shadow-2xs">
+              <Compass size={15} className="text-zinc-600 shrink-0 mt-0.5" />
               <div>
                 <strong className="font-semibold text-zinc-900">Saran Rute Komuter</strong>
                 <p className="text-[11px] text-zinc-500">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Bike, Bus, Car, Clock3, Flame, Info, Maximize2, Minimize2, Sparkles, Truck } from "lucide-react";
+import { ArrowLeft, Bike, Bus, Car, Clock3, Flame, Info, Maximize2, Minimize2, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -385,7 +385,7 @@ export default function CameraDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-zinc-100">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-blue-600" />
+              <Clock3 size={18} className="text-zinc-700" />
               <h2 className="text-base font-semibold text-zinc-900">
                 Pola Historis & Prediksi Kepadatan per Jam
               </h2>

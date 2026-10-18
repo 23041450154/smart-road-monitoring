@@ -9,7 +9,6 @@ import {
   MessageSquareText,
   RefreshCw,
   Route as RouteIcon,
-  Sparkles,
 } from "lucide-react";
 import useSWR from "swr";
 import { MapPanel } from "@/components/map-panel";
@@ -330,7 +329,7 @@ export default function MapPage() {
             </>
           ) : (
             <div className="rounded-xl border border-dashed border-zinc-200 bg-white p-6 text-center shadow-xs">
-              <Sparkles size={24} className="mx-auto text-zinc-400 mb-2" />
+              <RouteIcon size={24} className="mx-auto text-zinc-400 mb-2" />
               <h4 className="text-sm font-semibold text-zinc-900">
                 Pilih Rute Perjalanan
               </h4>
