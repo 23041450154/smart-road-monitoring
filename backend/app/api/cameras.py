@@ -155,6 +155,8 @@ def _annotate_frame(
     frame,
     tracks: list[Track],
     counts: Counter[str],
+    rolling_5m_total: int | None = None,
+    rolling_5m_vpm: float | None = None,
     is_fallback: bool = False,
 ) -> None:
     h, w = frame.shape[:2]
@@ -244,12 +246,13 @@ def _annotate_frame(
         except Exception:
             continue
 
-    # 3. HUD footer bar
-    total = sum(counts.values())
+    # 3. HUD footer bar - Standard 5-Minute Accumulation & Vehicle Rate
+    total_5 = rolling_5m_total if rolling_5m_total is not None else sum(counts.values())
+    vpm_val = rolling_5m_vpm if rolling_5m_vpm is not None else round(total_5 / 5.0, 1)
     hud = (
-        f"YOLO TRACKING | Terhitung: {total} "
-        f"(Motor: {counts['motorcycle']}, Mobil: {counts['car']}, "
-        f"Bus: {counts['bus']}, Truk: {counts['truck']})"
+        f"YOLO LIVE | Akumulasi 5 Mnt: {total_5} kend ({vpm_val} kend/mnt) | "
+        f"Motor: {counts['motorcycle']}, Mobil: {counts['car']}, "
+        f"Bus: {counts['bus']}, Truk: {counts['truck']}"
     )
     cv2.rectangle(frame, (0, h - 24), (w, h), (12, 29, 26), -1)
     cv2.putText(
@@ -257,7 +260,7 @@ def _annotate_frame(
         hud,
         (12, h - 7),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.42,
+        0.40,
         (201, 242, 96),
         1,
         cv2.LINE_AA,
@@ -562,6 +565,27 @@ class CameraStreamWorker:
         window_counts: Counter[str] = Counter()
         events: list[tuple[Track, str]] = []
         last_db_save = time.monotonic()
+        last_metrics_refresh = time.monotonic()
+
+        # Initialize rolling 5-minute accumulation metrics from DB
+        rolling_5m_total = 0
+        rolling_5m_vpm = 0.0
+        rolling_5m_counts: Counter[str] = Counter()
+        try:
+            with SessionLocal() as db_session:
+                cam = db_session.get(Camera, self.camera_id)
+                if cam:
+                    m = camera_metrics(db_session, cam)
+                    rolling_5m_total = m.rolling_5_minute
+                    rolling_5m_vpm = m.vehicles_per_minute
+                    rolling_5m_counts = Counter({
+                        "motorcycle": m.motorcycle_count,
+                        "car": m.car_count,
+                        "bus": m.bus_count,
+                        "truck": m.truck_count,
+                    })
+        except Exception:
+            pass
 
         executor = ThreadPoolExecutor(max_workers=1)
         future = None
@@ -608,6 +632,9 @@ class CameraStreamWorker:
                             if direction:
                                 session_counts[track.vehicle_type] += 1
                                 window_counts[track.vehicle_type] += 1
+                                rolling_5m_counts[track.vehicle_type] += 1
+                                rolling_5m_total += 1
+                                rolling_5m_vpm = round(rolling_5m_total / 5.0, 1)
                                 events.append((track, direction))
                     except Exception:
                         pass
@@ -633,11 +660,28 @@ class CameraStreamWorker:
                         events.clear()
                     last_db_save = now
 
-                # 2. Annotate frame
+                # Periodically re-sync baseline 5-minute accumulation with DB
+                if now - last_metrics_refresh >= 30.0:
+                    try:
+                        with SessionLocal() as db_session:
+                            cam = db_session.get(Camera, self.camera_id)
+                            if cam:
+                                m = camera_metrics(db_session, cam)
+                                if m.rolling_5_minute > 0:
+                                    rolling_5m_total = max(rolling_5m_total, m.rolling_5_minute)
+                                    rolling_5m_vpm = round(rolling_5m_total / 5.0, 1)
+                    except Exception:
+                        pass
+                    last_metrics_refresh = now
+
+                # 2. Annotate frame with 5-minute accumulation and vehicles per minute
+                active_counts = rolling_5m_counts if sum(rolling_5m_counts.values()) > 0 else session_counts
                 _annotate_frame(
                     frame_small,
                     latest_tracks,
-                    session_counts,
+                    active_counts,
+                    rolling_5m_total=rolling_5m_total,
+                    rolling_5m_vpm=rolling_5m_vpm,
                     is_fallback=reader.is_fallback,
                 )
 

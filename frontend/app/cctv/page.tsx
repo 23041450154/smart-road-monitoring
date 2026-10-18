@@ -300,12 +300,17 @@ export default function CctvPage() {
                   </div>
 
                   <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3 text-xs">
-                    <span className="text-zinc-500">
-                      <b className="text-base font-semibold text-zinc-900 tabular">
-                        {current?.vehicles_per_minute ?? 0}
-                      </b>{" "}
-                      kend./menit
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-zinc-700 font-medium">
+                        <b className="text-base font-semibold text-zinc-900 tabular">
+                          {current?.rolling_5_minute ?? 0}
+                        </b>{" "}
+                        <span className="text-zinc-500 font-normal">kend. / 5 mnt</span>
+                      </span>
+                      <span className="text-[11px] text-zinc-400">
+                        {current?.vehicles_per_minute ?? 0} kend./menit
+                      </span>
+                    </div>
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-600 group-hover:text-zinc-900 transition-colors">
                       Detail Feed
                       <ArrowRight size={13} className="transition group-hover:translate-x-0.5" />

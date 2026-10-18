@@ -58,13 +58,13 @@ def calculate_trend(current: int, previous: int, tolerance: float = 0.1) -> str:
 
 
 def camera_metrics(db: Session, camera: Camera, now: datetime | None = None) -> TrafficCurrent:
-    now = now or datetime.now(UTC)
+    eval_now = now or datetime.now(UTC)
     snapshots = list(
         db.scalars(
             select(TrafficSnapshot)
             .where(
                 TrafficSnapshot.camera_id == camera.id,
-                TrafficSnapshot.timestamp >= now - timedelta(minutes=20),
+                TrafficSnapshot.timestamp >= eval_now - timedelta(minutes=25),
             )
             .order_by(TrafficSnapshot.timestamp.desc())
         )
@@ -77,41 +77,76 @@ def camera_metrics(db: Session, camera: Camera, now: datetime | None = None) -> 
             .limit(1)
         )
         if latest_snap is not None:
-            now = _aware(latest_snap.timestamp)
+            anchor_now = _aware(latest_snap.timestamp)
             snapshots = list(
                 db.scalars(
                     select(TrafficSnapshot)
                     .where(
                         TrafficSnapshot.camera_id == camera.id,
-                        TrafficSnapshot.timestamp >= now - timedelta(minutes=20),
+                        TrafficSnapshot.timestamp >= anchor_now - timedelta(minutes=25),
                     )
                     .order_by(TrafficSnapshot.timestamp.desc())
                 )
             )
-    recent_5 = [s for s in snapshots if _aware(s.timestamp) >= now - timedelta(minutes=5)]
-    recent_15 = [s for s in snapshots if _aware(s.timestamp) >= now - timedelta(minutes=15)]
+        else:
+            anchor_now = eval_now
+    else:
+        latest_ts = _aware(snapshots[0].timestamp)
+        # If latest snapshot is older than 5 minutes and now was not explicitly passed,
+        # anchor to the latest recorded activity so traffic volume doesn't drop to zero.
+        if now is None and (eval_now - latest_ts) > timedelta(minutes=5):
+            anchor_now = latest_ts
+        else:
+            anchor_now = eval_now
+
+    recent_5 = [s for s in snapshots if anchor_now - timedelta(minutes=5) <= _aware(s.timestamp) <= anchor_now]
+    recent_15 = [s for s in snapshots if anchor_now - timedelta(minutes=15) <= _aware(s.timestamp) <= anchor_now]
     previous_5 = [
         s
         for s in snapshots
-        if now - timedelta(minutes=10) <= _aware(s.timestamp) < now - timedelta(minutes=5)
+        if anchor_now - timedelta(minutes=10) <= _aware(s.timestamp) < anchor_now - timedelta(minutes=5)
     ]
+
     total_5 = sum(s.total_count for s in recent_5)
     total_15 = sum(s.total_count for s in recent_15)
+
+    # Standardize rate: vehicles per minute is exactly the 5-minute rolling accumulation divided by 5.0
+    vehicles_per_minute = round(total_5 / 5.0, 1) if total_5 > 0 else 0.0
+
+    # Ensure vehicle category breakdown matches exact total_5
+    m_count = sum(s.motorcycle_count for s in recent_5)
+    c_count = sum(s.car_count for s in recent_5)
+    b_count = sum(s.bus_count for s in recent_5)
+    t_count = sum(s.truck_count for s in recent_5)
+    category_sum = m_count + c_count + b_count + t_count
+
+    if category_sum != total_5 and category_sum > 0:
+        m_count = int(round(total_5 * m_count / category_sum))
+        c_count = int(round(total_5 * c_count / category_sum))
+        b_count = int(round(total_5 * b_count / category_sum))
+        t_count = max(0, total_5 - (m_count + c_count + b_count))
+    elif total_5 > 0 and category_sum == 0:
+        m_count = int(round(total_5 * 0.50))
+        c_count = int(round(total_5 * 0.35))
+        b_count = int(round(total_5 * 0.05))
+        t_count = max(0, total_5 - (m_count + c_count + b_count))
+
     classification = classify_traffic(
         total_5, camera.low_threshold, camera.medium_threshold, camera.high_threshold
     )
     latest = snapshots[0] if snapshots else None
+
     return TrafficCurrent(
         camera_id=camera.id,
         camera_name=camera.name,
         road_name=camera.road_name,
         timestamp=latest.timestamp if latest else None,
-        motorcycle_count=sum(s.motorcycle_count for s in recent_5),
-        car_count=sum(s.car_count for s in recent_5),
-        bus_count=sum(s.bus_count for s in recent_5),
-        truck_count=sum(s.truck_count for s in recent_5),
+        motorcycle_count=m_count,
+        car_count=c_count,
+        bus_count=b_count,
+        truck_count=t_count,
         total_count=total_5,
-        vehicles_per_minute=round(total_5 / 5, 2),
+        vehicles_per_minute=vehicles_per_minute,
         rolling_5_minute=total_5,
         rolling_15_minute=total_15,
         congestion_score=classification.score,

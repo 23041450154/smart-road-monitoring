@@ -107,8 +107,14 @@ export function CameraMarker({ camera, current, isHighlighted, isDimmed }: Camer
           {current && (
             <div className="mt-3 rounded-lg bg-slate-50 p-2 text-xs">
               <div className="flex items-center justify-between font-semibold">
-                <span>Arus kendaraan:</span>
+                <span>Volume 5 mnt:</span>
                 <span className="font-mono text-slate-900">
+                  {current.rolling_5_minute} kend
+                </span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-600">
+                <span>Laju rata-rata:</span>
+                <span className="font-mono text-slate-700">
                   {current.vehicles_per_minute} kend./menit
                 </span>
               </div>

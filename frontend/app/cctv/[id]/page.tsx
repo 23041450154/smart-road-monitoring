@@ -200,7 +200,7 @@ export default function CameraDetailPage() {
               </span>
               <span className="text-zinc-500">|</span>
               <span className="font-semibold text-emerald-400">
-                {current.vehicles_per_minute} kend/menit
+                Akumulasi: {current.rolling_5_minute} kend ({current.vehicles_per_minute} kend/menit)
               </span>
             </div>
 
@@ -236,8 +236,8 @@ export default function CameraDetailPage() {
                   <b className="text-white">{current.truck_count}</b>
                 </div>
                 <div>
-                  <span className="text-zinc-400">Volume 5 Menit: </span>
-                  <b className="text-emerald-400">{current.rolling_5_minute} kend</b>
+                  <span className="text-zinc-400">Volume (5 Menit): </span>
+                  <b className="text-emerald-400">{current.rolling_5_minute} kend ({current.vehicles_per_minute} kend/menit)</b>
                 </div>
               </div>
 
@@ -252,14 +252,23 @@ export default function CameraDetailPage() {
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-1">
           {/* Main 5-Minute Volume Card */}
           <div className="col-span-2 rounded-xl border border-zinc-800 bg-zinc-900 p-5 text-white shadow-xs xl:col-span-1">
-            <span className="text-xs font-medium text-zinc-400 block">
-              Volume Akumulasi (5 Menit)
-            </span>
-            <strong className="mt-2 block text-3xl sm:text-4xl font-bold tracking-tight text-white tabular">
-              {current.rolling_5_minute}
-            </strong>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-zinc-400 block">
+                Volume Akumulasi (5 Menit)
+              </span>
+              <span className="rounded bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-300">
+                Jendela 5 Mnt
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-2">
+              <strong className="text-3xl sm:text-4xl font-bold tracking-tight text-white tabular">
+                {current.rolling_5_minute}
+              </strong>
+              <span className="text-xs font-medium text-zinc-400">kendaraan</span>
+            </div>
             <div className="mt-3 flex items-center justify-between border-t border-zinc-800 pt-2.5 text-xs">
               <span className="text-zinc-400">
+                Laju rata-rata:{" "}
                 <b className="text-white font-semibold tabular">
                   {current.vehicles_per_minute}
                 </b>{" "}

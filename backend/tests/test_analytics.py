@@ -61,5 +61,49 @@ def test_rolling_windows(db):
     db.commit()
     metrics = camera_metrics(db, camera, now)
     assert metrics.rolling_5_minute == 18
+    assert metrics.vehicles_per_minute == 3.6
+    assert metrics.total_count == 18
+    assert (
+        metrics.motorcycle_count + metrics.car_count + metrics.bus_count + metrics.truck_count
+        == 18
+    )
     assert metrics.rolling_15_minute == 43
     assert metrics.trend == "MENURUN"
+
+
+def test_5_minute_accumulation_consistency(db):
+    now = datetime.now(UTC)
+    camera = Camera(
+        name="Consistency test",
+        road_name="Jl. Sudirman",
+        latitude=-2.9,
+        longitude=104.7,
+        stream_type="local",
+        low_threshold=20,
+        medium_threshold=45,
+        high_threshold=75,
+    )
+    db.add(camera)
+    db.flush()
+    db.add(
+        TrafficSnapshot(
+            camera_id=camera.id,
+            timestamp=now - timedelta(minutes=2),
+            motorcycle_count=26,
+            car_count=18,
+            bus_count=2,
+            truck_count=4,
+            total_count=50,
+            congestion_score=0,
+            traffic_status=TrafficStatus.SEDANG,
+        )
+    )
+    db.commit()
+    metrics = camera_metrics(db, camera, now)
+    assert metrics.rolling_5_minute == 50
+    assert metrics.vehicles_per_minute == 10.0
+    assert metrics.total_count == 50
+    assert (
+        metrics.motorcycle_count + metrics.car_count + metrics.bus_count + metrics.truck_count
+        == 50
+    )
