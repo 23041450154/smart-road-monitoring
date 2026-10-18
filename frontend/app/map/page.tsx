@@ -35,7 +35,10 @@ export default function MapPage() {
     data: cameras,
     error: camerasError,
     mutate: mutateCameras,
-  } = useSWR<Camera[]>("/api/cameras", fetcher);
+  } = useSWR<Camera[]>("/api/cameras", fetcher, {
+    refreshInterval: 30_000,
+    revalidateOnFocus: true,
+  });
 
   const {
     data: traffic,
@@ -43,19 +46,26 @@ export default function MapPage() {
     mutate: mutateTraffic,
   } = useSWR<TrafficCurrent[]>("/api/traffic/current", fetcher, {
     refreshInterval: 30_000,
+    revalidateOnFocus: true,
   });
 
   const {
     data: potholes,
     error: potholesError,
     mutate: mutatePotholes,
-  } = useSWR<Pothole[]>("/api/potholes", fetcher);
+  } = useSWR<Pothole[]>("/api/potholes", fetcher, {
+    refreshInterval: 30_000,
+    revalidateOnFocus: true,
+  });
 
   const {
     data: routes,
     error: routesError,
     mutate: mutateRoutes,
-  } = useSWR<Route[]>("/api/routes", fetcher);
+  } = useSWR<Route[]>("/api/routes", fetcher, {
+    refreshInterval: 30_000,
+    revalidateOnFocus: true,
+  });
 
   // Fetch route briefing when a route is selected
   const { data: briefing } = useSWR<Briefing>(

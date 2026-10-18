@@ -30,7 +30,10 @@ export default function CctvPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 300);
 
-  const { data: cameras, error, mutate } = useSWR<Camera[]>("/api/cameras", fetcher);
+  const { data: cameras, error, mutate } = useSWR<Camera[]>("/api/cameras", fetcher, {
+    refreshInterval: 15_000,
+    revalidateOnFocus: true,
+  });
   const { data: traffic } = useSWR<TrafficCurrent[]>("/api/traffic/current", fetcher, {
     refreshInterval: 15_000,
   });
@@ -225,7 +228,7 @@ export default function CctvPage() {
       </div>
 
       {error ? (
-        <ErrorState />
+        <ErrorState onRetry={() => mutate()} />
       ) : !cameras ? (
         <LoadingCards count={3} />
       ) : filteredCameras.length === 0 ? (

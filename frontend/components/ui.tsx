@@ -132,19 +132,32 @@ export function LoadingCards({ count = 4 }: { count?: number }) {
 
 export function ErrorState({
   message = "Data belum dapat dimuat. Pastikan backend FastAPI sudah berjalan.",
+  onRetry,
 }: {
   message?: string;
+  onRetry?: () => void;
 }) {
   return (
     <div className="rounded-xl border border-rose-200/80 bg-rose-50/60 p-5 text-rose-900 shadow-xs">
-      <div className="flex items-start gap-3">
-        <AlertCircle size={20} className="text-rose-600 shrink-0 mt-0.5" />
-        <div>
-          <strong className="block text-sm font-semibold text-rose-900">
-            Koneksi Data Terputus
-          </strong>
-          <p className="mt-1 text-xs text-rose-700 leading-relaxed">{message}</p>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <AlertCircle size={20} className="text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <strong className="block text-sm font-semibold text-rose-900">
+              Koneksi Data Terputus
+            </strong>
+            <p className="mt-1 text-xs text-rose-700 leading-relaxed">{message}</p>
+          </div>
         </div>
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="shrink-0 rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 active:scale-95 transition cursor-pointer"
+          >
+            Coba Muat Ulang
+          </button>
+        )}
       </div>
     </div>
   );
