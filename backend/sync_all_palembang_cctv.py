@@ -23,12 +23,12 @@ CUSTOM_CONFIGS = {
         "thresholds": (20, 45, 75),
         "counting_line": [[0.20, 0.55], [0.85, 0.55]],
     },
-    "https://stream.palembang.go.id/cam6/index.m3u8": {
+    "https://stream.palembang.go.id/cam4/index.m3u8": {
         "id": 3,
-        "name": "CCTV Simpang Cinde (Palembang)",
-        "road_name": "Jl. Jenderal Sudirman (Cinde)",
-        "thresholds": (20, 45, 75),
-        "counting_line": [[0.15, 0.70], [0.85, 0.70]],
+        "name": "CCTV Simpang Macan Lindungan (Palembang)",
+        "road_name": "Jl. Soekarno-Hatta / Macan Lindungan",
+        "thresholds": (25, 50, 80),
+        "counting_line": [[0.15, 0.60], [0.85, 0.60]],
     },
     "https://stream.palembang.go.id/cam9/index.m3u8": {
         "id": 4,

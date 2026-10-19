@@ -200,6 +200,7 @@ def sample_camera(
 
             start_time = time.monotonic()
             last_inference_time = 0.0
+            last_periodic_save = time.monotonic()
             inference_interval = float(os.getenv("YOLO_INFERENCE_INTERVAL", "0.150"))  # ~6-7 inferences/sec
             target_pacing = float(os.getenv("VIDEO_PACING_INTERVAL", "0.100"))          # ~10 FPS video pacing
 
@@ -230,6 +231,12 @@ def sample_camera(
                                 events.append((track, direction))
                     except Exception as err:
                         log.debug("Inference error: %s", err)
+
+                # Periodic snapshot save every 20s so database receives continuous live traffic updates
+                if now - last_periodic_save >= 20.0:
+                    current_sample_duration = max(1.0, now - start_time)
+                    save_camera_window(db, camera, counts, events, current_sample_duration)
+                    last_periodic_save = now
 
                 elapsed = time.monotonic() - loop_start
                 # Ensure at least 35ms sleep per frame to guarantee CPU cores stay cool
