@@ -16,7 +16,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    user_role = sa.Enum("ADMIN", "USER", name="userrole")
+    user_role = sa.Enum("admin", "user", name="userrole")
     user_role.create(op.get_bind(), checkfirst=True)
 
     op.add_column("users", sa.Column("hashed_password", sa.String(255), nullable=True))
@@ -24,9 +24,9 @@ def upgrade() -> None:
         "users",
         sa.Column(
             "role",
-            sa.Enum("ADMIN", "USER", name="userrole"),
+            sa.Enum("admin", "user", name="userrole"),
             nullable=False,
-            server_default="USER",
+            server_default="user",
         ),
     )
     op.add_column("users", sa.Column("phone_number", sa.String(32), nullable=True))
