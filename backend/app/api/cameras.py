@@ -201,16 +201,11 @@ def _annotate_frame(
             area = bw * bh
             color = colors.get(track.vehicle_type, (48, 209, 88))
 
-            # 1. Bounding box thickness: 1px for distant vehicles, 2px for foreground
-            thickness = 1 if (bh < 35 or area < 1400) else 2
+            # 1. Bounding box thickness: crisp 2px for all vehicles so hitboxes are immediately visible
+            thickness = 2
             cv2.rectangle(frame, (left, top), (right, bottom), color, thickness)
 
-            # 2. Level of Detail (LOD) Tag Suppression:
-            # Distant vehicles in the far background (area < 950 px² or height < 28px)
-            # are cleanly outlined without bulky text banners, preventing clutter.
-            if bh < 28 or area < 950:
-                continue
-
+            # 2. Tag formatting: full label for mid/large vehicles, compact tag for distant vehicles
             vehicle_label = {
                 "car": "MOBIL",
                 "motorcycle": "MOTOR",
@@ -218,18 +213,25 @@ def _annotate_frame(
                 "truck": "TRUK",
             }.get(track.vehicle_type, track.vehicle_type.upper())
             raw_id = track.tracker_id.replace("vehicle_", "")
-            tag = f"{vehicle_label} #{raw_id}"
+
+            if area >= 400 and bh >= 18:
+                tag = f"{vehicle_label} #{raw_id}"
+                font_scale = 0.36
+            else:
+                tag = f"#{raw_id}"
+                font_scale = 0.30
 
             # Compact, crisp modern tag styling
-            font_scale = 0.38
             (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 1)
             tag_y1 = top - th - 5 if top - th - 5 >= 0 else top
             tag_y2 = top if top - th - 5 >= 0 else top + th + 5
             text_y = max(th + 2, top - 3) if top - th - 5 >= 0 else top + th + 2
+            tag_x2 = min(w - 1, left + tw + 6)
+
             cv2.rectangle(
                 frame,
                 (left, tag_y1),
-                (left + tw + 6, tag_y2),
+                (tag_x2, tag_y2),
                 color,
                 -1,
             )
@@ -564,8 +566,12 @@ class CameraStreamWorker:
         is_live = self.video_source.startswith("http://") or self.video_source.startswith("https://")
         reader = ThreadedCameraReader(self.video_source, is_live=is_live, target_size=(640, 360))
         model_candidates = [
+            PROJECT_ROOT / "yolo11s_openvino_model",
+            Path("/app/yolo11s_openvino_model"),
             PROJECT_ROOT / "yolo11n_openvino_model",
             Path("/app/yolo11n_openvino_model"),
+            PROJECT_ROOT / "yolo11s.pt",
+            Path("/app/yolo11s.pt"),
             PROJECT_ROOT / "yolo11n.pt",
             Path("/app/yolo11n.pt"),
         ]
@@ -577,7 +583,7 @@ class CameraStreamWorker:
 
         processor = YoloByteTrackProcessor(
             model_path=chosen_model,
-            confidence=0.20,
+            confidence=0.15,
             device="cpu",
             exclusion_zones=self.exclusion_zones,
         )

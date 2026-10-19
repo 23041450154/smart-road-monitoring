@@ -1,11 +1,13 @@
 "use client";
 
-import { Construction, MapPin, Plus, ShieldCheck } from "lucide-react";
+import { Construction, LogIn, MapPin, Plus, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { FormEvent, useState } from "react";
 import useSWR from "swr";
 import { MapPanel } from "@/components/map-panel";
 import { EmptyState, ErrorState, PageHeading } from "@/components/ui";
 import { fetcher, mutateApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import type { Pothole } from "@/lib/types";
 import { cn, dateTime } from "@/lib/utils";
 
@@ -17,6 +19,7 @@ const severityConfig: Record<string, { bg: string; text: string; border: string 
 };
 
 export default function PotholesPage() {
+  const { role } = useAuth();
   const { data, error, mutate } = useSWR<Pothole[]>("/api/potholes", fetcher);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,17 +56,27 @@ export default function PotholesPage() {
         title="Deteksi Jalan Berlubang"
         description="Hasil deteksi cacat permukaan jalan berasal dari rekaman video manual bersensor GPS atau pelaporan terverifikasi. Pipeline kamera CCTV terpisah dari modul ini."
         action={
-          <button
-            onClick={() => setAdding((value) => !value)}
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3.5 py-2 text-xs font-medium text-white shadow-xs hover:bg-zinc-800 transition-colors"
-          >
-            <Plus size={14} />
-            <span>Tambah Koordinat</span>
-          </button>
+          role === "guest" ? (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-xs font-medium text-zinc-700 shadow-xs hover:bg-zinc-50 transition-colors"
+            >
+              <LogIn size={13} />
+              <span>Masuk untuk Input Titik</span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => setAdding((value) => !value)}
+              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-3.5 py-2 text-xs font-medium text-white shadow-xs hover:bg-zinc-800 transition-colors"
+            >
+              <Plus size={14} />
+              <span>Tambah Koordinat</span>
+            </button>
+          )
         }
       />
 
-      {adding && (
+      {role !== "guest" && adding && (
         <form
           onSubmit={submit}
           className="mb-6 grid gap-4 rounded-xl border border-zinc-200/80 bg-white p-5 shadow-xs sm:grid-cols-2 lg:grid-cols-6"

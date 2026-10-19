@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     llm_api_url: str | None = None
     llm_api_key: str | None = None
     llm_model: str | None = None
+    jwt_secret: str = "smart-road-monitoring-jwt-super-secret-key-32chars"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7
 
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"), env_file_encoding="utf-8", extra="ignore"

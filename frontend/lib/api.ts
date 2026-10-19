@@ -10,18 +10,38 @@ export function getApiUrl(): string {
 
 export const API_URL = "";
 
+export function getAuthToken(): string | null {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("smartroad_token");
+  }
+  return null;
+}
+
 export async function fetcher<T>(path: string): Promise<T> {
   const base = getApiUrl();
-  const response = await fetch(`${base}${path}`);
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const response = await fetch(`${base}${path}`, { headers });
   if (!response.ok) throw new Error(`API ${response.status}: ${response.statusText}`);
   return response.json() as Promise<T>;
 }
 
 export async function mutateApi<T>(path: string, method: string, body?: unknown): Promise<T> {
   const base = getApiUrl();
+  const token = getAuthToken();
+  const headers: Record<string, string> = {};
+  if (body) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
   const response = await fetch(`${base}${path}`, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) {

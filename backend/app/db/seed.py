@@ -13,7 +13,9 @@ from app.models import (
     Severity,
     TrafficSnapshot,
     User,
+    UserRole,
 )
+from app.core.security import get_password_hash
 from app.traffic.analytics import classify_traffic
 
 DEMO_CAMERAS = [
@@ -44,8 +46,26 @@ DEMO_CAMERAS = [
 def seed_demo(db: Session) -> None:
     if (db.scalar(select(func.count(Camera.id))) or 0) > 0:
         return
-    user = User(name="Pengguna Demo", email="demo@example.local")
+    user = User(
+        name="Pengguna Demo",
+        email="demo@example.local",
+        hashed_password=get_password_hash("demo123"),
+        role=UserRole.USER,
+        phone_number="081234567890",
+        wa_notifications_enabled=True,
+        notification_lead_minutes=5,
+    )
+    admin = User(
+        name="Administrator Laju",
+        email="admin@smartroad.local",
+        hashed_password=get_password_hash("admin123"),
+        role=UserRole.ADMIN,
+        phone_number="081112223334",
+        wa_notifications_enabled=True,
+        notification_lead_minutes=5,
+    )
     db.add(user)
+    db.add(admin)
     db.flush()
     cameras: list[Camera] = []
     for item in DEMO_CAMERAS:

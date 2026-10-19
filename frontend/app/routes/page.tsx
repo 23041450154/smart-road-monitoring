@@ -1,17 +1,27 @@
 "use client";
 
-import { ArrowRight, Clock3, MapPin, Plus, Route as RouteIcon } from "lucide-react";
+import {
+  ArrowRight,
+  Clock3,
+  MapPin,
+  MessageSquare,
+  Plus,
+  Route as RouteIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
+import { RoleGate } from "@/components/role-gate";
 import { RouteEditor } from "@/components/route-editor";
 import { EmptyState, ErrorState, PageHeading } from "@/components/ui";
 import { fetcher } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import type { Route } from "@/lib/types";
 import { routeLabel } from "@/lib/utils";
 
-export default function RoutesPage() {
+function RoutesContent() {
   const [creating, setCreating] = useState(false);
+  const { user } = useAuth();
   const { data: routes, error } = useSWR<Route[]>("/api/routes", fetcher);
 
   return (
@@ -19,7 +29,7 @@ export default function RoutesPage() {
       <PageHeading
         eyebrow="Manajemen Perjalanan"
         title="Rute Perjalanan Saya"
-        description="Kelola koridor rute harian Anda. Titik pengawas CCTV dan laporan jalan berlubang di sepanjang jalur rute akan dipetakan dan dikirimkan sebagai briefing."
+        description="Kelola koridor rute harian Anda. Titik pengawas CCTV dan laporan jalan berlubang di sepanjang jalur rute akan dipetakan dan dikirimkan sebagai briefing WhatsApp 5 menit sebelum keberangkatan."
         action={
           <button
             onClick={() => setCreating((value) => !value)}
@@ -84,13 +94,25 @@ export default function RoutesPage() {
                   </span>
                   <span className="flex items-center gap-1">
                     <Clock3 size={13} className="text-zinc-400" />
-                    <span>{route.notification_time?.slice(0, 5) ?? "—"}</span>
+                    <span>{route.notification_time?.slice(0, 5) ?? "07:00"}</span>
+                  </span>
+                </div>
+
+                {/* WhatsApp notification indicator */}
+                <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-zinc-50 border border-zinc-100 px-2.5 py-1.5 text-[11px] text-zinc-600">
+                  <MessageSquare size={13} className="text-emerald-600 shrink-0" />
+                  <span className="truncate">
+                    Notif WA:{" "}
+                    <strong className="text-zinc-800">
+                      {user?.notification_lead_minutes ?? 5} mnt sebelum{" "}
+                      {route.notification_time?.slice(0, 5) ?? "07:00"} WIB
+                    </strong>
                   </span>
                 </div>
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-3 text-xs font-medium text-zinc-600 group-hover:text-zinc-900 transition-colors">
-                <span>Lihat Briefing Rute</span>
+                <span>Lihat Briefing & Tes WhatsApp</span>
                 <ArrowRight size={14} className="transition group-hover:translate-x-0.5" />
               </div>
             </Link>
@@ -98,5 +120,17 @@ export default function RoutesPage() {
         </div>
       )}
     </>
+  );
+}
+
+export default function RoutesPage() {
+  return (
+    <RoleGate
+      allowedRoles={["user", "admin"]}
+      featureName="Rute Saya & Notifikasi WhatsApp"
+      description="Menu Rute Saya dikhususkan untuk pengguna terdaftar yang ingin menyimpan rute harian pribadi dan mengaktifkan notifikasi bot WhatsApp 5 menit sebelum jam keberangkatan."
+    >
+      <RoutesContent />
+    </RoleGate>
   );
 }

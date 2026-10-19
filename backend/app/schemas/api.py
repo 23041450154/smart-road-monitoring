@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.models import PotholeStatus, RouteType, Severity, TrafficStatus
+from app.models import PotholeStatus, RouteType, Severity, TrafficStatus, UserRole
 
 
 class CameraRead(BaseModel):
@@ -243,3 +243,72 @@ class Briefing(BaseModel):
     issues: list[BriefingIssue]
     message: str
     generated_at: datetime
+
+
+class UserRegister(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=3, max_length=255)
+    password: str = Field(min_length=6, max_length=128)
+    phone_number: str | None = Field(default=None, max_length=32)
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+
+class UserUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    phone_number: str | None = Field(default=None, max_length=32)
+    wa_notifications_enabled: bool | None = None
+    notification_lead_minutes: int | None = Field(default=None, ge=1, le=60)
+
+
+class UserRoleUpdate(BaseModel):
+    role: UserRole
+
+
+class UserRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    email: str | None
+    role: UserRole
+    phone_number: str | None
+    wa_notifications_enabled: bool
+    notification_lead_minutes: int
+    timezone: str
+    created_at: datetime
+    routes_count: int | None = None
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
+
+
+class UpcomingBriefingItem(BaseModel):
+    user_id: int
+    user_name: str
+    phone_number: str | None
+    route_id: int
+    route_name: str
+    scheduled_time: str
+    notification_lead_minutes: int
+    minutes_until_departure: int
+    overall_status: TrafficStatus
+    message: str
+    send_ready: bool
+
+
+class WhatsAppTestResponse(BaseModel):
+    route_id: int
+    route_name: str
+    recipient_name: str
+    recipient_phone: str | None
+    overall_status: TrafficStatus
+    message: str
+    delivery_channel: str = "whatsapp"
+    simulated_status: str = "delivered_to_outbox"

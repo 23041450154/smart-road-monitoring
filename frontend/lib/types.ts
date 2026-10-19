@@ -171,3 +171,56 @@ export interface Briefing {
   message: string;
   generated_at: string;
 }
+
+export type UserRole = "admin" | "user";
+
+export interface User {
+  id: number;
+  name: string;
+  email: string | null;
+  role: UserRole;
+  phone_number: string | null;
+  wa_notifications_enabled: boolean;
+  notification_lead_minutes: number;
+  timezone: string;
+  created_at: string;
+  routes_count?: number;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export interface UpcomingBriefingItem {
+  user_id: number;
+  user_name: string;
+  phone_number: string | null;
+  route_id: number;
+  route_name: string;
+  scheduled_time: string;
+  notification_lead_minutes: number;
+  minutes_until_departure: number;
+  overall_status: TrafficStatus;
+  message: string;
+  send_ready: boolean;
+}
+
+export interface WhatsAppTestResponse {
+  route_id: number;
+  route_name: string;
+  recipient_name: string;
+  recipient_phone: string | null;
+  overall_status: TrafficStatus;
+  message: string;
+  delivery_channel: string;
+  simulated_status: string;
+}
+
+export interface AdminStats {
+  total_users: number;
+  users_with_whatsapp: number;
+  total_routes: number;
+  active_cameras: number;
+}

@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import {
+  Activity,
   AlertTriangle,
   Clock,
   Compass,
-  MapPin,
+  MessageSquare,
   RefreshCw,
-  Search,
   Video,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -16,23 +16,22 @@ import { TrafficCharts } from "@/components/traffic-charts";
 import {
   ErrorState,
   LoadingCards,
-  PageHeading,
   StatusBadge,
 } from "@/components/ui";
 import { fetcher } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import type {
   CityHourlyInsightsResponse,
   Summary,
   TrafficCurrent,
   TrafficStatus,
 } from "@/lib/types";
-import { dateTime } from "@/lib/utils";
+import { cn, dateTime } from "@/lib/utils";
 
 export default function Dashboard() {
-  const [search, setSearch] = useState("");
-  const [selectedHour, setSelectedHour] = useState<number>(() => {
-    return new Date().getHours();
-  });
+  const { role } = useAuth();
+  const [selectedHour, setSelectedHour] = useState<number>(() => new Date().getHours());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: summary, error: summaryError, mutate: refreshSummary } = useSWR<Summary>(
     "/api/traffic/summary",
@@ -51,6 +50,15 @@ export default function Dashboard() {
     fetcher,
     { refreshInterval: 30_000 }
   );
+
+  async function handleRefresh() {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refreshSummary(), refreshTraffic(), refreshHourly()]);
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 400);
+    }
+  }
 
   // Analisis proyeksi untuk jam yang dipilih pengguna
   const hourStats = useMemo(() => {
@@ -87,18 +95,6 @@ export default function Dashboard() {
     };
   }, [hourlyInsights, selectedHour]);
 
-  // Filter pencarian CCTV
-  const filteredCctv = useMemo(() => {
-    if (!traffic) return [];
-    if (!search.trim()) return traffic;
-    const q = search.toLowerCase();
-    return traffic.filter(
-      (c) =>
-        c.camera_name.toLowerCase().includes(q) ||
-        c.road_name.toLowerCase().includes(q)
-    );
-  }, [traffic, search]);
-
   // Ruas padat saat ini
   const congestedRoads = useMemo(() => {
     if (!traffic || traffic.length === 0) return [];
@@ -107,7 +103,7 @@ export default function Dashboard() {
     );
   }, [traffic]);
 
-  // Persentase kelancaran kota
+  // Status kelancaran kota
   const smoothPercentage = useMemo(() => {
     if (!traffic || traffic.length === 0) return 100;
     const smoothCount = traffic.filter(
@@ -116,35 +112,44 @@ export default function Dashboard() {
     return Math.round((smoothCount / traffic.length) * 100);
   }, [traffic]);
 
-  return (
-    <div className="space-y-6">
-      {/* Header Utama Pengguna */}
-      <PageHeading
-        eyebrow="Smart City Palembang · Arus Lalu Lintas Real-time"
-        title="Pantauan Lalu Lintas Kota"
-        description="Pemantauan kondisi koridor jalan, volume kendaraan 5 menit, dan siaran langsung CCTV kota Palembang."
-        action={
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-700 shadow-2xs">
-              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-              Live · {summary ? dateTime(summary.generated_at) : "Menghubungkan"}
-            </span>
+  const currentHour = new Date().getHours();
 
-            <button
-              onClick={() => {
-                refreshSummary();
-                refreshTraffic();
-                refreshHourly();
-              }}
-              title="Perbarui Data Terkini"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs hover:bg-zinc-50 transition-colors cursor-pointer"
-            >
-              <RefreshCw size={13} />
-              <span>Segarkan</span>
-            </button>
+  return (
+    <div className="space-y-5">
+      {/* 21st.dev Minimalist Header Bar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200/80 pb-4">
+        <div>
+          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mb-1">
+            <span>Palembang Smart Mobility</span>
+            <span>/</span>
+            <span className="font-medium text-zinc-700">Dashboard</span>
           </div>
-        }
-      />
+          <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
+            Pusat Kendali Lalu Lintas Kota
+          </h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Telemetri status koridor jalan, volume arus 5 menit, dan proyeksi mobilitas kota.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-600 shadow-2xs">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-mono text-[11px] text-zinc-700">
+              {summary ? dateTime(summary.generated_at) : "Menghubungkan"}
+            </span>
+          </div>
+
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-900 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
+            <span>Segarkan</span>
+          </button>
+        </div>
+      </div>
 
       {summaryError || trafficError ? (
         <ErrorState />
@@ -152,112 +157,142 @@ export default function Dashboard() {
         <LoadingCards />
       ) : (
         <>
-          {/* 4-KPI Metric Strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* KPI 1: Status Koridor Kota */}
-            <div className="rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between text-zinc-500">
-                <span className="text-xs font-medium text-zinc-500">Kondisi Koridor Kota</span>
-                <Compass size={16} className="text-zinc-400" />
-              </div>
-              <div className="mt-3">
-                <div className="flex items-center gap-2">
-                  <StatusBadge
-                    status={
-                      congestedRoads.length === 0
-                        ? "LANCAR"
-                        : congestedRoads.length >= 2
-                        ? "MACET"
-                        : "PADAT"
-                    }
-                  />
-                </div>
-                <p className="mt-2 text-xs text-zinc-500">
-                  <span className="font-semibold text-zinc-800 tabular">{smoothPercentage}%</span> koridor bebas hambatan
+          {/* Guest Role Banner: Clean Emerald Light Theme */}
+          {role === "guest" && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-white px-4 py-3 text-slate-800 shadow-2xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-emerald-600 text-white shadow-2xs">
+                  <MessageSquare size={14} />
+                </span>
+                <p className="text-xs text-slate-600">
+                  <strong className="font-semibold text-slate-900">Bot WhatsApp:</strong> Dapatkan notifikasi kondisi kemacetan & rute 5 menit sebelum jam berangkat perjalanan Anda.
                 </p>
               </div>
+              <Link
+                href="/login"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition shadow-2xs"
+              >
+                <span>Hubungkan WA</span>
+                <span>&rarr;</span>
+              </Link>
+            </div>
+          )}
+
+          {/* 4-KPI Metric Bento (Minimalist 21st.dev Style) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* KPI 1: Status Koridor Kota */}
+            <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-[11px] font-medium tracking-wider uppercase">
+                  Status Koridor
+                </span>
+                <Compass size={14} />
+              </div>
+              <div className="mt-3 flex items-center justify-between">
+                <StatusBadge
+                  status={
+                    congestedRoads.length === 0
+                      ? "LANCAR"
+                      : congestedRoads.length >= 2
+                      ? "MACET"
+                      : "PADAT"
+                  }
+                />
+                <span className="font-mono text-xs text-zinc-500">
+                  {smoothPercentage}% lancar
+                </span>
+              </div>
+              <p className="mt-2.5 text-[11px] text-zinc-400 truncate">
+                {congestedRoads.length === 0 ? "Seluruh ruas bebas hambatan" : `${congestedRoads.length} ruas padat`}
+              </p>
             </div>
 
             {/* KPI 2: Volume Kendaraan 5 Menit */}
-            <div className="rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between text-zinc-500">
-                <span className="text-xs font-medium text-zinc-500">Volume Kota (5 Menit)</span>
-                <Clock size={16} className="text-zinc-400" />
+            <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-[11px] font-medium tracking-wider uppercase">
+                  Volume (5 Mnt)
+                </span>
+                <Activity size={14} />
               </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 tabular">
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
                   {summary.vehicles_last_5_minutes}
-                  <span className="text-xs font-normal text-zinc-500 ml-1.5">kend</span>
-                </div>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Akumulasi terpantau di seluruh titik
-                </p>
+                </span>
+                <span className="text-xs text-zinc-400">kend</span>
               </div>
+              <p className="mt-2 text-[11px] text-zinc-400 truncate">
+                Laju rerata ~{Math.round(summary.vehicles_last_5_minutes / 5)} kend./mnt
+              </p>
             </div>
 
             {/* KPI 3: Kamera CCTV Online */}
-            <div className="rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between text-zinc-500">
-                <span className="text-xs font-medium text-zinc-500">Jaringan CCTV</span>
-                <Video size={16} className="text-zinc-400" />
+            <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-[11px] font-medium tracking-wider uppercase">
+                  Kamera CCTV
+                </span>
+                <Video size={14} />
               </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 tabular">
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
                   {summary.cctv_online}
-                  <span className="text-sm font-normal text-zinc-500 ml-1">/ {traffic.length}</span>
-                </div>
-                <p className="mt-1 text-xs text-zinc-500">
-                  Kamera aktif mendeteksi lalu lintas
-                </p>
+                </span>
+                <span className="font-mono text-xs text-zinc-400">/ {traffic.length} Online</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[11px]">
+                <span className="text-zinc-400">100% aktif</span>
+                <Link href="/cctv" className="font-medium text-zinc-900 hover:underline">
+                  Buka CCTV &rarr;
+                </Link>
               </div>
             </div>
 
             {/* KPI 4: Titik Padat Terdeteksi */}
-            <div className="rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between text-zinc-500">
-                <span className="text-xs font-medium text-zinc-500">Titik Kepadatan</span>
-                <AlertTriangle
-                  size={16}
-                  className={congestedRoads.length > 0 ? "text-amber-500" : "text-zinc-400"}
-                />
+            <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-[11px] font-medium tracking-wider uppercase">
+                  Titik Kepadatan
+                </span>
+                <AlertTriangle size={14} />
               </div>
-              <div className="mt-3">
-                <div className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 tabular">
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
                   {congestedRoads.length}
-                  <span className="text-xs font-normal text-zinc-500 ml-1.5">lokasi</span>
-                </div>
-                <p className="mt-1 text-xs text-zinc-500 truncate">
-                  {congestedRoads.length > 0
-                    ? congestedRoads.map((r) => r.road_name).join(", ")
-                    : "Seluruh koridor terpantau lancar"}
-                </p>
+                </span>
+                <span className="text-xs text-zinc-400">titik padat</span>
               </div>
+              <p className="mt-2 text-[11px] text-zinc-400 truncate">
+                {congestedRoads.length > 0
+                  ? congestedRoads.map((r) => r.road_name).join(", ")
+                  : "Arus koridor normal lancar"}
+              </p>
             </div>
           </div>
 
-          {/* SECTION: Proyeksi Lalu Lintas 24 Jam */}
-          <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* SECTION: Proyeksi Lalu Lintas 24 Jam (21st.dev Clean Bento Card) */}
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3.5">
               <div>
-                <h2 className="text-sm font-semibold text-zinc-900 flex items-center gap-2">
-                  <Clock size={16} className="text-zinc-600" />
-                  Proyeksi Lalu Lintas 24 Jam
+                <h2 className="text-sm font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
+                  <Clock size={15} className="text-zinc-500" />
+                  Proyeksi Kepadatan Lalu Lintas 24 Jam
                 </h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  Estimasi profil kepadatan koridor kota Palembang sepanjang hari.
+                  Estimasi indeks kepadatan koridor kota Palembang sepanjang hari.
                 </p>
               </div>
 
-              {/* Preset Waktu */}
-              <div className="flex items-center gap-1.5 flex-wrap">
+              {/* Segmented Tab Pill Selector */}
+              <div className="inline-flex rounded-lg bg-zinc-100 p-0.5 text-xs text-zinc-600 gap-0.5">
                 {[
                   { label: "Pagi (07:00)", hour: 7 },
                   { label: "Siang (12:00)", hour: 12 },
                   { label: "Sore (17:00)", hour: 17 },
                   { label: "Malam (20:00)", hour: 20 },
                   {
-                    label: `Sekarang (${new Date().getHours()}:00)`,
-                    hour: new Date().getHours(),
+                    label: `Sekarang (${currentHour}:00)`,
+                    hour: currentHour,
                     isNow: true,
                   },
                 ].map((preset) => (
@@ -265,14 +300,15 @@ export default function Dashboard() {
                     key={preset.label}
                     type="button"
                     onClick={() => setSelectedHour(preset.hour)}
-                    className={`text-xs px-2.5 py-1 rounded-lg transition-colors font-medium cursor-pointer ${
+                    className={cn(
+                      "px-2.5 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
                       selectedHour === preset.hour
-                        ? "bg-zinc-900 text-white shadow-xs"
-                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
-                    }`}
+                        ? "bg-white text-zinc-900 shadow-2xs font-semibold"
+                        : "text-zinc-600 hover:text-zinc-900"
+                    )}
                   >
                     {preset.isNow && (
-                      <span className="inline-block size-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse" />
+                      <span className="inline-block size-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
                     )}
                     {preset.label}
                   </button>
@@ -281,10 +317,12 @@ export default function Dashboard() {
             </div>
 
             {/* 24-Hour Scrubber Bar Chart */}
-            <div className="rounded-xl bg-zinc-50/70 border border-zinc-200/70 p-4 space-y-3">
+            <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/70 p-3.5 space-y-3">
               <div className="flex items-center justify-between text-xs text-zinc-500">
-                <span className="font-medium">Rentang Waktu 24 Jam</span>
-                <span className="font-semibold text-zinc-800 bg-white px-2.5 py-0.5 rounded-md border border-zinc-200 text-xs shadow-2xs">
+                <span className="font-medium text-[11px] uppercase tracking-wider text-zinc-400">
+                  Profil 24 Jam (Klik untuk Memilih Jam)
+                </span>
+                <span className="font-mono text-xs font-semibold text-zinc-800 bg-white px-2 py-0.5 rounded border border-zinc-200">
                   Pukul {String(selectedHour).padStart(2, "0")}:00 WIB
                 </span>
               </div>
@@ -303,12 +341,12 @@ export default function Dashboard() {
 
                     const isSelected = selectedHour === h;
                     const isCurrent =
-                      (hourlyInsights?.current_hour ?? new Date().getHours()) === h;
+                      (hourlyInsights?.current_hour ?? currentHour) === h;
 
-                    let barColor = "bg-emerald-400/80 hover:bg-emerald-500";
-                    if (hScore >= 75) barColor = "bg-rose-500/90 hover:bg-rose-600";
-                    else if (hScore >= 50) barColor = "bg-amber-400/90 hover:bg-amber-500";
-                    else if (hScore >= 25) barColor = "bg-amber-300/80 hover:bg-amber-400";
+                    let barColor = "bg-zinc-200 hover:bg-zinc-300";
+                    if (hScore >= 75) barColor = "bg-rose-400/80 hover:bg-rose-500";
+                    else if (hScore >= 50) barColor = "bg-amber-400/80 hover:bg-amber-500";
+                    else if (hScore >= 25) barColor = "bg-zinc-300 hover:bg-zinc-400";
 
                     return (
                       <button
@@ -316,25 +354,28 @@ export default function Dashboard() {
                         type="button"
                         onClick={() => setSelectedHour(h)}
                         title={`Pukul ${String(h).padStart(2, "0")}:00 - Estimasi: ${Math.round(hScore)}%`}
-                        className={`flex-1 flex flex-col items-center justify-end h-full transition-all group relative cursor-pointer ${
-                          isSelected ? "opacity-100" : "opacity-70 hover:opacity-100"
-                        }`}
+                        className={cn(
+                          "flex-1 flex flex-col items-center justify-end h-full transition-all group relative cursor-pointer",
+                          isSelected ? "opacity-100" : "opacity-80 hover:opacity-100"
+                        )}
                       >
                         {isSelected && (
-                          <span className="absolute -top-5 text-[10px] font-bold text-zinc-800 bg-white px-1 rounded shadow-2xs border border-zinc-200">
+                          <span className="absolute -top-5 text-[10px] font-mono font-bold text-zinc-900 bg-white px-1.5 rounded shadow-2xs border border-zinc-200">
                             {Math.round(hScore)}%
                           </span>
                         )}
                         <div
-                          className={`w-full rounded-xs transition-all ${barColor} ${
-                            isSelected ? "ring-2 ring-zinc-900 ring-offset-1" : ""
-                          }`}
-                          style={{ height: `${Math.max(16, Math.min(100, hScore))}%` }}
+                          className={cn(
+                            "w-full rounded-xs transition-all",
+                            isSelected ? "bg-blue-600 ring-2 ring-blue-600/30" : barColor
+                          )}
+                          style={{ height: `${Math.max(14, Math.min(100, hScore))}%` }}
                         />
                         <span
-                          className={`text-[9px] mt-1 font-mono ${
-                            isSelected ? "font-bold text-zinc-900" : "text-zinc-400"
-                          }`}
+                          className={cn(
+                            "text-[9px] mt-1 font-mono",
+                            isSelected ? "font-bold text-blue-600" : "text-zinc-400"
+                          )}
                         >
                           {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
                         </span>
@@ -348,24 +389,23 @@ export default function Dashboard() {
               </div>
 
               {/* Legend & Selected Hour Quick Telemetry */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs pt-2 border-t border-zinc-200/50 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs pt-2.5 border-t border-zinc-200/60 gap-2">
                 {hourStats ? (
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-zinc-500">
-                      Pukul <b className="text-zinc-800">{String(selectedHour).padStart(2, "0")}:00 WIB</b>:
+                      Pukul <b className="text-zinc-900 font-mono">{String(selectedHour).padStart(2, "0")}:00 WIB</b>:
                     </span>
                     <StatusBadge status={hourStats.cityStatus} />
-                    <span className="text-zinc-500">
-                      Kepadatan rata-rata:{" "}
-                      <b className="text-zinc-800 tabular">{Math.round(hourStats.avgScore)}%</b>
+                    <span className="text-zinc-500 font-mono text-xs">
+                      Indeks: <b className="text-zinc-900">{Math.round(hourStats.avgScore)}%</b>
                     </span>
                     {hourStats.isPeak && (
-                      <span className="rounded bg-zinc-200/80 px-2 py-0.5 text-[11px] font-medium text-zinc-700">
+                      <span className="rounded-md bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-800">
                         {hourStats.isMorningPeak ? "Jam Sibuk Pagi" : "Jam Sibuk Sore"}
                       </span>
                     )}
                     {hourStats.congestedInHour.length > 0 && (
-                      <span className="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 font-medium">
+                      <span className="text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/70 font-medium">
                         Padat: {hourStats.congestedInHour.map((a) => a.road_name).join(", ")}
                       </span>
                     )}
@@ -374,104 +414,23 @@ export default function Dashboard() {
                   <span className="text-zinc-400 text-xs">Pilih jam untuk melihat proyeksi kepadatan</span>
                 )}
 
-                <div className="flex items-center gap-3 text-[11px] text-zinc-400">
+                <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-medium">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="size-2 rounded-xs bg-emerald-400" /> Lancar
+                    <span className="size-1.5 rounded-full bg-zinc-300" /> Lancar
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="size-2 rounded-xs bg-amber-400" /> Padat
+                    <span className="size-1.5 rounded-full bg-amber-400" /> Padat
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="size-2 rounded-xs bg-rose-500" /> Macet
+                    <span className="size-1.5 rounded-full bg-rose-500" /> Macet
                   </span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* 8 CCTV Kota Palembang (Master Grid) */}
-          <div className="space-y-4 pt-1">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-semibold text-zinc-900 flex items-center gap-2">
-                  <Video size={16} className="text-zinc-600" />
-                  Siaran Langsung CCTV Koridor Kota
-                </h2>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Pantau siaran video live dan volume akumulasi 5 menit pada 8 titik kamera jalan.
-                </p>
-              </div>
-
-              {/* Pencarian Cepat Ruas Jalan */}
-              <div className="relative max-w-xs w-full">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="text"
-                  placeholder="Cari CCTV / nama jalan..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-200 bg-white pl-9 pr-3 py-1.5 text-xs text-zinc-800 placeholder-zinc-400 focus:border-zinc-400 focus:outline-hidden shadow-2xs"
-                />
-              </div>
-            </div>
-
-            {/* Grid 8 Kartu CCTV */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {filteredCctv.map((item) => (
-                <div
-                  key={item.camera_id}
-                  className="rounded-xl border border-zinc-200/90 bg-white p-4 shadow-xs hover:border-zinc-300 transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Header: Nomor + Status */}
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">
-                        CCTV #{item.camera_id}
-                      </span>
-                      <StatusBadge status={item.traffic_status} />
-                    </div>
-
-                    {/* Nama CCTV & Ruas Jalan */}
-                    <h3 className="text-xs font-bold text-zinc-900 line-clamp-1">
-                      {item.camera_name.replace(" (Palembang)", "")}
-                    </h3>
-                    <p className="text-[11px] text-zinc-500 line-clamp-1 flex items-center gap-1 mt-0.5">
-                      <MapPin size={11} className="text-zinc-400 shrink-0" />
-                      {item.road_name}
-                    </p>
-
-                    {/* Metrik Volume 5 Menit & Laju Arus */}
-                    <div className="mt-3 rounded-lg bg-zinc-50 p-2.5 border border-zinc-100 space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-zinc-500">Volume (5 mnt):</span>
-                        <span className="font-semibold text-zinc-900 tabular">
-                          {item.rolling_5_minute ?? 0} kend
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-zinc-400">Laju rata-rata:</span>
-                        <span className="text-zinc-600 font-medium tabular">
-                          ~{item.vehicles_per_minute ?? 0} kend./menit
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tombol Tonton Siaran Langsung */}
-                  <Link
-                    href={`/cctv/${item.camera_id}`}
-                    className="mt-3.5 inline-flex items-center justify-center gap-1.5 w-full rounded-lg bg-zinc-900 text-white py-2 text-xs font-semibold shadow-xs hover:bg-zinc-800 transition-colors"
-                  >
-                    <Video size={13} />
-                    <span>Lihat Siaran Langsung</span>
-                  </Link>
-                </div>
-              ))}
             </div>
           </div>
 
           {/* Grafik Volume & Komposisi Kendaraan */}
-          <div className="pt-1">
+          <div className="pt-0.5">
             <TrafficCharts traffic={traffic} />
           </div>
         </>

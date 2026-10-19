@@ -22,3 +22,8 @@ export function routeLabel(value: string) {
   }[value] ?? value;
 }
 
+export function cleanCameraName(name: string): string {
+  if (!name) return "";
+  return name.replace(/\s*\(Palembang\)/gi, "").replace(/^CCTV\s+/i, "").trim();
+}
+

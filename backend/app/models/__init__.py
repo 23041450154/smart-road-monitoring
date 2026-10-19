@@ -8,6 +8,7 @@ from app.models.entities import (
     TrafficSnapshot,
     TrafficStatus,
     User,
+    UserRole,
     VehicleEvent,
 )
 
@@ -21,5 +22,6 @@ __all__ = [
     "TrafficSnapshot",
     "TrafficStatus",
     "User",
+    "UserRole",
     "VehicleEvent",
 ]

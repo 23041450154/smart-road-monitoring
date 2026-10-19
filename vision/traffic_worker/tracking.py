@@ -68,10 +68,10 @@ def _nms(
     boxes: list[list[float]],
     scores: list[float],
     classes: list[int],
-    iou_thresh: float = 0.45,
-    iomin_thresh: float = 0.60,
+    iou_thresh: float = 0.55,
+    iomin_thresh: float = 0.75,
 ) -> list[int]:
-    """Non-Maximum Suppression to remove redundant, conflicting, or sub-part candidate boxes within the same vehicle group."""
+    """Non-Maximum Suppression to remove redundant candidate boxes while preserving closely spaced vehicles in traffic."""
     if not boxes:
         return []
     indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
@@ -85,19 +85,19 @@ def _nms(
             iou, iomin = _box_metrics(curr_box, boxes[i])
             same_grp = _same_class_group(classes[current], classes[i])
 
-            # Check if rider (0/1) and motorcycle (3) are on the same bike (vertically aligned)
+            # Check if rider (0: person, 1: bicycle) is sitting on this motorcycle (3)
             is_rider_bike = False
-            if same_grp and {classes[current], classes[i]} in ({0, 3}, {1, 3}, {0, 0}, {3, 3}):
+            if same_grp and {classes[current], classes[i]} in ({0, 3}, {1, 3}):
                 w_max = max(curr_box[2] - curr_box[0], boxes[i][2] - boxes[i][0])
                 cx1 = (curr_box[0] + curr_box[2]) / 2.0
                 cx2 = (boxes[i][0] + boxes[i][2]) / 2.0
                 y_overlap = min(curr_box[3], boxes[i][3]) - max(curr_box[1], boxes[i][1])
-                if abs(cx1 - cx2) <= w_max * 0.70 and y_overlap >= -12.0:
+                if abs(cx1 - cx2) <= w_max * 0.60 and y_overlap >= 0.0:
                     is_rider_bike = True
 
             if same_grp and (iou >= iou_thresh or iomin >= iomin_thresh or is_rider_bike):
-                # When two-wheelers overlap or stack, encompass whole vehicle
-                if {classes[current], classes[i]} in ({0, 3}, {1, 3}, {0, 0}, {3, 3}):
+                # When rider and motorcycle overlap vertically, encompass the full rider+bike object
+                if {classes[current], classes[i]} in ({0, 3}, {1, 3}):
                     curr_box[0] = min(curr_box[0], boxes[i][0])
                     curr_box[1] = min(curr_box[1], boxes[i][1])
                     curr_box[2] = max(curr_box[2], boxes[i][2])
@@ -366,7 +366,7 @@ class YoloByteTrackProcessor:
             native_ids = [native_ids[i] for i in valid_indices]
 
         # Apply NMS to filter redundant overlapping detections
-        keep_indices = _nms(raw_boxes, raw_confs, raw_clss, iou_thresh=0.50)
+        keep_indices = _nms(raw_boxes, raw_confs, raw_clss, iou_thresh=0.55, iomin_thresh=0.75)
 
         det_boxes = [raw_boxes[i] for i in keep_indices]
         det_confs = [raw_confs[i] for i in keep_indices]

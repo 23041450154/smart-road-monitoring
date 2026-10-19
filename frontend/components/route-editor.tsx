@@ -3,6 +3,7 @@
 import { RotateCcw, Save, Trash2, Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { mutateApi } from "@/lib/api";
 import type { Route } from "@/lib/types";
 import { MapPanel } from "./map-panel";
@@ -15,6 +16,7 @@ export function RouteEditor({
   onCancel?: () => void;
 }) {
   const router = useRouter();
+  const { user, role } = useAuth();
   const [name, setName] = useState(route?.name ?? "Rute Berangkat");
   const [routeType, setRouteType] = useState<Route["route_type"]>(
     route?.route_type ?? "commute_to_work",
@@ -27,13 +29,17 @@ export function RouteEditor({
   const [error, setError] = useState("");
 
   async function save() {
+    if (role === "guest") {
+      router.push("/login");
+      return;
+    }
     if (path.length < 2) {
       return setError("Klik minimal dua titik pada peta: titik awal dan titik tujuan.");
     }
     setSaving(true);
     setError("");
     const body = {
-      user_id: route?.user_id ?? 1,
+      user_id: route?.user_id ?? user?.id ?? 1,
       name,
       route_type: routeType,
       start_latitude: path[0][0],
@@ -94,13 +100,19 @@ export function RouteEditor({
           </label>
 
           <label className="mb-4 block">
-            <span className="text-xs font-medium text-zinc-700">Waktu Notifikasi</span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-zinc-700">Waktu Jadwal Rute</span>
+              <span className="text-[10px] text-emerald-600 font-medium">WA: 5 mnt sebelum</span>
+            </div>
             <input
               type="time"
               value={notifyTime}
               onChange={(e) => setNotifyTime(e.target.value)}
               className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400 focus:outline-none"
             />
+            <p className="mt-1 text-[10px] text-zinc-400">
+              Bot WhatsApp akan mengirim ringkasan lalu lintas 5 menit sebelum waktu ini.
+            </p>
           </label>
 
           <div className="rounded-lg border border-zinc-200/60 bg-zinc-50/70 p-3 text-xs leading-relaxed text-zinc-600">

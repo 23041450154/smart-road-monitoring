@@ -60,15 +60,30 @@ point_geometry_type = PortableGeometry("POINT")
 line_geometry_type = PortableGeometry("LINESTRING")
 
 
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    USER = "user"
+
+
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
-    email: Mapped[str | None] = mapped_column(String(255), unique=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True)
+    hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    role: Mapped[UserRole] = mapped_column(
+        Enum(UserRole, values_callable=lambda obj: [x.value for x in obj]),
+        default=UserRole.USER,
+    )
+    phone_number: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    wa_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    notification_lead_minutes: Mapped[int] = mapped_column(Integer, default=5)
     timezone: Mapped[str] = mapped_column(String(64), default="Asia/Jakarta")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-    routes: Mapped[list["Route"]] = relationship(back_populates="user")
+    routes: Mapped[list["Route"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Camera(Base):

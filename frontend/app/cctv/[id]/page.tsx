@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Bike, Bus, Car, Clock3, Flame, Info, Maximize2, Minimize2, Truck } from "lucide-react";
+import { Bike, Bus, Car, Clock3, Flame, Info, Maximize2, Minimize2, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
@@ -17,7 +17,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ErrorState, PageHeading, StatusBadge, TrendView } from "@/components/ui";
+import { ErrorState, StatusBadge, TrendView } from "@/components/ui";
 import { MapPanel } from "@/components/map-panel";
 import { fetcher, getApiUrl } from "@/lib/api";
 
@@ -29,7 +29,7 @@ import type {
   TrafficCurrent,
   TrafficPredictionResponse,
 } from "@/lib/types";
-import { dateTime } from "@/lib/utils";
+import { cleanCameraName, dateTime } from "@/lib/utils";
 
 export default function CameraDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -107,44 +107,54 @@ export default function CameraDetailPage() {
 
   return (
     <>
-      <Link
-        href="/cctv"
-        className="mb-4 inline-flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
-      >
-        <ArrowLeft size={14} />
-        <span>Kembali ke Direktori CCTV</span>
-      </Link>
-
-      <PageHeading
-        eyebrow={camera.is_demo ? "Feed Simulasi · Demo" : "Live Streaming · Diskominfo"}
-        title={camera.name}
-        description={`${camera.road_name} · Pembaruan ${dateTime(current.timestamp)}`}
-        action={
-          <div className="flex items-center gap-2">
-            <StatusBadge status={current.traffic_status} />
-            <TrendView trend={current.trend} />
+      {/* 21st.dev Sleek Minimalist Header */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-xs text-zinc-500 font-medium">
+            <Link href="/cctv" className="hover:text-zinc-900 transition-colors">
+              Kamera CCTV
+            </Link>
+            <span>/</span>
+            <span className="text-zinc-900 font-semibold">{cleanCameraName(camera.name)}</span>
           </div>
-        }
-      />
+          <h1 className="text-xl font-bold tracking-tight text-zinc-900 mt-1">
+            {cleanCameraName(camera.name)}
+          </h1>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            {camera.road_name} · Pembaruan {dateTime(current.timestamp)}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <StatusBadge status={current.traffic_status} />
+          <TrendView trend={current.trend} />
+        </div>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_.7fr]">
         {/* Live Video Feed Frame with Fullscreen Support */}
         <div
           ref={videoContainerRef}
-          className={`overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 shadow-sm flex flex-col transition-all ${
+          className={`overflow-hidden rounded-xl border shadow-2xs flex flex-col transition-all ${
             isFullscreen
               ? "fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none justify-between bg-black"
-              : ""
+              : "border-slate-200 bg-white"
           }`}
         >
           {/* Player Header Bar */}
-          <div className="flex items-center justify-between border-b border-zinc-800/80 px-4 py-3 text-white bg-zinc-950/95 shrink-0">
+          <div
+            className={`flex items-center justify-between border-b px-4 py-2.5 shrink-0 ${
+              isFullscreen
+                ? "border-zinc-800 text-white bg-zinc-950/95"
+                : "border-slate-200 text-slate-800 bg-slate-50/90"
+            }`}
+          >
             <div className="flex items-center gap-2.5">
               <span className="relative flex size-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
               </span>
-              <span className="text-xs font-bold tracking-wider uppercase text-zinc-100">
+              <span className="text-xs font-bold tracking-wider uppercase text-slate-800">
                 LIVE STREAMING
               </span>
               {isFullscreen && (
@@ -163,7 +173,11 @@ export default function CameraDetailPage() {
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/90 px-3 py-1 text-xs font-medium text-white hover:bg-zinc-700 transition-colors shadow-xs"
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium transition-colors shadow-2xs ${
+                  isFullscreen
+                    ? "border-zinc-700 bg-zinc-800/90 text-white hover:bg-zinc-700"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-600"
+                }`}
                 title={isFullscreen ? "Keluar Layar Penuh (Esc)" : "Mode Layar Penuh (Fullscreen)"}
               >
                 {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
@@ -174,7 +188,7 @@ export default function CameraDetailPage() {
 
           {/* Video Player Box */}
           <div
-            className={`relative overflow-hidden bg-black flex items-center justify-center ${
+            className={`relative overflow-hidden bg-slate-900 flex items-center justify-center ${
               isFullscreen ? "flex-1 w-full h-full" : "aspect-video"
             }`}
             onDoubleClick={toggleFullscreen}
@@ -191,15 +205,15 @@ export default function CameraDetailPage() {
             />
 
             {/* Bottom-left overlay info */}
-            <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-white/10 bg-black/75 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-xs flex items-center gap-2 shadow-sm">
-              <span className="size-2 rounded-full bg-emerald-400" />
+            <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-white/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-800 backdrop-blur-xs flex items-center gap-2 shadow-sm">
+              <span className="size-2 rounded-full bg-emerald-500" />
               <span>
                 {camera.is_demo
                   ? "Feed Demo Aktif · Deteksi Kendaraan Real-time"
                   : "Live Stream Diskominfo Palembang"}
               </span>
-              <span className="text-zinc-500">|</span>
-              <span className="font-semibold text-emerald-400">
+              <span className="text-slate-300">|</span>
+              <span className="font-semibold text-emerald-700">
                 Akumulasi: {current.rolling_5_minute} kend ({current.vehicles_per_minute} kend/menit)
               </span>
             </div>
@@ -208,7 +222,7 @@ export default function CameraDetailPage() {
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="absolute bottom-3 right-3 rounded-lg border border-white/20 bg-black/70 p-2 text-white hover:bg-black/90 hover:scale-105 transition shadow-lg cursor-pointer"
+              className="absolute bottom-3 right-3 rounded-lg border border-slate-200 bg-white/90 p-2 text-slate-700 hover:bg-white hover:text-blue-600 hover:scale-105 transition shadow-sm cursor-pointer"
               title={isFullscreen ? "Keluar Layar Penuh (Esc)" : "Layar Penuh (Klik ganda pada video)"}
             >
               {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}

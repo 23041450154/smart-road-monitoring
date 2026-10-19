@@ -4,12 +4,39 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import select, text
 
 from app.api.router import api_router
 from app.core.config import get_settings
+from app.core.security import get_password_hash
 from app.db.base import Base
 from app.db.seed import seed_demo
 from app.db.session import SessionLocal, engine
+from app.models import User, UserRole
+from app.models.entities import utcnow
+
+
+def ensure_sqlite_schema(db_engine):
+    with db_engine.connect() as conn:
+        cursor = conn.execute(text("PRAGMA table_info(users)"))
+        existing_cols = {row[1] for row in cursor.fetchall()}
+        if existing_cols:
+            if "hashed_password" not in existing_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN hashed_password VARCHAR(255)"))
+            if "role" not in existing_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user'"))
+            if "phone_number" not in existing_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN phone_number VARCHAR(32)"))
+            if "wa_notifications_enabled" not in existing_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN wa_notifications_enabled BOOLEAN DEFAULT 1")
+                )
+            if "notification_lead_minutes" not in existing_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN notification_lead_minutes INTEGER DEFAULT 5")
+                )
+            conn.execute(text("UPDATE users SET role = 'user' WHERE role = 'USER' OR role IS NULL"))
+            conn.commit()
 
 
 @asynccontextmanager
@@ -17,9 +44,37 @@ async def lifespan(_: FastAPI):
     settings = get_settings()
     if engine.dialect.name == "sqlite":
         Base.metadata.create_all(bind=engine)
+        ensure_sqlite_schema(engine)
         if settings.demo_mode:
             with SessionLocal() as session:
                 seed_demo(session)
+                # Ensure demo & admin users exist with valid passwords and roles
+                demo_user = session.scalar(
+                    select(User).where(User.email == "demo@example.local")
+                )
+                if demo_user:
+                    if not demo_user.hashed_password:
+                        demo_user.hashed_password = get_password_hash("demo123")
+                    if not demo_user.phone_number:
+                        demo_user.phone_number = "081234567890"
+                    if not demo_user.role:
+                        demo_user.role = UserRole.USER
+                admin_user = session.scalar(
+                    select(User).where(User.email == "admin@smartroad.local")
+                )
+                if not admin_user:
+                    admin_user = User(
+                        name="Administrator Laju",
+                        email="admin@smartroad.local",
+                        hashed_password=get_password_hash("admin123"),
+                        role=UserRole.ADMIN,
+                        phone_number="081112223334",
+                        wa_notifications_enabled=True,
+                        notification_lead_minutes=5,
+                        created_at=utcnow(),
+                    )
+                    session.add(admin_user)
+                session.commit()
 
     # Warm up YOLO model asynchronously at startup
     try:

@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_user_optional
 from app.core.config import Settings, get_settings
 from app.db.geometry import database_geometry, line_wkt
 from app.db.session import get_db
-from app.models import Pothole, Route, User
+from app.models import Pothole, Route, User, UserRole
 from app.routing.spatial import cameras_near_route, potholes_near_route
 from app.schemas.api import Briefing, PotholeRead, RouteCreate, RouteRead, RouteTraffic, RouteUpdate
 from app.services.briefing import build_briefing
@@ -27,10 +28,17 @@ def ensure_user(db: Session, user_id: int) -> None:
 
 
 @router.post("", response_model=RouteRead, status_code=201)
-async def create_route(payload: RouteCreate, db: Session = Depends(get_db)) -> Route:
-    ensure_user(db, payload.user_id)
+async def create_route(
+    payload: RouteCreate,
+    current_user: User | None = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+) -> Route:
+    target_user_id = current_user.id if current_user else payload.user_id
+    ensure_user(db, target_user_id)
+    data = payload.model_dump()
+    data["user_id"] = target_user_id
     route = Route(
-        **payload.model_dump(),
+        **data,
         geometry=database_geometry(db, line_wkt(payload.path)),
     )
     db.add(route)
@@ -40,8 +48,16 @@ async def create_route(payload: RouteCreate, db: Session = Depends(get_db)) -> R
 
 
 @router.get("", response_model=list[RouteRead])
-async def list_routes(db: Session = Depends(get_db)) -> list[Route]:
-    return list(db.scalars(select(Route).order_by(Route.created_at.desc())))
+async def list_routes(
+    mine_only: bool = False,
+    current_user: User | None = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+) -> list[Route]:
+    query = select(Route).order_by(Route.created_at.desc())
+    if current_user and (mine_only or current_user.role != UserRole.ADMIN):
+        # Authenticated non-admin user sees their own routes by default
+        query = query.where(Route.user_id == current_user.id)
+    return list(db.scalars(query))
 
 
 @router.get("/{route_id}", response_model=RouteRead)
@@ -50,11 +66,22 @@ async def get_route(route_id: int, db: Session = Depends(get_db)) -> Route:
 
 
 @router.put("/{route_id}", response_model=RouteRead)
-async def update_route(route_id: int, payload: RouteUpdate, db: Session = Depends(get_db)) -> Route:
+async def update_route(
+    route_id: int,
+    payload: RouteUpdate,
+    current_user: User | None = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+) -> Route:
     route = route_or_404(db, route_id)
-    ensure_user(db, payload.user_id)
+    if current_user and current_user.role != UserRole.ADMIN and route.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Anda tidak memiliki izin mengedit rute ini.")
+    target_user_id = current_user.id if current_user else payload.user_id
+    ensure_user(db, target_user_id)
     for field, value in payload.model_dump().items():
-        setattr(route, field, value)
+        if field == "user_id":
+            setattr(route, field, target_user_id)
+        else:
+            setattr(route, field, value)
     route.geometry = database_geometry(db, line_wkt(payload.path))
     db.commit()
     db.refresh(route)
@@ -62,8 +89,15 @@ async def update_route(route_id: int, payload: RouteUpdate, db: Session = Depend
 
 
 @router.delete("/{route_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_route(route_id: int, db: Session = Depends(get_db)) -> Response:
-    db.delete(route_or_404(db, route_id))
+async def delete_route(
+    route_id: int,
+    current_user: User | None = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
+) -> Response:
+    route = route_or_404(db, route_id)
+    if current_user and current_user.role != UserRole.ADMIN and route.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Anda tidak memiliki izin menghapus rute ini.")
+    db.delete(route)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
