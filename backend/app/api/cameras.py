@@ -320,8 +320,7 @@ class ThreadedCameraReader:
             cmd = [
                 "ffmpeg",
                 "-loglevel", "error",
-                "-fflags", "nobuffer",
-                "-flags", "low_delay",
+                "-re",
                 "-reconnect", "1",
                 "-reconnect_streamed", "1",
                 "-reconnect_delay_max", "2",
