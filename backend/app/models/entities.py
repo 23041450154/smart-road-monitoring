@@ -79,11 +79,23 @@ class User(Base):
     phone_number: Mapped[str | None] = mapped_column(String(32), nullable=True)
     wa_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     notification_lead_minutes: Mapped[int] = mapped_column(Integer, default=5)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=True)
     timezone: Mapped[str] = mapped_column(String(64), default="Asia/Jakarta")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     routes: Mapped[list["Route"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+
+
+class EmailVerification(Base):
+    __tablename__ = "email_verifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    code: Mapped[str] = mapped_column(String(10))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    is_used: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Camera(Base):

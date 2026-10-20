@@ -41,6 +41,9 @@ export interface Summary {
   vehicles_last_5_minutes: number;
   congested_roads: number;
   detected_potholes: number;
+  total_users?: number;
+  total_routes?: number;
+  active_users?: number;
   generated_at: string;
   demo_mode: boolean;
 }
@@ -182,9 +185,17 @@ export interface User {
   phone_number: string | null;
   wa_notifications_enabled: boolean;
   notification_lead_minutes: number;
+  is_verified?: boolean;
   timezone: string;
   created_at: string;
   routes_count?: number;
+}
+
+export interface SendOtpResponse {
+  message: string;
+  email: string;
+  expires_in_minutes: number;
+  dev_otp?: string | null;
 }
 
 export interface AuthResponse {
@@ -223,4 +234,5 @@ export interface AdminStats {
   users_with_whatsapp: number;
   total_routes: number;
   active_cameras: number;
+  verified_users?: number;
 }

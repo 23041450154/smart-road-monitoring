@@ -36,6 +36,102 @@ def test_user_register_and_login(client):
     assert wrong_res.status_code == 401
 
 
+def test_google_auth(client):
+    # 1. Google OAuth login for a brand new user (auto-register)
+    new_google_res = client.post(
+        "/api/auth/google",
+        json={"credential": "mock-google-token:citra.lestari@gmail.com:Citra Lestari"},
+    )
+    assert new_google_res.status_code == 200, new_google_res.text
+    new_data = new_google_res.json()
+    assert "access_token" in new_data
+    assert new_data["user"]["email"] == "citra.lestari@gmail.com"
+    assert new_data["user"]["name"] == "Citra Lestari"
+    assert new_data["user"]["role"] == "user"
+
+    # 2. Google OAuth login for existing user (e.g., demo user)
+    existing_google_res = client.post(
+        "/api/auth/google",
+        json={"credential": "mock-google-token:demo@example.local:Pengguna Demo"},
+    )
+    assert existing_google_res.status_code == 200
+    existing_data = existing_google_res.json()
+    assert existing_data["user"]["email"] == "demo@example.local"
+    assert "access_token" in existing_data
+
+
+def test_gmail_email_verification_flow(client, db):
+    target_email = "andi.wijaya@gmail.com"
+
+    # 1. Send OTP to new email
+    send_res = client.post(
+        "/api/auth/send-verification-otp",
+        json={"email": target_email, "name": "Andi Wijaya"},
+    )
+    assert send_res.status_code == 200, send_res.text
+    send_data = send_res.json()
+    assert send_data["email"] == target_email
+    otp = send_data.get("dev_otp")
+    if not otp:
+        from app.models import EmailVerification
+        rec = (
+            db.query(EmailVerification)
+            .filter_by(email=target_email)
+            .order_by(EmailVerification.id.desc())
+            .first()
+        )
+        otp = rec.code if rec else None
+    assert otp is not None
+    assert len(otp) == 6
+
+    # 2. Cannot send OTP to already registered email
+    dup_res = client.post(
+        "/api/auth/send-verification-otp",
+        json={"email": "demo@example.local"},
+    )
+    assert dup_res.status_code == 409
+
+    # 3. Wrong OTP verification should fail
+    wrong_verify = client.post(
+        "/api/auth/verify-registration",
+        json={
+            "name": "Andi Wijaya",
+            "email": target_email,
+            "password": "securepassword123",
+            "phone_number": "081233445566",
+            "code": "000000",
+        },
+    )
+    assert wrong_verify.status_code == 400
+
+    # 4. Correct OTP verification should succeed and create user
+    ok_verify = client.post(
+        "/api/auth/verify-registration",
+        json={
+            "name": "Andi Wijaya",
+            "email": target_email,
+            "password": "securepassword123",
+            "phone_number": "081233445566",
+            "code": otp,
+        },
+    )
+    assert ok_verify.status_code == 201, ok_verify.text
+    user_data = ok_verify.json()
+    assert "access_token" in user_data
+    assert user_data["user"]["email"] == target_email
+    assert user_data["user"]["name"] == "Andi Wijaya"
+    assert user_data["user"]["is_verified"] is True
+    assert user_data["user"]["phone_number"] == "6281233445566"
+
+    # 5. User can now login with normal password
+    login_res = client.post(
+        "/api/auth/login",
+        json={"email": target_email, "password": "securepassword123"},
+    )
+    assert login_res.status_code == 200
+    assert login_res.json()["user"]["email"] == target_email
+
+
 def test_auth_me_and_update_profile(client):
     # Login as demo user
     login_res = client.post(
@@ -74,7 +170,7 @@ def test_admin_and_role_guards(client):
     # Admin login
     admin_login = client.post(
         "/api/auth/login",
-        json={"email": "admin@smartroad.local", "password": "admin123"},
+        json={"email": "admin@naufal.me", "password": "Garena123"},
     )
     assert admin_login.status_code == 200
     admin_token = admin_login.json()["access_token"]
@@ -96,6 +192,36 @@ def test_admin_and_role_guards(client):
     users_res = client.get("/api/admin/users", headers=admin_headers)
     assert users_res.status_code == 200
     assert len(users_res.json()) >= 2
+
+    # Admin creates a new user
+    create_res = client.post(
+        "/api/admin/users",
+        headers=admin_headers,
+        json={
+            "name": "Budi Santoso",
+            "email": "budi@smartroad.local",
+            "password": "password123",
+            "role": "user",
+            "phone_number": "0812340001",
+            "is_verified": True,
+        },
+    )
+    assert create_res.status_code == 201
+    created_id = create_res.json()["id"]
+
+    # Admin updates the user
+    update_res = client.put(
+        f"/api/admin/users/{created_id}",
+        headers=admin_headers,
+        json={"name": "Budi Santoso Edit", "wa_notifications_enabled": False},
+    )
+    assert update_res.status_code == 200
+    assert update_res.json()["name"] == "Budi Santoso Edit"
+    assert update_res.json()["wa_notifications_enabled"] is False
+
+    # Admin deletes the user
+    del_res = client.delete(f"/api/admin/users/{created_id}", headers=admin_headers)
+    assert del_res.status_code == 200
 
     # Regular user attempting admin endpoints -> 403 Forbidden
     forbidden_res = client.get("/api/admin/users", headers=user_headers)

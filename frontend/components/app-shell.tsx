@@ -324,13 +324,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
             ) : (
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-2xs hover:bg-blue-700 transition"
-              >
-                <LogIn size={12} />
-                <span>Masuk Akun</span>
-              </Link>
+              pathname !== "/login" && (
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-2xs hover:bg-blue-700 transition"
+                >
+                  <LogIn size={12} />
+                  <span>Masuk Akun</span>
+                </Link>
+              )
             )}
           </div>
         </header>

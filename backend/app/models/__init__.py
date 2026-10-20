@@ -1,5 +1,6 @@
 from app.models.entities import (
     Camera,
+    EmailVerification,
     Pothole,
     PotholeStatus,
     Route,
@@ -14,6 +15,7 @@ from app.models.entities import (
 
 __all__ = [
     "Camera",
+    "EmailVerification",
     "Pothole",
     "PotholeStatus",
     "Route",

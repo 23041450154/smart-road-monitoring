@@ -56,13 +56,14 @@ def seed_demo(db: Session) -> None:
         notification_lead_minutes=5,
     )
     admin = User(
-        name="Administrator Laju",
-        email="admin@smartroad.local",
-        hashed_password=get_password_hash("admin123"),
+        name="Administrator",
+        email="admin@naufal.me",
+        hashed_password=get_password_hash("Garena123"),
         role=UserRole.ADMIN,
         phone_number="081112223334",
         wa_notifications_enabled=True,
         notification_lead_minutes=5,
+        is_verified=True,
     )
     db.add(user)
     db.add(admin)

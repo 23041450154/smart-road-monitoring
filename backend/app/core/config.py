@@ -23,6 +23,19 @@ class Settings(BaseSettings):
     jwt_secret: str = "smart-road-monitoring-jwt-super-secret-key-32chars"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24 * 7
+    google_client_id: str | None = None
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    smtp_from_name: str = "Smart Road Palembang (LAJU)"
+    smtp_from_email: str | None = None
+    smtp_use_tls: bool = True
+    email_verification_expire_minutes: int = 15
+
+    @property
+    def sender_email(self) -> str:
+        return self.smtp_from_email or self.smtp_user or "no-reply@smartroad.local"
 
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"), env_file_encoding="utf-8", extra="ignore"

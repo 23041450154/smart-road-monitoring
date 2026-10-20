@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { fetcher, mutateApi } from "./api";
-import type { AuthResponse, User, UserRole } from "./types";
+import type { AuthResponse, SendOtpResponse, User, UserRole } from "./types";
 
 interface AuthContextType {
   user: User | null;
@@ -10,7 +10,16 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
+  sendVerificationOtp: (email: string, name?: string) => Promise<SendOtpResponse>;
+  verifyRegistration: (
+    name: string,
+    email: string,
+    password: string,
+    code: string,
+    phone?: string
+  ) => Promise<void>;
   logout: () => void;
   updateProfile: (data: {
     name?: string;
@@ -99,11 +108,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async (credential: string) => {
+    const res = await mutateApi<AuthResponse>("/api/auth/google", "POST", { credential });
+    setToken(res.access_token);
+    setUser(res.user);
+    try {
+      localStorage.setItem(TOKEN_KEY, res.access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    } catch {
+      // Ignore storage error
+    }
+  };
+
   const register = async (name: string, email: string, password: string, phone?: string) => {
     const res = await mutateApi<AuthResponse>("/api/auth/register", "POST", {
       name,
       email,
       password,
+      phone_number: phone || null,
+    });
+    setToken(res.access_token);
+    setUser(res.user);
+    try {
+      localStorage.setItem(TOKEN_KEY, res.access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    } catch {
+      // Ignore storage error
+    }
+  };
+
+  const sendVerificationOtp = async (email: string, name?: string): Promise<SendOtpResponse> => {
+    return await mutateApi<SendOtpResponse>("/api/auth/send-verification-otp", "POST", {
+      email,
+      name,
+    });
+  };
+
+  const verifyRegistration = async (
+    name: string,
+    email: string,
+    password: string,
+    code: string,
+    phone?: string
+  ): Promise<void> => {
+    const res = await mutateApi<AuthResponse>("/api/auth/verify-registration", "POST", {
+      name,
+      email,
+      password,
+      code,
       phone_number: phone || null,
     });
     setToken(res.access_token);
@@ -164,7 +216,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isLoading,
         login,
+        loginWithGoogle,
         register,
+        sendVerificationOtp,
+        verifyRegistration,
         logout,
         updateProfile,
         refreshUser,

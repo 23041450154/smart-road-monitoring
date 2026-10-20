@@ -4,10 +4,13 @@ import Link from "next/link";
 import {
   Activity,
   AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
   Clock,
   Compass,
   MessageSquare,
   RefreshCw,
+  Users,
   Video,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -267,6 +270,118 @@ export default function Dashboard() {
                   ? congestedRoads.map((r) => r.road_name).join(", ")
                   : "Arus koridor normal lancar"}
               </p>
+            </div>
+          </div>
+
+          {/* SECTION: Insight Akses & Komunitas Pengguna (21st.dev Style) */}
+          <div className="rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="grid size-7 place-items-center rounded-lg bg-zinc-900 text-white shadow-2xs">
+                  <Users size={14} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+                    Insight Akses & Partisipasi Warga
+                  </h2>
+                  <p className="text-xs text-zinc-500">
+                    Statistik pengguna terdaftar yang memantau arus jalan & mengaktifkan peringatan rute real-time.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700">
+                  <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Layanan Aktif
+                </span>
+                {role === "admin" ? (
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-900 transition"
+                  >
+                    <span>Panel Admin</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                ) : role === "guest" ? (
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-white shadow-2xs hover:bg-zinc-800 transition"
+                  >
+                    <span>Daftar / Masuk</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                ) : (
+                  <Link
+                    href="/routes"
+                    className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-900 transition"
+                  >
+                    <span>Kelola Rute Saya</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/60 p-3">
+                <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
+                  Total Pengguna Akses
+                </span>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
+                    {summary.total_users ?? 0}
+                  </span>
+                  <span className="text-xs text-zinc-400">warga terdaftar</span>
+                </div>
+                <p className="mt-1.5 text-[11px] text-zinc-400">
+                  Memantau mobilitas kota
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/60 p-3">
+                <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
+                  Akun Terverifikasi
+                </span>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="font-mono text-2xl font-bold tracking-tight text-emerald-600 tabular">
+                    {summary.active_users ?? summary.total_users ?? 0}
+                  </span>
+                  <span className="text-xs text-zinc-400">tervalidasi</span>
+                </div>
+                <p className="mt-1.5 text-[11px] text-emerald-700 flex items-center gap-1 font-medium">
+                  <CheckCircle2 size={11} />
+                  Email & OTP aktif
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/60 p-3">
+                <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
+                  Rute Terpantau
+                </span>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="font-mono text-2xl font-bold tracking-tight text-blue-600 tabular">
+                    {summary.total_routes ?? 0}
+                  </span>
+                  <span className="text-xs text-zinc-400">rute terjadwal</span>
+                </div>
+                <p className="mt-1.5 text-[11px] text-zinc-400">
+                  Monitoring kemacetan rute
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/60 p-3">
+                <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
+                  Frekuensi Telemetri
+                </span>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
+                    Real-time
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[11px] text-zinc-400">
+                  Sinkronisasi tiap 10–15 dtk
+                </p>
+              </div>
             </div>
           </div>
 

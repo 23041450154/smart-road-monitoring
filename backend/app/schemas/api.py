@@ -153,6 +153,9 @@ class TrafficSummary(BaseModel):
     vehicles_last_5_minutes: int
     congested_roads: int
     detected_potholes: int
+    total_users: int = 0
+    total_routes: int = 0
+    active_users: int = 0
     generated_at: datetime
     demo_mode: bool
 
@@ -245,6 +248,26 @@ class Briefing(BaseModel):
     generated_at: datetime
 
 
+class SendOtpRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    name: str | None = Field(default=None, max_length=120)
+
+
+class SendOtpResponse(BaseModel):
+    message: str
+    email: str
+    expires_in_minutes: int = 15
+    dev_otp: str | None = None
+
+
+class VerifyRegistrationRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=3, max_length=255)
+    password: str = Field(min_length=6, max_length=128)
+    phone_number: str | None = Field(default=None, max_length=32)
+    code: str = Field(min_length=6, max_length=6)
+
+
 class UserRegister(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     email: str = Field(min_length=3, max_length=255)
@@ -255,6 +278,10 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str = Field(min_length=1, description="Google OAuth ID Token atau credential")
 
 
 class UserUpdate(BaseModel):
@@ -268,6 +295,28 @@ class UserRoleUpdate(BaseModel):
     role: UserRole
 
 
+class AdminUserCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    email: str = Field(min_length=3, max_length=255)
+    password: str = Field(min_length=6, max_length=128)
+    role: UserRole = UserRole.USER
+    phone_number: str | None = Field(default=None, max_length=32)
+    wa_notifications_enabled: bool = True
+    notification_lead_minutes: int = Field(default=5, ge=1, le=60)
+    is_verified: bool = True
+
+
+class AdminUserUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    email: str | None = Field(default=None, min_length=3, max_length=255)
+    password: str | None = Field(default=None, min_length=6, max_length=128)
+    role: UserRole | None = None
+    phone_number: str | None = Field(default=None, max_length=32)
+    wa_notifications_enabled: bool | None = None
+    notification_lead_minutes: int | None = Field(default=None, ge=1, le=60)
+    is_verified: bool | None = None
+
+
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -278,6 +327,7 @@ class UserRead(BaseModel):
     phone_number: str | None
     wa_notifications_enabled: bool
     notification_lead_minutes: int
+    is_verified: bool = True
     timezone: str
     created_at: datetime
     routes_count: int | None = None

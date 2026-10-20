@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.db.session import get_db
-from app.models import Camera, Pothole, PotholeStatus, TrafficSnapshot, TrafficStatus
+from app.models import Camera, Pothole, PotholeStatus, Route, TrafficSnapshot, TrafficStatus, User
 from app.schemas.api import CityHourlyInsightsResponse, TrafficCurrent, TrafficSummary
 from app.traffic.analytics import camera_metrics, get_city_hourly_insights
 
@@ -39,6 +39,12 @@ def traffic_summary(
             TrafficSnapshot.timestamp >= now - timedelta(minutes=5)
         )
     )
+    total_users = db.scalar(select(func.count(User.id))) or 0
+    total_routes = db.scalar(select(func.count(Route.id))) or 0
+    active_users = db.scalar(
+        select(func.count(User.id)).where(User.is_verified.is_(True))
+    ) or total_users
+
     return TrafficSummary(
         cctv_online=len(current),
         vehicles_last_5_minutes=int(vehicles or 0),
@@ -51,6 +57,9 @@ def traffic_summary(
             )
             or 0
         ),
+        total_users=int(total_users),
+        total_routes=int(total_routes),
+        active_users=int(active_users),
         generated_at=now,
         demo_mode=settings.demo_mode,
     )

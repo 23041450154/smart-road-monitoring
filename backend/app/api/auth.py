@@ -1,13 +1,29 @@
+from datetime import timedelta
+import secrets
+
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.config import get_settings
 from app.core.security import create_access_token, get_password_hash, verify_password
 from app.db.session import get_db
-from app.models import Route, User, UserRole
+from app.models import EmailVerification, Route, User, UserRole
 from app.models.entities import utcnow
-from app.schemas.api import TokenResponse, UserLogin, UserRead, UserRegister, UserUpdate
+from app.schemas.api import (
+    GoogleAuthRequest,
+    SendOtpRequest,
+    SendOtpResponse,
+    TokenResponse,
+    UserLogin,
+    UserRead,
+    UserRegister,
+    UserUpdate,
+    VerifyRegistrationRequest,
+)
+from app.services.email import send_verification_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -21,6 +37,123 @@ def normalize_phone(phone: str | None) -> str | None:
     elif cleaned.startswith("+62"):
         cleaned = "62" + cleaned[3:]
     return cleaned
+
+
+def generate_otp() -> str:
+    """Generates a random 6-digit numeric OTP code."""
+    return f"{secrets.randbelow(900000) + 100000}"
+
+
+@router.post("/send-verification-otp", response_model=SendOtpResponse)
+async def send_verification_otp(
+    payload: SendOtpRequest, db: Session = Depends(get_db)
+) -> SendOtpResponse:
+    settings = get_settings()
+    normalized_email = payload.email.strip().lower()
+
+    # Check if already registered
+    existing_user = db.scalar(select(User).where(func.lower(User.email) == normalized_email))
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Alamat email sudah terdaftar. Silakan masuk.",
+        )
+
+    # Invalidate existing unused codes for this email
+    prev_codes = db.scalars(
+        select(EmailVerification).where(
+            EmailVerification.email == normalized_email,
+            EmailVerification.is_used == False,
+        )
+    ).all()
+    for prev in prev_codes:
+        prev.is_used = True
+
+    # Generate fresh 6-digit OTP code
+    code = generate_otp()
+    expires_at = utcnow() + timedelta(minutes=settings.email_verification_expire_minutes)
+
+    verification = EmailVerification(
+        email=normalized_email,
+        code=code,
+        expires_at=expires_at,
+        is_used=False,
+        created_at=utcnow(),
+    )
+    db.add(verification)
+    db.commit()
+
+    # Send OTP via Gmail SMTP
+    send_verification_email(
+        to_email=normalized_email,
+        code=code,
+        user_name=payload.name,
+    )
+
+    dev_otp = code if (settings.demo_mode and not settings.smtp_user) else None
+
+    return SendOtpResponse(
+        message=f"Kode verifikasi telah dikirim ke {normalized_email}",
+        email=normalized_email,
+        expires_in_minutes=settings.email_verification_expire_minutes,
+        dev_otp=dev_otp,
+    )
+
+
+@router.post(
+    "/verify-registration", response_model=TokenResponse, status_code=status.HTTP_201_CREATED
+)
+async def verify_registration(
+    payload: VerifyRegistrationRequest, db: Session = Depends(get_db)
+) -> TokenResponse:
+    normalized_email = payload.email.strip().lower()
+
+    # Check if already registered
+    existing_user = db.scalar(select(User).where(func.lower(User.email) == normalized_email))
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Alamat email sudah terdaftar. Silakan masuk.",
+        )
+
+    # Find latest active OTP
+    verification = db.scalar(
+        select(EmailVerification)
+        .where(
+            EmailVerification.email == normalized_email,
+            EmailVerification.is_used == False,
+            EmailVerification.expires_at > utcnow(),
+        )
+        .order_by(EmailVerification.id.desc())
+    )
+
+    if not verification or verification.code.strip() != payload.code.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kode verifikasi tidak valid atau telah kedaluwarsa. Silakan periksa kembali atau minta kode baru.",
+        )
+
+    verification.is_used = True
+
+    user = User(
+        name=payload.name.strip(),
+        email=normalized_email,
+        hashed_password=get_password_hash(payload.password),
+        role=UserRole.USER,
+        phone_number=normalize_phone(payload.phone_number),
+        wa_notifications_enabled=True,
+        notification_lead_minutes=5,
+        is_verified=True,
+        created_at=utcnow(),
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token(subject=user.id, role=user.role.value)
+    user_read = UserRead.model_validate(user)
+    user_read.routes_count = 0
+    return TokenResponse(access_token=token, token_type="bearer", user=user_read)
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -63,6 +196,92 @@ async def login(payload: UserLogin, db: Session = Depends(get_db)) -> TokenRespo
             detail="Email atau password yang Anda masukkan salah.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    token = create_access_token(subject=user.id, role=user.role.value)
+    routes_count = db.scalar(
+        select(func.count(Route.id)).where(Route.user_id == user.id)
+    ) or 0
+
+    user_read = UserRead.model_validate(user)
+    user_read.routes_count = routes_count
+    return TokenResponse(access_token=token, token_type="bearer", user=user_read)
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)) -> TokenResponse:
+    settings = get_settings()
+
+    # Allow simulation for demo / development test suites without Google network dependency
+    if settings.demo_mode and payload.credential.startswith("mock-google-"):
+        parts = payload.credential.split(":", 2)
+        demo_email = parts[1] if len(parts) > 1 else "google_demo@example.com"
+        demo_name = parts[2] if len(parts) > 2 else "Pengguna Google Demo"
+        google_data = {
+            "email": demo_email,
+            "email_verified": "true",
+            "name": demo_name,
+            "aud": settings.google_client_id or "demo-client-id",
+        }
+    else:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://oauth2.googleapis.com/tokeninfo",
+                    params={"id_token": payload.credential},
+                )
+                if resp.status_code != 200:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token autentikasi Google tidak valid atau telah kedaluwarsa.",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                google_data = resp.json()
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Tidak dapat terhubung ke server autentikasi Google: {exc}",
+            )
+
+    # Validate audience if client ID is configured
+    if settings.google_client_id and google_data.get("aud") != settings.google_client_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Google audience tidak sesuai dengan konfigurasi aplikasi.",
+        )
+
+    email = google_data.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Profil Google tidak memuat alamat email yang valid.",
+        )
+
+    # Ensure email is verified by Google
+    email_verified = google_data.get("email_verified")
+    if str(email_verified).lower() not in ("true", "1"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email akun Google belum diverifikasi oleh Google.",
+        )
+
+    normalized_email = email.strip().lower()
+    user = db.scalar(select(User).where(func.lower(User.email) == normalized_email))
+
+    if not user:
+        display_name = google_data.get("name") or normalized_email.split("@")[0]
+        user = User(
+            name=display_name.strip()[:120],
+            email=normalized_email,
+            hashed_password=None,
+            role=UserRole.USER,
+            phone_number=None,
+            wa_notifications_enabled=True,
+            notification_lead_minutes=5,
+            created_at=utcnow(),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     token = create_access_token(subject=user.id, role=user.role.value)
     routes_count = db.scalar(

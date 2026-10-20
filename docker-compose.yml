@@ -27,6 +27,13 @@ services:
       POTHOLE_ROUTE_BUFFER_METERS: ${POTHOLE_ROUTE_BUFFER_METERS:-100}
       POTHOLE_DUPLICATE_RADIUS_METERS: ${POTHOLE_DUPLICATE_RADIUS_METERS:-10}
       BRIEFING_MODE: ${BRIEFING_MODE:-template}
+      SMTP_HOST: ${SMTP_HOST:-smtp.resend.com}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-resend}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Smart Road Palembang (LAJU)}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-no-reply@naufal.me}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       PYTHONPATH: /app:/
       YOLO_CONFIG_DIR: /tmp/ultralytics
     ports:

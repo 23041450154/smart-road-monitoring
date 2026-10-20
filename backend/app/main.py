@@ -45,36 +45,52 @@ async def lifespan(_: FastAPI):
     if engine.dialect.name == "sqlite":
         Base.metadata.create_all(bind=engine)
         ensure_sqlite_schema(engine)
-        if settings.demo_mode:
-            with SessionLocal() as session:
-                seed_demo(session)
-                # Ensure demo & admin users exist with valid passwords and roles
-                demo_user = session.scalar(
-                    select(User).where(User.email == "demo@example.local")
-                )
-                if demo_user:
-                    if not demo_user.hashed_password:
-                        demo_user.hashed_password = get_password_hash("demo123")
-                    if not demo_user.phone_number:
-                        demo_user.phone_number = "081234567890"
-                    if not demo_user.role:
-                        demo_user.role = UserRole.USER
-                admin_user = session.scalar(
+
+    if settings.demo_mode:
+        with SessionLocal() as session:
+            seed_demo(session)
+            # Ensure demo & admin users exist with valid passwords and roles
+            demo_user = session.scalar(
+                select(User).where(User.email == "demo@example.local")
+            )
+            if demo_user:
+                if not demo_user.hashed_password:
+                    demo_user.hashed_password = get_password_hash("demo123")
+                if not demo_user.phone_number:
+                    demo_user.phone_number = "081234567890"
+                if not demo_user.role:
+                    demo_user.role = UserRole.USER
+            admin_user = session.scalar(
+                select(User).where(User.email == "admin@naufal.me")
+            )
+            if not admin_user:
+                old_admin = session.scalar(
                     select(User).where(User.email == "admin@smartroad.local")
                 )
-                if not admin_user:
+                if old_admin:
+                    old_admin.name = "Administrator"
+                    old_admin.email = "admin@naufal.me"
+                    old_admin.hashed_password = get_password_hash("Garena123")
+                    old_admin.role = UserRole.ADMIN
+                    old_admin.is_verified = True
+                else:
                     admin_user = User(
-                        name="Administrator Laju",
-                        email="admin@smartroad.local",
-                        hashed_password=get_password_hash("admin123"),
+                        name="Administrator",
+                        email="admin@naufal.me",
+                        hashed_password=get_password_hash("Garena123"),
                         role=UserRole.ADMIN,
                         phone_number="081112223334",
                         wa_notifications_enabled=True,
                         notification_lead_minutes=5,
+                        is_verified=True,
                         created_at=utcnow(),
                     )
                     session.add(admin_user)
-                session.commit()
+            else:
+                admin_user.hashed_password = get_password_hash("Garena123")
+                admin_user.role = UserRole.ADMIN
+                admin_user.is_verified = True
+            session.commit()
 
     # Warm up YOLO model asynchronously at startup
     try:
