@@ -314,42 +314,6 @@ export default function LoginPage() {
                   Daftar
                 </button>
               </div>
-
-              {/* Quick Testing Accounts for Dosen / Demo */}
-              <div className="mt-4 pt-3.5 border-t border-zinc-100">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 block mb-2 text-center">
-                  Akun Pengujian Dosen & Demo
-                </span>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("user@test.com");
-                      setPassword("test");
-                      setError(null);
-                    }}
-                    className="flex flex-col items-start rounded-lg border border-zinc-200/90 bg-zinc-50/70 p-2 text-left hover:bg-zinc-100/80 transition cursor-pointer"
-                  >
-                    <span className="font-semibold text-zinc-900 text-[11px]">User Testing</span>
-                    <span className="text-[10px] font-mono text-zinc-500">user@test.com</span>
-                    <span className="text-[9px] font-mono text-zinc-400">pass: test</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("admin@test.com");
-                      setPassword("test");
-                      setError(null);
-                    }}
-                    className="flex flex-col items-start rounded-lg border border-zinc-200/90 bg-zinc-50/70 p-2 text-left hover:bg-zinc-100/80 transition cursor-pointer"
-                  >
-                    <span className="font-semibold text-zinc-900 text-[11px]">Admin Testing</span>
-                    <span className="text-[10px] font-mono text-zinc-500">admin@test.com</span>
-                    <span className="text-[9px] font-mono text-zinc-400">pass: test</span>
-                  </button>
-                </div>
-              </div>
             </form>
           )}
 
