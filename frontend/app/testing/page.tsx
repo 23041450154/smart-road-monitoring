@@ -1,5 +1,5 @@
-import { AuthView } from "@/components/auth-view";
+import { redirect } from "next/navigation";
 
 export default function TestingPage() {
-  return <AuthView isTesting={true} />;
+  redirect("/login/testing");
 }
