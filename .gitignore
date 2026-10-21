@@ -40,3 +40,4 @@ predictions/
 *_openvino_model/
 *.mp4
 .DS_Store
+.mcp.json
