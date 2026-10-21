@@ -9,7 +9,7 @@ interface AuthContextType {
   role: "guest" | UserRole;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   loginWithGoogle: (credential: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   sendVerificationOtp: (email: string, name?: string) => Promise<SendOtpResponse>;
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<User> => {
     const res = await mutateApi<AuthResponse>("/api/auth/login", "POST", { email, password });
     setToken(res.access_token);
     setUser(res.user);
@@ -106,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore storage error
     }
+    return res.user;
   };
 
   const loginWithGoogle = async (credential: string) => {
