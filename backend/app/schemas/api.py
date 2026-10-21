@@ -196,6 +196,7 @@ class RouteRead(RouteBase):
 
     id: int
     created_at: datetime
+    phone_number: str | None = None
 
 
 class PotholeCreate(BaseModel):
@@ -246,6 +247,7 @@ class Briefing(BaseModel):
     issues: list[BriefingIssue]
     message: str
     generated_at: datetime
+    phone_number: str | None = None
 
 
 class SendOtpRequest(BaseModel):

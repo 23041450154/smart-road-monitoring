@@ -167,6 +167,10 @@ class Route(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     user: Mapped[User] = relationship(back_populates="routes")
 
+    @property
+    def phone_number(self) -> str | None:
+        return self.user.phone_number if self.user else None
+
 
 class Pothole(Base):
     __tablename__ = "potholes"

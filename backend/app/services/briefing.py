@@ -51,6 +51,7 @@ def build_briefing(db: Session, route: Route, settings: Settings) -> Briefing:
         issues=issues,
         message=get_formatter(settings).format(structured, template_message),
         generated_at=datetime.now(UTC),
+        phone_number=route.user.phone_number if route.user else None,
     )
 
 

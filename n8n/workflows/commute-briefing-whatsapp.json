@@ -1,79 +1,133 @@
 {
+  "id": "6YuTX0Lj7lNgYsa3",
   "name": "Smart Road - Commute Briefing (WhatsApp Ready)",
+  "active": false,
+  "isArchived": false,
+  "versionId": "b3207be5-3f36-442e-93b2-7e470ad48dcd",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "createdAt": "2026-09-04T17:15:19.294Z",
+  "updatedAt": "2026-10-21T15:54:18.208Z",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "connections": {
+    "Get Active Routes": {
+      "main": [
+        [
+          {
+            "node": "Filter Routes Due Now",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Routes Due Now": {
+      "main": [
+        [
+          {
+            "node": "Get Deterministic Briefing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Deterministic Briefing": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Outbox \u2014 Connect Provider Here",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Active Routes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Outbox \u2014 Connect Provider Here": {
+      "main": [
+        [
+          {
+            "node": "WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "nodes": [
     {
       "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "minutes",
-              "minutesInterval": 1
-            }
-          ]
-        }
-      },
-      "id": "schedule",
-      "name": "Every Minute",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.3,
-      "position": [0, 0]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "={{ $env.BACKEND_API_URL + '/api/routes' }}",
-        "authentication": "none",
+        "url": "={{ ($env.BACKEND_API_URL || \"https://laju.naufal.me\") + \"/api/routes\" }}",
         "options": {
-          "timeout": 10000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
+          },
+          "timeout": 10000
         }
       },
-      "id": "routes",
+      "id": "1b569583-d4c9-49d5-bf07-11ce5d33b7e7",
       "name": "Get Active Routes",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [240, 0]
+      "position": [
+        240,
+        -432
+      ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
         "jsCode": "const nowParts = new Intl.DateTimeFormat('en-GB', {\n  timeZone: 'Asia/Jakarta',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: false,\n}).formatToParts(new Date());\nconst hour = nowParts.find((part) => part.type === 'hour')?.value ?? '';\nconst minute = nowParts.find((part) => part.type === 'minute')?.value ?? '';\nconst now = hour + ':' + minute;\nconst routes = $input.all().flatMap((item) =>\n  Array.isArray(item.json) ? item.json : [item.json],\n);\n\nreturn routes\n  .filter((route) => {\n    const fallback =\n      route.route_type === 'commute_to_work'\n        ? '06:45'\n        : route.route_type === 'commute_home'\n          ? '16:45'\n          : '';\n    const scheduledFor = String(route.notification_time || fallback).slice(0, 5);\n    return route.is_active === true && scheduledFor === now;\n  })\n  .map((route) => ({ json: route }));"
       },
-      "id": "due",
+      "id": "0c8f807a-5084-40b1-beb5-fbaf8fff6c67",
       "name": "Filter Routes Due Now",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [500, 0]
+      "position": [
+        464,
+        -432
+      ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "={{ $env.BACKEND_API_URL + '/api/routes/' + $json.id + '/briefing' }}",
-        "authentication": "none",
+        "url": "={{ ($env.BACKEND_API_URL || \"https://laju.naufal.me\") + \"/api/routes/\" + $json.id + \"/briefing\" }}",
         "options": {
-          "timeout": 10000,
           "response": {
             "response": {
               "responseFormat": "json"
             }
-          }
+          },
+          "timeout": 10000
         }
       },
-      "id": "briefing",
+      "id": "8b40da4d-1e2a-4c5a-a5c3-13257ce1e154",
       "name": "Get Deterministic Briefing",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [760, 0]
+      "position": [
+        688,
+        -432
+      ]
     },
     {
       "parameters": {
-        "mode": "manual",
-        "includeOtherFields": false,
         "assignments": {
           "assignments": [
             {
@@ -85,19 +139,25 @@
             {
               "id": "delivery-status",
               "name": "delivery_status",
-              "value": "pending_provider_configuration",
+              "value": "ready_to_send",
               "type": "string"
             },
             {
               "id": "recipient-user-id",
               "name": "recipient_user_id",
-              "value": "={{ $('Filter Routes Due Now').item.json.user_id }}",
+              "value": "={{ $(\"Filter Routes Due Now\").item.json.user_id }}",
               "type": "number"
             },
             {
               "id": "recipient-phone",
               "name": "recipient_phone",
-              "value": "",
+              "value": "={{ $json.phone_number || $(\"Filter Routes Due Now\").item.json.phone_number || \"081234567890\" }}",
+              "type": "string"
+            },
+            {
+              "id": "chatId",
+              "name": "chatId",
+              "value": "={{ (($json.phone_number || $(\"Filter Routes Due Now\").item.json.phone_number || \"081234567890\").replace(/\\D/g, \"\").replace(/^0/, \"62\")) + \"@c.us\" }}",
               "type": "string"
             },
             {
@@ -133,53 +193,110 @@
             {
               "id": "ready-to-send",
               "name": "ready_to_send",
-              "value": false,
+              "value": true,
               "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1f594f91-e03d-4c61-923e-534d7a43c4d0",
+      "name": "WhatsApp Outbox \u2014 Connect Provider Here",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        960,
+        -432
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Sambungkan WhatsApp nanti\nTambahkan node provider WhatsApp setelah outbox ini. Petakan nomor tujuan dan field message, ubah ready_to_send setelah konfigurasi tervalidasi, lalu publish workflow.",
+        "height": 200,
+        "width": 300,
+        "color": 5
+      },
+      "id": "f0042bd2-57bb-43b6-85f2-cf6a23abe6e2",
+      "name": "Sticky Note 89112654",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        -176
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
             }
           ]
         }
       },
-      "id": "whatsapp-outbox",
-      "name": "WhatsApp Outbox — Connect Provider Here",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.5,
-      "position": [1040, 0]
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -432
+      ],
+      "id": "c35126c2-bc7f-4e88-8d67-1542534ccf52",
+      "name": "Schedule Trigger"
     },
     {
       "parameters": {
-        "content": "## Sambungkan WhatsApp nanti\nTambahkan node provider WhatsApp setelah outbox ini. Petakan nomor tujuan dan field `message`, ubah `ready_to_send` setelah konfigurasi tervalidasi, lalu publish workflow.",
-        "height": 300,
-        "width": 420,
-        "color": 5
+        "requestOptions": {},
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "n8n",
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}"
       },
-      "id": "whatsapp-note",
-      "name": "WhatsApp Setup Note",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [980, -220]
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1200,
+        -432
+      ],
+      "id": "e387ca20-7a36-412f-a2d4-e62898caa98e",
+      "name": "WAHA",
+      "credentials": {
+        "wahaApi": {
+          "id": "hOB9qawRHJeUuy0x",
+          "name": "WAHA account"
+        }
+      }
     }
   ],
-  "connections": {
-    "Every Minute": {
-      "main": [[{ "node": "Get Active Routes", "type": "main", "index": 0 }]]
-    },
-    "Get Active Routes": {
-      "main": [[{ "node": "Filter Routes Due Now", "type": "main", "index": 0 }]]
-    },
-    "Filter Routes Due Now": {
-      "main": [[{ "node": "Get Deterministic Briefing", "type": "main", "index": 0 }]]
-    },
-    "Get Deterministic Briefing": {
-      "main": [[{ "node": "WhatsApp Outbox — Connect Provider Here", "type": "main", "index": 0 }]]
-    }
-  },
-  "settings": {
-    "timezone": "Asia/Jakarta",
-    "executionOrder": "v1"
-  },
-  "active": false,
+  "nodeGroups": [],
+  "activeVersion": null,
+  "tags": [],
   "meta": {
-    "templateCredsSetupCompleted": false
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
   },
-  "tags": []
+  "parentFolderId": null,
+  "description": "Scheduled Smart Road commute briefing workflow. Fetches active routes, selects due routes in Asia/Jakarta, builds deterministic briefings, and stops at a WhatsApp-ready outbox without sending.",
+  "scopes": [
+    "execution:reveal",
+    "workflow:create",
+    "workflow:delete",
+    "workflow:disableRedaction",
+    "workflow:enableRedaction",
+    "workflow:execute",
+    "workflow:execute-chat",
+    "workflow:export",
+    "workflow:import",
+    "workflow:list",
+    "workflow:move",
+    "workflow:publish",
+    "workflow:read",
+    "workflow:share",
+    "workflow:unpublish",
+    "workflow:unshare",
+    "workflow:update"
+  ],
+  "canExecute": true
 }
