@@ -115,8 +115,42 @@ Tim Smart Road Palembang (LAJU)
 </html>
 """
 
+    sender_email = settings.sender_email
+
+    # 1. High-speed HTTPS delivery for Resend API (port 443 - zero firewall blocks on VPS)
+    if settings.smtp_password and settings.smtp_password.startswith("re_"):
+        try:
+            import json
+            import urllib.request
+
+            url = "https://api.resend.com/emails"
+            headers = {
+                "Authorization": f"Bearer {settings.smtp_password}",
+                "Content-Type": "application/json",
+                "User-Agent": "SmartRoadPalembang/1.0",
+            }
+            payload_data = {
+                "from": f"{settings.smtp_from_name} <{sender_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+                "text": text_content,
+            }
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload_data).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=8) as response:
+                if response.status in (200, 201):
+                    logger.info("Berhasil mengirim email verifikasi via Resend HTTPS API ke: %s", to_email)
+                    return True
+        except Exception as exc:
+            logger.warning("Gagal mengirim via Resend HTTPS API (%s), mencoba fallback SMTP...", exc)
+
+    # 2. Standard SMTP delivery (fallback or non-Resend SMTP providers)
     try:
-        sender_email = settings.sender_email
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = f"{settings.smtp_from_name} <{sender_email}>"
@@ -126,11 +160,11 @@ Tim Smart Road Palembang (LAJU)
         msg.attach(MIMEText(html_content, "html", "utf-8"))
 
         if settings.smtp_port == 465:
-            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=12) as server:
+            with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, timeout=8) as server:
                 server.login(settings.smtp_user, settings.smtp_password)
                 server.sendmail(sender_email, [to_email], msg.as_string())
         else:
-            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=12) as server:
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=8) as server:
                 if settings.smtp_use_tls:
                     server.starttls()
                 server.login(settings.smtp_user, settings.smtp_password)

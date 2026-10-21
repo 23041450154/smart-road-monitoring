@@ -2,7 +2,7 @@ from datetime import timedelta
 import secrets
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -46,7 +46,9 @@ def generate_otp() -> str:
 
 @router.post("/send-verification-otp", response_model=SendOtpResponse)
 async def send_verification_otp(
-    payload: SendOtpRequest, db: Session = Depends(get_db)
+    payload: SendOtpRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ) -> SendOtpResponse:
     settings = get_settings()
     normalized_email = payload.email.strip().lower()
@@ -83,8 +85,9 @@ async def send_verification_otp(
     db.add(verification)
     db.commit()
 
-    # Send OTP via Gmail SMTP
-    send_verification_email(
+    # Send OTP in background so user transitions instantly to OTP verification without delay
+    background_tasks.add_task(
+        send_verification_email,
         to_email=normalized_email,
         code=code,
         user_name=payload.name,

@@ -3,6 +3,7 @@ from app.db.base import Base
 from app.db.seed import seed_demo
 from app.db.session import SessionLocal, engine
 from app.models import User, UserRole
+from app.models.entities import utcnow
 from sqlalchemy import select
 
 if __name__ == "__main__":
@@ -10,31 +11,64 @@ if __name__ == "__main__":
         Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
         seed_demo(session)
-        admin = session.scalar(select(User).where(User.email == "admin@naufal.me"))
-        if not admin:
-            old_admin = session.scalar(select(User).where(User.email == "admin@smartroad.local"))
-            if old_admin:
-                old_admin.name = "Administrator"
-                old_admin.email = "admin@naufal.me"
-                old_admin.hashed_password = get_password_hash("Garena123")
-                old_admin.role = UserRole.ADMIN
-                old_admin.is_verified = True
-            else:
-                admin = User(
-                    name="Administrator",
-                    email="admin@naufal.me",
-                    hashed_password=get_password_hash("Garena123"),
-                    role=UserRole.ADMIN,
-                    phone_number="081112223334",
+        demo_accounts = [
+            {
+                "name": "Dosen Penguji (User)",
+                "email": "user@test.com",
+                "password": "test",
+                "role": UserRole.USER,
+                "phone": "081234567890",
+            },
+            {
+                "name": "Dosen Penguji (Admin)",
+                "email": "admin@test.com",
+                "password": "test",
+                "role": UserRole.ADMIN,
+                "phone": "081112223334",
+            },
+            {
+                "name": "Pengguna Demo",
+                "email": "demo@test.com",
+                "password": "test",
+                "role": UserRole.USER,
+                "phone": "081234567891",
+            },
+            {
+                "name": "Administrator",
+                "email": "admin@naufal.me",
+                "password": "Garena123",
+                "role": UserRole.ADMIN,
+                "phone": "081112223334",
+            },
+            {
+                "name": "Pengguna Demo Lokal",
+                "email": "demo@example.local",
+                "password": "demo123",
+                "role": UserRole.USER,
+                "phone": "081234567890",
+            },
+        ]
+
+        for item in demo_accounts:
+            target = session.scalar(select(User).where(User.email == item["email"]))
+            if not target:
+                target = User(
+                    name=item["name"],
+                    email=item["email"],
+                    hashed_password=get_password_hash(item["password"]),
+                    role=item["role"],
+                    phone_number=item["phone"],
                     wa_notifications_enabled=True,
                     notification_lead_minutes=5,
                     is_verified=True,
+                    created_at=utcnow(),
                 )
-                session.add(admin)
-        else:
-            admin.hashed_password = get_password_hash("Garena123")
-            admin.role = UserRole.ADMIN
-            admin.is_verified = True
+                session.add(target)
+            else:
+                target.hashed_password = get_password_hash(item["password"])
+                target.role = item["role"]
+                target.is_verified = True
+
         session.commit()
     try:
         from sync_all_palembang_cctv import sync_all
