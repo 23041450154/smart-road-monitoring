@@ -12,12 +12,17 @@ export function PageLoader() {
 
   useEffect(() => {
     // When pathname or searchParams change, navigation finished
-    setIsNavigating(false);
-    setProgress(100);
-    const timer = setTimeout(() => {
+    const doneTimer = setTimeout(() => {
+      setIsNavigating(false);
+      setProgress(100);
+    }, 0);
+    const resetTimer = setTimeout(() => {
       setProgress(0);
     }, 300);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(doneTimer);
+      clearTimeout(resetTimer);
+    };
   }, [pathname, searchParams]);
 
   useEffect(() => {

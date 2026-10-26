@@ -20,31 +20,34 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Form Fields
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("smartroad_remembered_email") || "";
+      } catch {
+        return "";
+      }
+    }
+    return "";
+  });
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return Boolean(localStorage.getItem("smartroad_remembered_email"));
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
 
   // Password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Load remembered email on mount (only for standard mode if not set)
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const savedEmail = localStorage.getItem("smartroad_remembered_email");
-        if (savedEmail && !email) {
-          setEmail(savedEmail);
-          setRememberMe(true);
-        }
-      } catch {
-        // ignore storage error
-      }
-    }
-  }, []);
 
   // 6-digit OTP state
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);

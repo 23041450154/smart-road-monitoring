@@ -12,7 +12,6 @@ import {
   MessageSquare,
   Pencil,
   Phone,
-  Plus,
   RefreshCw,
   Route as RouteIcon,
   Search,
