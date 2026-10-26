@@ -24,6 +24,20 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
 
+  useEffect(() => {
+    if (!selectedRouteBounds) return;
+    const [[minLat, minLng], [maxLat, maxLng]] = selectedRouteBounds;
+    if (Math.abs(maxLat - minLat) < 0.0005 && Math.abs(maxLng - minLng) < 0.0005) {
+      map.setView([minLat, minLng], 15, { animate: true });
+    } else {
+      map.fitBounds(selectedRouteBounds, {
+        padding: [48, 48],
+        maxZoom: 16,
+        animate: true,
+      });
+    }
+  }, [map, selectedRouteBounds]);
+
   const handleToggleFullscreen = () => {
     const container = map.getContainer();
     if (!document.fullscreenElement) {

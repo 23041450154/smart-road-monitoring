@@ -2,18 +2,21 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
   Bot,
   CheckCircle2,
+  Clock,
   Construction,
   Edit3,
   MapPin,
   MessageSquareText,
+  Navigation,
   Send,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { MapPanel } from "@/components/map-panel";
 import { RouteEditor } from "@/components/route-editor";
@@ -42,6 +45,38 @@ function RouteDetailContent() {
     { refreshInterval: 30_000 },
   );
   const { data: cameras } = useSWR<Camera[]>("/api/cameras", fetcher);
+
+  const [traversedStreets, setTraversedStreets] = useState<string[]>([]);
+  const [routeStats, setRouteStats] = useState<{ distanceKm: number; durationMin: number } | null>(null);
+
+  useEffect(() => {
+    if (!route?.path || route.path.length < 2) return;
+    const start = route.path[0];
+    const end = route.path[route.path.length - 1];
+    fetch(
+      `https://router.project-osrm.org/route/v1/driving/${start[1]},${start[0]};${end[1]},${end[0]}?overview=false&steps=true`
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const first = data?.routes?.[0];
+        if (!first) return;
+        const streets: string[] = [];
+        for (const leg of first.legs ?? []) {
+          for (const step of leg.steps ?? []) {
+            const name = (step.name || step.ref || "").trim();
+            if (name && name.length > 1 && streets[streets.length - 1] !== name) {
+              streets.push(name);
+            }
+          }
+        }
+        setTraversedStreets(streets);
+        setRouteStats({
+          distanceKm: Number((first.distance / 1000).toFixed(1)),
+          durationMin: Math.max(1, Math.round(first.duration / 60)),
+        });
+      })
+      .catch(() => {});
+  }, [route]);
 
   async function remove() {
     if (!confirm("Hapus rute ini dari daftar pantauan?")) return;
@@ -115,13 +150,50 @@ function RouteDetailContent() {
         <div className="h-[360px] sm:h-[450px] xl:h-[540px] overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-xs">
           <MapPanel
             routes={[route]}
+            selectedRouteId={route.id}
             cameras={cameras}
             potholes={briefing.potholes}
             traffic={briefing.traffic}
+            nearbyCameraIds={briefing.traffic.map((t) => t.camera_id)}
+            nearbyPotholeIds={briefing.potholes.map((p) => p.id)}
           />
         </div>
 
         <div className="space-y-4">
+          {/* Traversed Streets & Distance Card */}
+          {(traversedStreets.length > 0 || routeStats) && (
+            <article className="rounded-xl border border-zinc-200/80 bg-white p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-zinc-900 flex items-center gap-1.5">
+                  <Navigation size={14} className="text-blue-600" />
+                  Rute Jalan yang Dilalui
+                </span>
+                {routeStats && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700">
+                    <span>{routeStats.distanceKm} km</span>
+                    <span className="text-zinc-300">·</span>
+                    <span className="inline-flex items-center gap-1 text-emerald-600">
+                      <Clock size={12} />
+                      ~{routeStats.durationMin} mnt
+                    </span>
+                  </span>
+                )}
+              </div>
+
+              {traversedStreets.length > 0 && (
+                <div className="flex flex-wrap items-center gap-y-1.5 text-xs text-zinc-700 border-t border-zinc-100 pt-3">
+                  {traversedStreets.map((street, idx) => (
+                    <span key={`${street}-${idx}`} className="inline-flex items-center">
+                      <span className="font-medium text-zinc-900">{street}</span>
+                      {idx < traversedStreets.length - 1 && (
+                        <ArrowRight size={11} className="mx-1.5 text-zinc-400 shrink-0" />
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </article>
+          )}
           {/* WhatsApp Bot Integration & 5-Minute Notification Card */}
           <article className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 shadow-xs">
             <div className="flex items-start justify-between gap-3 mb-3">

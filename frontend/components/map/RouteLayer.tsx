@@ -165,21 +165,38 @@ export function RouteLayer({
         );
       })}
 
-      {/* Draft Route while drawing */}
+      {/* Draft Route while selecting/routing (Google Maps style) */}
       {draftPath.length > 1 && (
-        <Polyline
-          positions={draftPath}
-          pathOptions={{ color: "#f97316", weight: 5, dashArray: "8 8", opacity: 0.9 }}
-        />
+        <>
+          <Polyline
+            positions={draftPath}
+            pathOptions={{ color: "#1e3a8a", weight: 9, opacity: 0.25, lineCap: "round", lineJoin: "round" }}
+          />
+          <Polyline
+            positions={draftPath}
+            pathOptions={{ color: "#2563eb", weight: 5, opacity: 0.95, lineCap: "round", lineJoin: "round" }}
+          />
+        </>
       )}
 
-      {draftPath.map((point, index) => (
+      {draftPath.length >= 1 && (
+        <Marker position={draftPath[0]} icon={waypointIcon(0, Math.max(2, draftPath.length))}>
+          <Popup>
+            <div className="text-xs font-semibold text-zinc-900">Titik Awal Keberangkatan</div>
+          </Popup>
+        </Marker>
+      )}
+
+      {draftPath.length >= 2 && (
         <Marker
-          key={`draft-point-${index}`}
-          position={point}
-          icon={waypointIcon(index, draftPath.length)}
-        />
-      ))}
+          position={draftPath[draftPath.length - 1]}
+          icon={waypointIcon(1, 2)}
+        >
+          <Popup>
+            <div className="text-xs font-semibold text-zinc-900">Titik Tujuan</div>
+          </Popup>
+        </Marker>
+      )}
     </>
   );
 }
