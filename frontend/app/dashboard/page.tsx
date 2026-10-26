@@ -10,7 +10,6 @@ import {
   Compass,
   MessageSquare,
   RefreshCw,
-  Users,
   Video,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -135,10 +134,10 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs text-zinc-600 shadow-2xs">
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          <div className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
             <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-[11px] text-zinc-700">
+            <span className="font-mono text-[11px] text-zinc-600">
               {summary ? dateTime(summary.generated_at) : "Menghubungkan"}
             </span>
           </div>
@@ -273,24 +272,19 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* SECTION: Insight Akses & Komunitas Pengguna (21st.dev Style) */}
+          {/* SECTION: Insight Akses & Komunitas Pengguna */}
           <div className="rounded-xl border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="grid size-7 place-items-center rounded-lg bg-zinc-900 text-white shadow-2xs">
-                  <Users size={14} />
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
-                    Insight Akses & Partisipasi Warga
-                  </h2>
-                  <p className="text-xs text-zinc-500">
-                    Statistik pengguna terdaftar yang memantau arus jalan & mengaktifkan peringatan rute real-time.
-                  </p>
-                </div>
+              <div>
+                <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
+                  Insight Akses & Partisipasi Warga
+                </h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Statistik pengguna terdaftar yang memantau arus jalan & mengaktifkan peringatan rute real-time.
+                </p>
               </div>
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700">
+              <div className="flex items-center gap-3 self-start sm:self-auto">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600">
                   <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   Layanan Aktif
                 </span>
@@ -322,8 +316,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/60 p-3">
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 sm:divide-x sm:divide-zinc-100">
+              <div className="sm:pr-4">
                 <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
                   Total Pengguna Akses
                 </span>
@@ -338,7 +332,7 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/60 p-3">
+              <div className="sm:px-4">
                 <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
                   Akun Terverifikasi
                 </span>
@@ -354,7 +348,7 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/60 p-3">
+              <div className="sm:px-4">
                 <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
                   Rute Terpantau
                 </span>
@@ -369,7 +363,7 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/60 p-3">
+              <div className="sm:pl-4">
                 <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
                   Frekuensi Telemetri
                 </span>
@@ -432,12 +426,12 @@ export default function Dashboard() {
             </div>
 
             {/* 24-Hour Scrubber Bar Chart */}
-            <div className="rounded-lg bg-zinc-50/70 border border-zinc-200/70 p-3.5 space-y-3">
+            <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between text-xs text-zinc-500">
                 <span className="font-medium text-[11px] uppercase tracking-wider text-zinc-400">
                   Profil 24 Jam (Klik untuk Memilih Jam)
                 </span>
-                <span className="font-mono text-xs font-semibold text-zinc-800 bg-white px-2 py-0.5 rounded border border-zinc-200">
+                <span className="font-mono text-xs font-semibold text-zinc-800">
                   Pukul {String(selectedHour).padStart(2, "0")}:00 WIB
                 </span>
               </div>
@@ -515,13 +509,13 @@ export default function Dashboard() {
                       Indeks: <b className="text-zinc-900">{Math.round(hourStats.avgScore)}%</b>
                     </span>
                     {hourStats.isPeak && (
-                      <span className="rounded-md bg-zinc-200/70 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-800">
-                        {hourStats.isMorningPeak ? "Jam Sibuk Pagi" : "Jam Sibuk Sore"}
+                      <span className="text-[11px] font-semibold text-zinc-700">
+                        · {hourStats.isMorningPeak ? "Jam Sibuk Pagi" : "Jam Sibuk Sore"}
                       </span>
                     )}
                     {hourStats.congestedInHour.length > 0 && (
-                      <span className="text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/70 font-medium">
-                        Padat: {hourStats.congestedInHour.map((a) => a.road_name).join(", ")}
+                      <span className="text-[11px] text-amber-700 font-medium">
+                        · Padat: {hourStats.congestedInHour.map((a) => a.road_name).join(", ")}
                       </span>
                     )}
                   </div>

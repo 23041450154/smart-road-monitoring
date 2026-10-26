@@ -65,25 +65,28 @@ function RoutesContent() {
               className="group rounded-xl border border-zinc-200/80 bg-white p-5 shadow-xs transition-all hover:border-zinc-300 hover:shadow-sm flex flex-col justify-between"
             >
               <div>
-                <div className="mb-4 flex items-start justify-between">
-                  <span className="grid size-9 place-items-center rounded-lg bg-zinc-100 text-zinc-700">
-                    <RouteIcon size={18} />
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600">
+                    <RouteIcon size={14} />
+                    {routeLabel(route.route_type)}
                   </span>
                   <span
-                    className={`rounded-md border px-2 py-0.5 text-[10px] font-medium ${
+                    className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${
                       route.is_active
-                        ? "border-emerald-200/80 bg-emerald-50 text-emerald-700"
-                        : "border-zinc-200 bg-zinc-50 text-zinc-500"
+                        ? "text-emerald-600"
+                        : "text-zinc-400"
                     }`}
                   >
+                    <span
+                      className={`size-1.5 rounded-full ${
+                        route.is_active ? "bg-emerald-500" : "bg-zinc-300"
+                      }`}
+                    />
                     {route.is_active ? "AKTIF" : "NONAKTIF"}
                   </span>
                 </div>
 
-                <span className="text-xs font-medium text-blue-600">
-                  {routeLabel(route.route_type)}
-                </span>
-                <h2 className="mt-1 text-base font-semibold text-zinc-900 group-hover:text-blue-600 transition-colors">
+                <h2 className="text-base font-semibold text-zinc-900 group-hover:text-blue-600 transition-colors">
                   {route.name}
                 </h2>
 
@@ -99,7 +102,7 @@ function RoutesContent() {
                 </div>
 
                 {/* WhatsApp notification indicator */}
-                <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-zinc-50 border border-zinc-100 px-2.5 py-1.5 text-[11px] text-zinc-600">
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-zinc-500">
                   <MessageSquare size={13} className="text-emerald-600 shrink-0" />
                   <span className="truncate">
                     Notif WA:{" "}

@@ -17,8 +17,8 @@ export function PageHeading({
     <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-end">
       <div className="min-w-0 flex-1">
         {eyebrow && (
-          <div className="mb-2">
-            <span className="inline-flex items-center rounded-md border border-zinc-200/80 bg-zinc-100/70 px-2 py-0.5 text-xs font-medium text-zinc-600">
+          <div className="mb-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
               {eyebrow}
             </span>
           </div>
@@ -39,51 +39,39 @@ export function PageHeading({
   );
 }
 
-const statusConfig: Record<TrafficStatus, { bg: string; text: string; border: string; dot: string }> = {
+const statusConfig: Record<TrafficStatus, { text: string; dot: string }> = {
   LANCAR: {
-    bg: "bg-emerald-50/80",
-    text: "text-emerald-700",
-    border: "border-emerald-200/80",
+    text: "text-emerald-600",
     dot: "bg-emerald-500",
   },
   SEDANG: {
-    bg: "bg-amber-50/80",
-    text: "text-amber-700",
-    border: "border-amber-200/80",
+    text: "text-amber-600",
     dot: "bg-amber-500",
   },
   PADAT: {
-    bg: "bg-orange-50/80",
-    text: "text-orange-700",
-    border: "border-orange-200/80",
+    text: "text-orange-600",
     dot: "bg-orange-500",
   },
   MACET: {
-    bg: "bg-rose-50/80",
-    text: "text-rose-700",
-    border: "border-rose-200/80",
+    text: "text-rose-600",
     dot: "bg-rose-500",
   },
 };
 
 export function StatusBadge({ status }: { status: TrafficStatus }) {
   const config = statusConfig[status] ?? {
-    bg: "bg-zinc-50",
-    text: "text-zinc-700",
-    border: "border-zinc-200",
+    text: "text-zinc-600",
     dot: "bg-zinc-400",
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium",
-        config.bg,
+        "inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide",
         config.text,
-        config.border,
       )}
     >
-      <span className={cn("size-1.5 rounded-full", config.dot)} />
+      <span className={cn("size-1.5 rounded-full shrink-0", config.dot)} />
       {status}
     </span>
   );
@@ -99,15 +87,15 @@ export function TrendView({ trend }: { trend: Trend }) {
 
   const colorClass =
     trend === "MENINGKAT"
-      ? "text-rose-600 bg-rose-50 border-rose-200/70"
+      ? "text-rose-600"
       : trend === "MENURUN"
-      ? "text-emerald-600 bg-emerald-50 border-emerald-200/70"
-      : "text-zinc-600 bg-zinc-50 border-zinc-200/70";
+      ? "text-emerald-600"
+      : "text-zinc-500";
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1 text-xs font-medium",
         colorClass,
       )}
     >

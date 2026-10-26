@@ -8,6 +8,11 @@ import { AuthProvider } from "@/lib/auth-context";
 export const metadata: Metadata = {
   title: "Laju — Smart Road Palembang",
   description: "Dashboard pemantauan lalu lintas dan kondisi jalan Palembang",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

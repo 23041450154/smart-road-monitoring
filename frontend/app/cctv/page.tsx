@@ -38,36 +38,6 @@ function useDebounce<T>(value: T, delay: number = 250): T {
 
 type FilterStatus = "ALL" | TrafficStatus;
 
-const statusThemes: Record<
-  TrafficStatus,
-  {
-    borderTop: string;
-    cardBorder: string;
-    hoverGlow: string;
-  }
-> = {
-  LANCAR: {
-    borderTop: "border-t-emerald-500",
-    cardBorder: "border-slate-200/90 hover:border-emerald-300",
-    hoverGlow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.12)]",
-  },
-  SEDANG: {
-    borderTop: "border-t-amber-500",
-    cardBorder: "border-slate-200/90 hover:border-amber-300",
-    hoverGlow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.12)]",
-  },
-  PADAT: {
-    borderTop: "border-t-orange-500",
-    cardBorder: "border-slate-200/90 hover:border-orange-300",
-    hoverGlow: "hover:shadow-[0_4px_20px_rgba(249,115,22,0.12)]",
-  },
-  MACET: {
-    borderTop: "border-t-rose-500",
-    cardBorder: "border-slate-200/90 hover:border-rose-300",
-    hoverGlow: "hover:shadow-[0_4px_20px_rgba(244,63,94,0.12)]",
-  },
-};
-
 function CameraCard({
   camera,
   trafficItem,
@@ -77,20 +47,12 @@ function CameraCard({
 }) {
   const displayName = cleanCameraName(camera.name);
   const channelId = `CAM-${String(camera.id).padStart(2, "0")}`;
-  const status = trafficItem?.traffic_status ?? "LANCAR";
-  const theme = statusThemes[status] ?? statusThemes.LANCAR;
 
   return (
     <Link
       href={`/cctv/${camera.id}`}
       key={camera.id}
-      className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border border-t-[3px] transition-all duration-200 shadow-xs",
-        theme.borderTop,
-        theme.cardBorder,
-        theme.hoverGlow,
-        "bg-gradient-to-b from-slate-100/90 via-slate-50 to-slate-100/70"
-      )}
+      className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200/90 bg-white transition-all duration-200 hover:border-slate-300 shadow-2xs"
     >
       {/* Camera Location Photo with Live HUD Overlay */}
       <div className="relative aspect-video w-full overflow-hidden bg-slate-900 select-none">
@@ -109,18 +71,18 @@ function CameraCard({
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
         {/* Top Badges Overlay on Photo */}
-        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 rounded-md border border-white/20 bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-xs shadow-xs">
+        <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 text-[10px] font-semibold text-white drop-shadow-xs">
           <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="tracking-wider">LIVE</span>
         </div>
 
-        <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+        <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-2">
           {camera.is_demo && (
-            <span className="rounded-md border border-amber-300/40 bg-amber-500/90 px-1.5 py-0.5 font-mono text-[9px] font-bold text-white backdrop-blur-xs shadow-xs">
+            <span className="font-mono text-[9px] font-bold text-amber-300 drop-shadow-xs">
               DEMO
             </span>
           )}
-          <span className="rounded-md border border-white/20 bg-black/60 px-2 py-0.5 font-mono text-[10px] font-medium text-white/95 backdrop-blur-xs shadow-xs">
+          <span className="font-mono text-[10px] font-medium text-white/95 drop-shadow-xs">
             {channelId}
           </span>
         </div>
@@ -146,7 +108,7 @@ function CameraCard({
         </div>
       </div>
 
-      {/* Card Content Area (Layered Depth Tone) */}
+      {/* Card Content Area */}
       <div className="p-3.5 flex-1 flex flex-col justify-between">
         <div>
           {/* Header: Clean Camera Name & Status Badge */}
@@ -167,24 +129,24 @@ function CameraCard({
             )}
           </div>
 
-          {/* 2-Column Telemetry Bento Tiles with Contrast Background */}
-          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-200/80 pt-3">
-            <div className="rounded-lg bg-white/90 p-2.5 border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+          {/* 2-Column Clean Telemetry (No Nested Containers) */}
+          <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+            <div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
                 <span>Arus 5 Menit</span>
-                <Activity size={11} className="text-slate-400" />
+                <Activity size={11} />
               </div>
-              <div className="text-sm font-bold tabular text-slate-900 mt-1">
+              <div className="text-sm font-bold tabular text-slate-900 mt-0.5">
                 {trafficItem?.rolling_5_minute ?? 0}{" "}
                 <span className="text-[10px] font-normal text-slate-500">kend</span>
               </div>
             </div>
-            <div className="rounded-lg bg-white/90 p-2.5 border border-slate-200 shadow-2xs">
-              <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+            <div className="border-l border-slate-100 pl-3">
+              <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
                 <span>Laju Aliran</span>
-                <Gauge size={11} className="text-slate-400" />
+                <Gauge size={11} />
               </div>
-              <div className="text-sm font-bold tabular text-slate-900 mt-1">
+              <div className="text-sm font-bold tabular text-slate-900 mt-0.5">
                 {trafficItem?.vehicles_per_minute ?? 0}{" "}
                 <span className="text-[10px] font-normal text-slate-500">kend/m</span>
               </div>
@@ -192,10 +154,10 @@ function CameraCard({
           </div>
         </div>
 
-        {/* Micro Footer Action Anchored with Subtle Tint */}
-        <div className="mt-3 flex items-center justify-between border-t border-slate-200/80 bg-slate-100/50 -mx-3.5 -mb-3.5 px-3.5 pb-2.5 pt-2.5 text-xs">
-          <span className="flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        {/* Clean Micro Footer */}
+        <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs">
+          <span className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+            <span className="size-1.5 rounded-full bg-emerald-500" />
             <span>Kamera Online</span>
           </span>
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 group-hover:text-blue-700 transition-colors">

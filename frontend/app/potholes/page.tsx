@@ -11,11 +11,11 @@ import { useAuth } from "@/lib/auth-context";
 import type { Pothole } from "@/lib/types";
 import { cn, dateTime } from "@/lib/utils";
 
-const severityConfig: Record<string, { bg: string; text: string; border: string }> = {
-  unknown: { bg: "bg-zinc-50", text: "text-zinc-600", border: "border-zinc-200" },
-  low: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200/80" },
-  medium: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200/80" },
-  high: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200/80" },
+const severityConfig: Record<string, { text: string; dot: string }> = {
+  unknown: { text: "text-zinc-500", dot: "bg-zinc-400" },
+  low: { text: "text-amber-600", dot: "bg-amber-500" },
+  medium: { text: "text-orange-600", dot: "bg-orange-500" },
+  high: { text: "text-rose-600", dot: "bg-rose-500" },
 };
 
 export default function PotholesPage() {
@@ -176,9 +176,7 @@ export default function PotholesPage() {
                     className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs transition hover:border-zinc-300"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-700">
-                        <Construction size={16} />
-                      </span>
+                      <Construction size={16} className="mt-0.5 shrink-0 text-zinc-400" />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <h2 className="truncate text-sm font-semibold text-zinc-900">
@@ -186,12 +184,11 @@ export default function PotholesPage() {
                           </h2>
                           <span
                             className={cn(
-                              "rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                              conf.bg,
+                              "inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide",
                               conf.text,
-                              conf.border,
                             )}
                           >
+                            <span className={cn("size-1.5 rounded-full", conf.dot)} />
                             {item.severity}
                           </span>
                         </div>

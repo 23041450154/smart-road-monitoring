@@ -78,9 +78,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className="flex items-center gap-2.5 group"
               onClick={() => setOpen(false)}
             >
-              <span className="flex size-7 items-center justify-center rounded-lg bg-blue-600 font-bold text-white text-xs shadow-2xs transition group-hover:scale-105">
-                L
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.svg"
+                alt="LAJU Palembang"
+                className="size-8 shrink-0 object-contain transition-transform group-hover:scale-105"
+              />
               <div className="flex flex-col">
                 <span className="text-xs font-semibold tracking-tight text-slate-900 leading-tight">
                   LAJU Palembang
@@ -172,7 +175,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {isLockedForGuest ? (
                     <Lock size={11} className="text-slate-350 shrink-0" />
                   ) : item.badge ? (
-                    <span className="rounded bg-emerald-50 text-emerald-700 border border-emerald-200/80 text-[9px] font-mono px-1.5 py-0.2">
+                    <span className="text-[9px] font-mono font-semibold text-emerald-600">
                       {item.badge}
                     </span>
                   ) : null}
@@ -215,7 +218,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         />
                         <span>{item.label}</span>
                       </div>
-                      <span className="rounded bg-slate-100 text-slate-600 border border-slate-200/80 text-[9px] font-mono px-1.5 py-0.2">
+                      <span className="text-[9px] font-mono text-slate-400">
                         Root
                       </span>
                     </Link>
@@ -294,9 +297,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               href="/dashboard"
               className="flex items-center gap-2 lg:hidden"
             >
-              <span className="grid size-6 place-items-center rounded-md bg-blue-600 text-xs font-bold text-white">
-                L
-              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.svg"
+                alt="LAJU"
+                className="size-7 shrink-0 object-contain"
+              />
               <span className="font-semibold text-xs tracking-tight text-slate-900">
                 LAJU
               </span>

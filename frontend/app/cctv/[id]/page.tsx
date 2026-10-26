@@ -270,7 +270,7 @@ export default function CameraDetailPage() {
               <span className="text-xs font-medium text-zinc-400 block">
                 Volume Akumulasi (5 Menit)
               </span>
-              <span className="rounded bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-300">
+              <span className="text-[11px] font-medium text-zinc-400">
                 Jendela 5 Mnt
               </span>
             </div>
@@ -418,16 +418,16 @@ export default function CameraDetailPage() {
             </p>
           </div>
 
-          {/* Peak hour badges */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Peak hour indicators */}
+          <div className="flex items-center gap-4 flex-wrap">
             {profileData?.morning_peak && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
                 <Flame size={12} className="text-amber-600" />
                 Puncak Pagi: {profileData.morning_peak}
               </span>
             )}
             {profileData?.evening_peak && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-800 border border-rose-200">
+              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-700">
                 <Flame size={12} className="text-rose-600" />
                 Puncak Sore: {profileData.evening_peak}
               </span>
@@ -438,13 +438,13 @@ export default function CameraDetailPage() {
         {/* Interactive Time Selector */}
         <div className="mt-5 grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
           <div className="space-y-4">
-            <div className="rounded-lg bg-zinc-50 p-4 border border-zinc-200/60">
-              <div className="flex items-center justify-between mb-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
                   <Clock3 size={14} className="text-zinc-500" />
                   Simulasi Pilihan Jam:
                 </label>
-                <span className="text-base font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
+                <span className="text-base font-bold font-mono text-blue-600">
                   {selectedHour.toString().padStart(2, "0")}:00 WIB
                 </span>
               </div>

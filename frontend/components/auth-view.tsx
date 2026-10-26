@@ -220,12 +220,15 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
       <div className="w-full max-w-[380px]">
         {/* Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="size-9 rounded-xl bg-zinc-950 text-white flex items-center justify-center font-bold text-sm tracking-tight mb-3.5 shadow-2xs">
-            L
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt="LAJU Palembang"
+            className="size-11 mb-3 object-contain"
+          />
 
           {isTesting && (
-            <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50/80 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 shadow-2xs">
+            <div className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-blue-600">
               <KeyRound size={12} className="text-blue-600" />
               <span>Portal Pengujian Dosen & Demo</span>
             </div>
