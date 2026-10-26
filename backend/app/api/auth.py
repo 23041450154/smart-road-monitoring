@@ -13,7 +13,10 @@ from app.db.session import get_db
 from app.models import EmailVerification, Route, User, UserRole
 from app.models.entities import utcnow
 from app.schemas.api import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
     GoogleAuthRequest,
+    ResetPasswordRequest,
     SendOtpRequest,
     SendOtpResponse,
     TokenResponse,
@@ -333,3 +336,124 @@ async def update_me(
     user_read = UserRead.model_validate(current_user)
     user_read.routes_count = routes_count
     return user_read
+
+
+@router.post("/forgot-password", response_model=SendOtpResponse)
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> SendOtpResponse:
+    settings = get_settings()
+    normalized_email = payload.email.strip().lower()
+
+    user = db.scalar(select(User).where(func.lower(User.email) == normalized_email))
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alamat email tidak ditemukan atau belum terdaftar.",
+        )
+
+    # Invalidate previous unused OTP codes for this email
+    prev_codes = db.scalars(
+        select(EmailVerification).where(
+            EmailVerification.email == normalized_email,
+            EmailVerification.is_used == False,
+        )
+    ).all()
+    for prev in prev_codes:
+        prev.is_used = True
+
+    code = generate_otp()
+    expires_at = utcnow() + timedelta(minutes=settings.email_verification_expire_minutes)
+
+    verification = EmailVerification(
+        email=normalized_email,
+        code=code,
+        expires_at=expires_at,
+        is_used=False,
+        created_at=utcnow(),
+    )
+    db.add(verification)
+    db.commit()
+
+    background_tasks.add_task(
+        send_verification_email,
+        to_email=normalized_email,
+        code=code,
+        user_name=user.name,
+        purpose="reset_password",
+    )
+
+    dev_otp = code if (settings.demo_mode and not settings.smtp_user) else None
+
+    return SendOtpResponse(
+        message=f"Kode reset kata sandi telah dikirim ke {normalized_email}",
+        email=normalized_email,
+        expires_in_minutes=settings.email_verification_expire_minutes,
+        dev_otp=dev_otp,
+    )
+
+
+@router.post("/reset-password", response_model=TokenResponse)
+async def reset_password(
+    payload: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+) -> TokenResponse:
+    normalized_email = payload.email.strip().lower()
+    user = db.scalar(select(User).where(func.lower(User.email) == normalized_email))
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alamat email tidak ditemukan.",
+        )
+
+    verification = db.scalar(
+        select(EmailVerification)
+        .where(
+            EmailVerification.email == normalized_email,
+            EmailVerification.is_used == False,
+            EmailVerification.expires_at > utcnow(),
+        )
+        .order_by(EmailVerification.id.desc())
+    )
+
+    if not verification or verification.code.strip() != payload.code.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kode OTP reset tidak valid atau telah kedaluwarsa. Silakan minta kode baru.",
+        )
+
+    verification.is_used = True
+    user.hashed_password = get_password_hash(payload.new_password)
+    user.is_verified = True
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token(subject=user.id, role=user.role.value)
+    routes_count = db.scalar(
+        select(func.count(Route.id)).where(Route.user_id == user.id)
+    ) or 0
+    user_read = UserRead.model_validate(user)
+    user_read.routes_count = routes_count
+    return TokenResponse(access_token=token, token_type="bearer", user=user_read)
+
+
+@router.post("/change-password")
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    if current_user.hashed_password:
+        if not payload.current_password or not verify_password(
+            payload.current_password, current_user.hashed_password
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Kata sandi saat ini tidak sesuai.",
+            )
+
+    current_user.hashed_password = get_password_hash(payload.new_password)
+    db.commit()
+    return {"message": "Kata sandi berhasil diperbarui."}

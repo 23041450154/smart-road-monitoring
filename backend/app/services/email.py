@@ -12,26 +12,43 @@ def send_verification_email(
     to_email: str,
     code: str,
     user_name: str | None = None,
+    purpose: str = "register",
 ) -> bool:
-    """Sends an email verification code (OTP) to the user's Gmail address via SMTP."""
+    """Sends an email verification or password reset code (OTP) via Resend HTTPS API or SMTP."""
     settings = get_settings()
 
     if not settings.smtp_user or not settings.smtp_password:
         logger.info(
-            "[DEV / DEMO] SMTP belum dikonfigurasi. Kode verifikasi untuk %s: %s",
+            "[DEV / DEMO] SMTP belum dikonfigurasi. Kode OTP (%s) untuk %s: %s",
+            purpose,
             to_email,
             code,
         )
         return False
 
     display_name = user_name.strip() if user_name else "Pengguna LAJU"
-    subject = f"{code} adalah kode verifikasi akun Smart Road Anda"
+    is_reset = purpose == "reset_password"
+    subject = (
+        f"{code} adalah kode reset kata sandi LAJU Smart Road Anda"
+        if is_reset
+        else f"{code} adalah kode verifikasi akun Smart Road Anda"
+    )
+    subtitle = (
+        "Permintaan Reset Kata Sandi Akun"
+        if is_reset
+        else "Verifikasi Email Pendaftaran Akun"
+    )
+    intro_text = (
+        "Kami menerima permintaan untuk mengatur ulang (reset) kata sandi akun LAJU Smart Road Palembang Anda. Masukkan kode 6 digit berikut untuk membuat kata sandi baru:"
+        if is_reset
+        else "Terima kasih telah bergabung di sistem pemantauan lalu lintas dan kondisi jalan Kota Palembang. Masukkan kode verifikasi 6 digit berikut pada halaman pendaftaran:"
+    )
 
     text_content = f"""Halo {display_name},
 
-Terima kasih telah mendaftar di Smart Road Monitoring Palembang (LAJU).
+{intro_text}
 
-Kode verifikasi pendaftaran akun Anda adalah:
+Kode OTP Anda adalah:
 {code}
 
 Kode ini hanya berlaku selama {settings.email_verification_expire_minutes} menit.
@@ -46,7 +63,7 @@ Tim Smart Road Palembang (LAJU)
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kode Verifikasi LAJU</title>
+  <title>Kode OTP LAJU</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f6f8; padding: 30px 10px;">
@@ -61,7 +78,7 @@ Tim Smart Road Palembang (LAJU)
                 LAJU &bull; Smart Road Palembang
               </h1>
               <p style="margin: 4px 0 0; color: #bfdbfe; font-size: 13px;">
-                Verifikasi Email Pendaftaran Akun
+                {subtitle}
               </p>
             </td>
           </tr>
@@ -73,7 +90,7 @@ Tim Smart Road Palembang (LAJU)
                 Halo <strong>{display_name}</strong>,
               </p>
               <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.6; color: #475569;">
-                Terima kasih telah bergabung di sistem pemantauan lalu lintas dan kondisi jalan Kota Palembang. Masukkan kode verifikasi 6 digit berikut pada halaman pendaftaran:
+                {intro_text}
               </p>
 
               <!-- Verification Code Badge -->

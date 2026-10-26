@@ -191,8 +191,136 @@ function WhatsAppPreferencesForm({
   );
 }
 
+function ChangePasswordForm({
+  onChangePassword,
+}: {
+  onChangePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+}) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<{ type: "ok" | "err"; text: string } | null>(
+    null
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatusMsg(null);
+    if (newPassword.length < 6) {
+      setStatusMsg({ type: "err", text: "Kata sandi baru minimal 6 karakter." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setStatusMsg({ type: "err", text: "Konfirmasi kata sandi baru tidak cocok." });
+      return;
+    }
+    setSaving(true);
+    try {
+      await onChangePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setStatusMsg({ type: "ok", text: "Kata sandi akun berhasil diperbarui!" });
+    } catch (err: unknown) {
+      setStatusMsg({
+        type: "err",
+        text: err instanceof Error ? err.message : "Gagal memperbarui kata sandi",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="mb-6 rounded-2xl border border-zinc-200/80 bg-white p-5 sm:p-6 shadow-xs">
+      <div className="flex items-center gap-2.5 pb-4 mb-4 border-b border-zinc-100">
+        <span className="grid size-8 place-items-center rounded-lg bg-zinc-900 text-white">
+          <LockKeyhole size={15} />
+        </span>
+        <div>
+          <h2 className="text-sm font-bold text-zinc-900">
+            Keamanan Akun & Ubah Kata Sandi
+          </h2>
+          <p className="text-[11px] text-zinc-500">
+            Perbarui kata sandi masuk akun LAJU Anda secara berkala
+          </p>
+        </div>
+      </div>
+
+      {statusMsg && (
+        <div
+          className={`mb-4 rounded-xl border p-3 text-xs flex items-center gap-2 ${
+            statusMsg.type === "ok"
+              ? "border-emerald-200 bg-emerald-50/70 text-emerald-800"
+              : "border-rose-200 bg-rose-50/70 text-rose-700"
+          }`}
+        >
+          <CheckCircle2 size={14} className="shrink-0" />
+          <span>{statusMsg.text}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="block text-xs font-medium text-zinc-700 mb-1.5">
+              Kata Sandi Saat Ini
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-700 mb-1.5">
+              Kata Sandi Baru
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="Minimal 6 karakter"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-700 mb-1.5">
+              Konfirmasi Kata Sandi Baru
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="Ulangi kata sandi baru"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="pt-1">
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 transition cursor-pointer"
+          >
+            <Save size={13} />
+            <span>{saving ? "Menyimpan..." : "Perbarui Kata Sandi"}</span>
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 function SettingsContent() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, changePassword } = useAuth();
   if (!user) return null;
 
   return (
@@ -211,6 +339,9 @@ function SettingsContent() {
           await updateProfile(data);
         }}
       />
+
+      {/* Change Password Card */}
+      <ChangePasswordForm onChangePassword={changePassword} />
 
       {/* System Architecture Grid */}
       <div className="grid gap-4 md:grid-cols-2">

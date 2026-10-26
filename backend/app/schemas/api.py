@@ -270,6 +270,21 @@ class VerifyRegistrationRequest(BaseModel):
     code: str = Field(min_length=6, max_length=6)
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+
+
+class ResetPasswordRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    code: str = Field(min_length=6, max_length=6)
+    new_password: str = Field(min_length=6, max_length=128)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str | None = Field(default=None, max_length=128)
+    new_password: str = Field(min_length=6, max_length=128)
+
+
 class UserRegister(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     email: str = Field(min_length=3, max_length=255)

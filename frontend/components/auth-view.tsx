@@ -12,12 +12,19 @@ interface AuthViewProps {
 
 export function AuthView({ isTesting = false }: AuthViewProps) {
   const router = useRouter();
-  const { login, sendVerificationOtp, verifyRegistration } = useAuth();
+  const {
+    login,
+    sendVerificationOtp,
+    verifyRegistration,
+    sendForgotPasswordOtp,
+    resetPassword,
+  } = useAuth();
 
-  // Mode: "login" | "register" | "verify"
-  const [mode, setMode] = useState<"login" | "register" | "verify">("login");
+  // Mode: "login" | "register" | "verify" | "forgot" | "reset"
+  const [mode, setMode] = useState<"login" | "register" | "verify" | "forgot" | "reset">("login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Form Fields
   const [email, setEmail] = useState(() => {
@@ -63,9 +70,9 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
     return () => clearInterval(interval);
   }, [resendCooldown]);
 
-  // Focus first input box on verify screen
+  // Focus first input box on verify or reset screen
   useEffect(() => {
-    if (mode === "verify") {
+    if (mode === "verify" || mode === "reset") {
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
       }, 50);
@@ -204,10 +211,80 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
     setLoading(true);
 
     try {
-      await sendVerificationOtp(email.trim(), name.trim());
+      if (mode === "reset") {
+        await sendForgotPasswordOtp(email.trim());
+      } else {
+        await sendVerificationOtp(email.trim(), name.trim());
+      }
       setResendCooldown(60);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Gagal mengirim ulang kode.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Forgot Password Step 1: Request OTP
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+    setLoading(true);
+    try {
+      const res = await sendForgotPasswordOtp(email.trim());
+      setOtp(
+        res.dev_otp && res.dev_otp.length === 6
+          ? res.dev_otp.split("")
+          : ["", "", "", "", "", ""]
+      );
+      setPassword("");
+      setConfirmPassword("");
+      setResendCooldown(60);
+      setMode("reset");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Gagal mengirim kode reset kata sandi."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset Password Step 2: Verify OTP & Set New Password
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const code = otp.join("");
+    if (code.length !== 6) {
+      setError("Masukkan 6 digit kode OTP reset kata sandi.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Kata sandi baru minimal 6 karakter.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Konfirmasi kata sandi baru tidak cocok.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const loggedUser = await resetPassword(email.trim(), code, password);
+      if (loggedUser?.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
+      router.refresh();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Kode OTP salah atau gagal mereset kata sandi."
+      );
     } finally {
       setLoading(false);
     }
@@ -238,6 +315,8 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
             {mode === "login" && (isTesting ? "Login Akun Pengujian" : "Selamat datang kembali")}
             {mode === "register" && "Buat akun baru"}
             {mode === "verify" && "Verifikasi email"}
+            {mode === "forgot" && "Lupa kata sandi"}
+            {mode === "reset" && "Atur kata sandi baru"}
           </h1>
           <p className="mt-1 text-xs text-zinc-500 max-w-[300px]">
             {mode === "login" &&
@@ -246,6 +325,8 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
                 : "Masukkan detail akun Anda untuk melanjutkan.")}
             {mode === "register" && "Daftar untuk memantau rute dan menerima notifikasi."}
             {mode === "verify" && `Kode 6 digit telah dikirim ke ${email}`}
+            {mode === "forgot" && "Masukkan email akun Anda untuk menerima kode OTP reset kata sandi."}
+            {mode === "reset" && `Masukkan kode 6 digit yang dikirim ke ${email} beserta kata sandi baru.`}
           </p>
         </div>
 
@@ -254,6 +335,11 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
           {error && (
             <div className="mb-4 rounded-lg bg-rose-50 border border-rose-200/80 px-3 py-2 text-xs text-rose-700">
               {error}
+            </div>
+          )}
+          {successMsg && (
+            <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200/80 px-3 py-2 text-xs text-emerald-700">
+              {successMsg}
             </div>
           )}
 
@@ -378,7 +464,7 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
                 </div>
               </div>
 
-              {/* Remember me */}
+              {/* Remember me & Forgot password */}
               <div className="flex items-center justify-between pt-0.5">
                 <label className="flex items-center gap-2 text-xs text-zinc-600 cursor-pointer select-none">
                   <input
@@ -389,6 +475,17 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
                   />
                   <span>Ingat saya</span>
                 </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setSuccessMsg(null);
+                    setMode("forgot");
+                  }}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline transition cursor-pointer"
+                >
+                  Lupa kata sandi?
+                </button>
               </div>
 
               {/* Submit */}
@@ -613,6 +710,171 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
                     className="font-medium text-zinc-950 underline underline-offset-4 hover:text-zinc-700 transition"
                   >
                     Kirim ulang kode
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
+
+          {/* 4. FORGOT PASSWORD (REQUEST OTP) */}
+          {mode === "forgot" && (
+            <form onSubmit={handleForgotSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-zinc-700">
+                  Email Terdaftar
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  placeholder="contoh@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="h-9 w-full rounded-lg bg-zinc-950 text-xs font-medium text-white transition hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Mengirim Kode OTP...</span>
+                  </>
+                ) : (
+                  "Kirim Kode Reset Kata Sandi"
+                )}
+              </button>
+
+              <div className="pt-1 text-center text-xs text-zinc-500">
+                Ingat kata sandi Anda?{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setMode("login");
+                  }}
+                  className="font-medium text-zinc-950 underline underline-offset-4 hover:text-zinc-700 transition cursor-pointer"
+                >
+                  Kembali Masuk
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* 5. RESET PASSWORD (OTP + NEW PASSWORD) */}
+          {mode === "reset" && (
+            <form onSubmit={handleResetSubmit} className="space-y-4">
+              <div className="flex items-center justify-between text-xs text-zinc-500">
+                <span>Kode OTP 6 Digit</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setMode("forgot");
+                  }}
+                  className="text-zinc-900 hover:underline cursor-pointer"
+                >
+                  Ganti email
+                </button>
+              </div>
+
+              <div className="flex justify-between gap-1.5 sm:gap-2" onPaste={handleOtpPaste}>
+                {otp.map((val, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => {
+                      otpInputRefs.current[idx] = el;
+                    }}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={1}
+                    value={val}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    className="size-11 sm:size-12 rounded-lg border border-zinc-200 bg-white text-center font-mono text-base font-semibold text-zinc-950 transition focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                  />
+                ))}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-zinc-700">
+                  Kata Sandi Baru
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    placeholder="Minimal 6 karakter"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600 transition"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-zinc-700">
+                  Konfirmasi Kata Sandi Baru
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    placeholder="Ulangi kata sandi baru"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600 transition"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !isOtpComplete}
+                className="h-9 w-full rounded-lg bg-zinc-950 text-xs font-medium text-white transition hover:bg-zinc-800 active:scale-[0.99] disabled:opacity-40 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Menyimpan Kata Sandi...</span>
+                  </>
+                ) : (
+                  "Simpan Kata Sandi & Masuk"
+                )}
+              </button>
+
+              <div className="text-center text-xs text-zinc-500">
+                {resendCooldown > 0 ? (
+                  <span>Kirim ulang kode dalam {resendCooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={loading}
+                    className="font-medium text-zinc-950 underline underline-offset-4 hover:text-zinc-700 transition cursor-pointer"
+                  >
+                    Kirim ulang kode OTP
                   </button>
                 )}
               </div>

@@ -20,6 +20,9 @@ interface AuthContextType {
     code: string,
     phone?: string
   ) => Promise<void>;
+  sendForgotPasswordOtp: (email: string) => Promise<SendOtpResponse>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<User>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   logout: () => void;
   updateProfile: (data: {
     name?: string;
@@ -169,6 +172,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const sendForgotPasswordOtp = async (email: string): Promise<SendOtpResponse> => {
+    return await mutateApi<SendOtpResponse>("/api/auth/forgot-password", "POST", { email });
+  };
+
+  const resetPassword = async (
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<User> => {
+    const res = await mutateApi<AuthResponse>("/api/auth/reset-password", "POST", {
+      email,
+      code,
+      new_password: newPassword,
+    });
+    setToken(res.access_token);
+    setUser(res.user);
+    try {
+      localStorage.setItem(TOKEN_KEY, res.access_token);
+      localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    } catch {
+      // Ignore storage error
+    }
+    return res.user;
+  };
+
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> => {
+    await mutateApi("/api/auth/change-password", "POST", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -221,6 +259,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         sendVerificationOtp,
         verifyRegistration,
+        sendForgotPasswordOtp,
+        resetPassword,
+        changePassword,
         logout,
         updateProfile,
         refreshUser,
