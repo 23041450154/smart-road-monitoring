@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { useMap } from "react-leaflet";
 import { Crosshair, Locate, MapPin, Maximize2, Minimize2 } from "lucide-react";
 import L from "leaflet";
-import { PALEMBANG_CENTER, PALEMBANG_DEFAULT_ZOOM } from "@/lib/map-utils";
+import {
+  PALEMBANG_CENTER,
+  PALEMBANG_DEFAULT_ZOOM,
+  distanceMeters,
+  requestAccurateDeviceLocation,
+  saveUserLocation,
+} from "@/lib/map-utils";
 
 interface MapControlsProps {
   selectedRouteBounds?: [[number, number], [number, number]] | null;
@@ -60,56 +66,77 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
     }
   };
 
-  const handleUserLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolokasi browser tidak didukung pada perangkat ini.");
-      return;
-    }
-
+  const handleUserLocation = async () => {
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocating(false);
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        map.setView([lat, lng], 15, { animate: true });
+    try {
+      const result = await requestAccurateDeviceLocation();
+      setLocating(false);
 
-        // Add or move current position pin
-        if (userLocationMarker) {
-          userLocationMarker.setLatLng([lat, lng]);
-        } else {
-          const userPin = L.marker([lat, lng], {
-            icon: L.divIcon({
-              className: "smartroad-user-pin",
-              html: `
-                <div style="
-                  background: #3b82f6;
-                  width: 18px;
-                  height: 18px;
-                  border-radius: 50%;
-                  border: 3px solid white;
-                  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
-                "></div>
-              `,
-              iconSize: [18, 18],
-              iconAnchor: [9, 9],
-            }),
-          })
-            .addTo(map)
-            .bindPopup("<b>Lokasi Anda Saat Ini</b>");
-          setUserLocationMarker(userPin);
+      let lat = result.lat;
+      let lng = result.lng;
+      const isFarCoarse =
+        result.source === "coarse_ip" &&
+        distanceMeters([lat, lng], PALEMBANG_CENTER) > 20000;
+
+      // If desktop/Brave browser returned coarse ISP IP far outside Palembang (e.g. Parit/Ogan Ilir),
+      // keep viewport in Palembang and let user drag the blue pin to calibrate their exact location.
+      if (isFarCoarse) {
+        lat = PALEMBANG_CENTER[0];
+        lng = PALEMBANG_CENTER[1];
+      }
+
+      map.setView([lat, lng], isFarCoarse ? 14 : 16, { animate: true });
+
+      const popupHtml = isFarCoarse
+        ? `<div style="font-size:12px;max-width:210px"><b>Kalibrasi Lokasi PC/Browser</b><br/><span style="color:#64748b">Browser Anda hanya mendeteksi lokasi IP ISP (±${Math.round(result.accuracy / 1000)} km). <b>Geser titik biru ini</b> ke posisi tepat Anda untuk menyimpan Lokasi Saya.</span></div>`
+        : `<div style="font-size:12px;max-width:200px"><b>Lokasi Anda Saat Ini</b><br/><span style="color:#64748b">Geser titik biru ini jika ingin menyesuaikan akurasi posisi.</span></div>`;
+
+      if (userLocationMarker) {
+        userLocationMarker.setLatLng([lat, lng]);
+        userLocationMarker.setPopupContent(popupHtml);
+        if (isFarCoarse) userLocationMarker.openPopup();
+      } else {
+        const userPin = L.marker([lat, lng], {
+          draggable: true,
+          icon: L.divIcon({
+            className: "smartroad-user-pin",
+            html: `
+              <div style="
+                background: #2563eb;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                border: 3px solid white;
+                box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.35);
+                cursor: grab;
+              "></div>
+            `,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+          }),
+        })
+          .addTo(map)
+          .bindPopup(popupHtml);
+
+        userPin.on("dragend", () => {
+          const pos = userPin.getLatLng();
+          saveUserLocation(pos.lat, pos.lng);
+          userPin
+            .setPopupContent(
+              `<div style="font-size:12px"><b>✓ Lokasi Saya Tersimpan</b><br/><span style="color:#64748b">${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}</span></div>`
+            )
+            .openPopup();
+        });
+
+        if (isFarCoarse) {
+          userPin.openPopup();
         }
-      },
-      (error) => {
-        setLocating(false);
-        if (error.code === error.PERMISSION_DENIED) {
-          alert("Izin akses lokasi ditolak oleh peramban Anda.");
-        } else {
-          alert("Tidak dapat mengambil lokasi saat ini.");
-        }
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
+        setUserLocationMarker(userPin);
+      }
+    } catch {
+      setLocating(false);
+      alert("Izin lokasi ditolak atau perangkat tidak dapat membaca GPS.");
+    }
   };
 
   return (

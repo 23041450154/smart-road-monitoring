@@ -10,6 +10,8 @@ interface RouteLayerProps {
   selectedRouteId?: number | null;
   onSelectRoute?: (routeId: number) => void;
   draftPath?: [number, number][];
+  onOriginDragEnd?: (point: [number, number]) => void;
+  onDestDragEnd?: (point: [number, number]) => void;
 }
 
 const startIcon = L.divIcon({
@@ -90,6 +92,8 @@ export function RouteLayer({
   selectedRouteId,
   onSelectRoute,
   draftPath = [],
+  onOriginDragEnd,
+  onDestDragEnd,
 }: RouteLayerProps) {
   return (
     <>
@@ -180,9 +184,30 @@ export function RouteLayer({
       )}
 
       {draftPath.length >= 1 && (
-        <Marker position={draftPath[0]} icon={waypointIcon(0, Math.max(2, draftPath.length))}>
+        <Marker
+          position={draftPath[0]}
+          icon={waypointIcon(0, Math.max(2, draftPath.length))}
+          draggable={!!onOriginDragEnd}
+          eventHandlers={
+            onOriginDragEnd
+              ? {
+                  dragend: (event) => {
+                    const latlng = event.target.getLatLng();
+                    onOriginDragEnd([latlng.lat, latlng.lng]);
+                  },
+                }
+              : undefined
+          }
+        >
           <Popup>
-            <div className="text-xs font-semibold text-zinc-900">Titik Awal Keberangkatan</div>
+            <div className="text-xs font-semibold text-zinc-900">
+              Titik Awal Keberangkatan
+              {onOriginDragEnd && (
+                <p className="mt-0.5 font-normal text-zinc-500">
+                  Geser pin ini untuk menyesuaikan titik lokasi tepat Anda.
+                </p>
+              )}
+            </div>
           </Popup>
         </Marker>
       )}
@@ -191,9 +216,27 @@ export function RouteLayer({
         <Marker
           position={draftPath[draftPath.length - 1]}
           icon={waypointIcon(1, 2)}
+          draggable={!!onDestDragEnd}
+          eventHandlers={
+            onDestDragEnd
+              ? {
+                  dragend: (event) => {
+                    const latlng = event.target.getLatLng();
+                    onDestDragEnd([latlng.lat, latlng.lng]);
+                  },
+                }
+              : undefined
+          }
         >
           <Popup>
-            <div className="text-xs font-semibold text-zinc-900">Titik Tujuan</div>
+            <div className="text-xs font-semibold text-zinc-900">
+              Titik Tujuan
+              {onDestDragEnd && (
+                <p className="mt-0.5 font-normal text-zinc-500">
+                  Geser pin ini untuk menyesuaikan titik tujuan tepat Anda.
+                </p>
+              )}
+            </div>
           </Popup>
         </Marker>
       )}

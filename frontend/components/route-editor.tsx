@@ -6,6 +6,7 @@ import {
   Clock,
   LocateFixed,
   Loader2,
+  MapPin,
   Navigation,
   RotateCcw,
   Save,
@@ -19,6 +20,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { useAuth } from "@/lib/auth-context";
 import { fetcher, mutateApi } from "@/lib/api";
+import {
+  PALEMBANG_CENTER,
+  distanceMeters,
+  requestAccurateDeviceLocation,
+  saveUserLocation,
+} from "@/lib/map-utils";
 import type { Camera, Pothole, Route, TrafficCurrent } from "@/lib/types";
 import { MapPanel } from "./map-panel";
 
@@ -137,6 +144,9 @@ export function RouteEditor({
   const [remoteSuggestions, setRemoteSuggestions] = useState<PlaceSuggestion[]>([]);
   const [searchingPlaces, setSearchingPlaces] = useState(false);
   const [locatingTarget, setLocatingTarget] = useState<"origin" | "dest" | null>(null);
+  const [mapPickMode, setMapPickMode] = useState<"origin" | "dest" | null>(null);
+  const [calibratingTarget, setCalibratingTarget] = useState<"origin" | "dest" | null>(null);
+  const [locationNote, setLocationNote] = useState("");
 
   // Computed road routes from OSRM
   const [path, setPath] = useState<[number, number][]>(route?.path ?? []);
@@ -341,47 +351,91 @@ export function RouteEditor({
     if (activeSearch === "origin") {
       setOriginPoint(coords);
       setOriginQuery(place.label);
+      if (calibratingTarget === "origin") {
+        saveUserLocation(place.lat, place.lng, place.label);
+        setCalibratingTarget(null);
+        setMapPickMode(null);
+        setLocationNote(`Lokasi Saya dikalibrasi ke: ${place.label}`);
+      }
     } else if (activeSearch === "dest") {
       setDestPoint(coords);
       setDestQuery(place.label);
+      if (calibratingTarget === "dest") {
+        saveUserLocation(place.lat, place.lng, place.label);
+        setCalibratingTarget(null);
+        setMapPickMode(null);
+        setLocationNote(`Lokasi Saya dikalibrasi ke: ${place.label}`);
+      }
     }
     setActiveSearch(null);
   }
 
-  // Use Device GPS Location
-  function handleUseDeviceLocation(target: "origin" | "dest") {
-    if (!navigator.geolocation) {
-      setError("Browser Anda tidak mendukung fitur pembacaan lokasi perangkat (GPS).");
-      return;
-    }
+  // Use Device GPS Location (with automatic detection of coarse ISP GeoIP on desktop/Brave)
+  async function handleUseDeviceLocation(target: "origin" | "dest", forceRecalibrate = false) {
     setLocatingTarget(target);
     setError("");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const coords: [number, number] = [lat, lng];
-        const streetLabel = await reverseGeocode(lat, lng);
-        if (target === "origin") {
-          setOriginPoint(coords);
-          setOriginQuery(`Lokasi Saya (${streetLabel})`);
-        } else {
-          setDestPoint(coords);
-          setDestQuery(`Lokasi Saya (${streetLabel})`);
-        }
+    setLocationNote("");
+    try {
+      const result = await requestAccurateDeviceLocation({
+        ignoreSaved: forceRecalibrate,
+      });
+
+      const isOutsidePalembang =
+        distanceMeters([result.lat, result.lng], PALEMBANG_CENTER) > 20000;
+
+      // If browser returned coarse ISP IP far outside Palembang (e.g. Parit / Ogan Ilir on Linux/Brave),
+      // do not jump 55 km away — prompt 1-click map/search calibration in Palembang!
+      if (result.source === "coarse_ip" && (isOutsidePalembang || forceRecalibrate)) {
         setLocatingTarget(null);
+        setCalibratingTarget(target);
+        setMapPickMode(target);
         setActiveSearch(null);
-      },
-      (err) => {
-        setLocatingTarget(null);
-        if (err.code === err.PERMISSION_DENIED) {
-          setError("Izin lokasi ditolak. Aktifkan izin lokasi di browser Anda.");
-        } else {
-          setError("Gagal membaca lokasi perangkat. Pastikan GPS aktif.");
-        }
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+        setLocationNote(
+          `Browser PC/Brave hanya mendeteksi lokasi IP provider (±${Math.round(
+            result.accuracy / 1000
+          )} km di luar Palembang). Klik titik posisi Anda langsung di peta atau cari nama jalan Anda satu kali untuk mengkalibrasi Lokasi Saya.`
+        );
+        return;
+      }
+
+      const coords: [number, number] = [result.lat, result.lng];
+      const streetLabel =
+        result.savedLabel || (await reverseGeocode(result.lat, result.lng));
+
+      if (target === "origin") {
+        setOriginPoint(coords);
+        setOriginQuery(`Lokasi Saya (${streetLabel})`);
+        if (!destPoint) setPath([coords]);
+      } else {
+        setDestPoint(coords);
+        setDestQuery(`Lokasi Saya (${streetLabel})`);
+      }
+
+      if (result.source === "calibrated") {
+        setLocationNote(
+          `Menggunakan Lokasi Saya yang tersimpan (${streetLabel}). Geser pin di peta jika ingin memperbarui.`
+        );
+      } else if (result.source === "coarse_ip") {
+        setCalibratingTarget(target);
+        setLocationNote(
+          `Akurasi browser ±${Math.round(
+            result.accuracy / 1000
+          )} km. Geser pin di peta atau klik "Pilih di Peta" ke posisi tepat Anda untuk mengkalibrasi Lokasi Saya.`
+        );
+      } else {
+        saveUserLocation(result.lat, result.lng, streetLabel);
+      }
+
+      setLocatingTarget(null);
+      setActiveSearch(null);
+    } catch {
+      setLocatingTarget(null);
+      setCalibratingTarget(target);
+      setMapPickMode(target);
+      setLocationNote(
+        "Browser tidak mengizinkan akses GPS otomatis. Klik langsung posisi Anda di peta untuk menetapkan Lokasi Saya."
+      );
+    }
   }
 
   // Swap Origin & Destination
@@ -394,21 +448,84 @@ export function RouteEditor({
     setDestQuery(tempQuery);
   }
 
-  // Click on map sets Origin first, then Destination
-  async function handleMapClick(point: [number, number]) {
-    if (!originPoint || (originPoint && destPoint)) {
-      setOriginPoint(point);
-      setDestPoint(null);
-      setDestQuery("");
-      setRouteOptions([]);
-      setPath([point]);
-      const label = await reverseGeocode(point[0], point[1]);
+  // Dragging Origin Pin on Map
+  async function handleOriginDragEnd(point: [number, number]) {
+    setOriginPoint(point);
+    if (!destPoint) setPath([point]);
+    const label = await reverseGeocode(point[0], point[1]);
+    const isMyLoc =
+      calibratingTarget === "origin" || originQuery.startsWith("Lokasi Saya");
+    if (isMyLoc) {
+      saveUserLocation(point[0], point[1], label);
+      setOriginQuery(`Lokasi Saya (${label})`);
+      setCalibratingTarget(null);
+      setLocationNote(`Lokasi Saya berhasil diperbarui ke: ${label}`);
+    } else {
       setOriginQuery(label);
+    }
+  }
+
+  // Dragging Destination Pin on Map
+  async function handleDestDragEnd(point: [number, number]) {
+    setDestPoint(point);
+    const label = await reverseGeocode(point[0], point[1]);
+    const isMyLoc =
+      calibratingTarget === "dest" || destQuery.startsWith("Lokasi Saya");
+    if (isMyLoc) {
+      saveUserLocation(point[0], point[1], label);
+      setDestQuery(`Lokasi Saya (${label})`);
+      setCalibratingTarget(null);
+      setLocationNote(`Lokasi Saya berhasil diperbarui ke: ${label}`);
+    } else {
+      setDestQuery(label);
+    }
+  }
+
+  // Click on map sets active mapPickMode, or Origin first then Destination
+  async function handleMapClick(point: [number, number]) {
+    const target: "origin" | "dest" =
+      mapPickMode ?? (!originPoint ? "origin" : !destPoint ? "dest" : "origin");
+
+    if (target === "origin") {
+      setOriginPoint(point);
+      if (!destPoint) {
+        setPath([point]);
+      }
+      const label = await reverseGeocode(point[0], point[1]);
+      if (calibratingTarget === "origin") {
+        saveUserLocation(point[0], point[1], label);
+        setOriginQuery(`Lokasi Saya (${label})`);
+        setCalibratingTarget(null);
+        setLocationNote(`Lokasi Saya tersimpan akurat: ${label}`);
+      } else {
+        setOriginQuery(label);
+      }
+      setMapPickMode(null);
     } else {
       setDestPoint(point);
       const label = await reverseGeocode(point[0], point[1]);
-      setDestQuery(label);
+      if (calibratingTarget === "dest") {
+        saveUserLocation(point[0], point[1], label);
+        setDestQuery(`Lokasi Saya (${label})`);
+        setCalibratingTarget(null);
+        setLocationNote(`Lokasi Saya tersimpan akurat: ${label}`);
+      } else {
+        setDestQuery(label);
+      }
+      setMapPickMode(null);
     }
+  }
+
+  function handleSaveCurrentOriginAsMyLocation() {
+    if (!originPoint) return;
+    const cleanLabel = originQuery
+      .replace(/^Lokasi Saya\s*\(/i, "")
+      .replace(/\)$/, "")
+      .trim();
+    saveUserLocation(originPoint[0], originPoint[1], cleanLabel || originQuery);
+    setOriginQuery(`Lokasi Saya (${cleanLabel || originQuery})`);
+    setCalibratingTarget(null);
+    setLocationNote(`Titik keberangkatan disimpan sebagai Lokasi Saya (${cleanLabel || originQuery}).`);
   }
 
   function handleResetRoute() {
@@ -418,6 +535,9 @@ export function RouteEditor({
     setDestQuery("");
     setRouteOptions([]);
     setPath([]);
+    setMapPickMode(null);
+    setCalibratingTarget(null);
+    setLocationNote("");
     setError("");
   }
 
@@ -508,19 +628,36 @@ export function RouteEditor({
               <div className="relative">
                 <label className="text-[11px] font-medium text-zinc-500 mb-1 flex items-center justify-between">
                   <span>Titik Awal (Keberangkatan)</span>
-                  <button
-                    type="button"
-                    onClick={() => handleUseDeviceLocation("origin")}
-                    disabled={locatingTarget !== null}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer"
-                  >
-                    {locatingTarget === "origin" ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <LocateFixed size={11} />
-                    )}
-                    <span>Gunakan Lokasi Saya</span>
-                  </button>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMapPickMode(mapPickMode === "origin" ? null : "origin");
+                        setActiveSearch(null);
+                      }}
+                      className={`inline-flex items-center gap-1 text-[11px] font-medium cursor-pointer transition-colors ${
+                        mapPickMode === "origin"
+                          ? "text-emerald-600 font-semibold"
+                          : "text-zinc-500 hover:text-zinc-800"
+                      }`}
+                    >
+                      <MapPin size={11} />
+                      <span>{mapPickMode === "origin" ? "Klik Peta…" : "Pilih di Peta"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUseDeviceLocation("origin")}
+                      disabled={locatingTarget !== null}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer"
+                    >
+                      {locatingTarget === "origin" ? (
+                        <Loader2 size={11} className="animate-spin" />
+                      ) : (
+                        <LocateFixed size={11} />
+                      )}
+                      <span>Gunakan Lokasi Saya</span>
+                    </button>
+                  </div>
                 </label>
                 <div className="relative flex items-center">
                   <span className="pointer-events-none absolute left-3 size-2.5 rounded-full bg-sky-600 ring-3 ring-sky-100" />
@@ -532,8 +669,16 @@ export function RouteEditor({
                       setOriginQuery(e.target.value);
                       setActiveSearch("origin");
                     }}
-                    placeholder="Cari nama jalan / tempat asal, atau klik peta..."
-                    className="w-full rounded-lg border border-zinc-200 bg-white pl-8 pr-8 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none transition-colors"
+                    placeholder={
+                      mapPickMode === "origin"
+                        ? "Klik langsung titik keberangkatan Anda di peta Palembang..."
+                        : "Cari nama jalan / tempat asal, atau klik peta..."
+                    }
+                    className={`w-full rounded-lg border bg-white pl-8 pr-8 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-colors ${
+                      mapPickMode === "origin"
+                        ? "border-emerald-500 ring-2 ring-emerald-100"
+                        : "border-zinc-200 focus:border-blue-500"
+                    }`}
                   />
                   {originQuery && (
                     <button
@@ -551,12 +696,23 @@ export function RouteEditor({
                     </button>
                   )}
                 </div>
+                {originPoint && !originQuery.startsWith("Lokasi Saya") && (
+                  <div className="mt-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleSaveCurrentOriginAsMyLocation}
+                      className="text-[10px] font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
+                    >
+                      📌 Simpan titik ini sebagai Lokasi Saya
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Swap Button Divider */}
               <div className="flex items-center justify-between px-1">
                 <span className="text-[10px] text-zinc-400">
-                  Pilih dari daftar pencarian atau klik langsung di peta
+                  Geser pin 🏠 / 🏢 di peta untuk akurasi titik jalan
                 </span>
                 <button
                   type="button"
@@ -574,19 +730,36 @@ export function RouteEditor({
               <div className="relative">
                 <label className="text-[11px] font-medium text-zinc-500 mb-1 flex items-center justify-between">
                   <span>Titik Tujuan (Destinasi)</span>
-                  <button
-                    type="button"
-                    onClick={() => handleUseDeviceLocation("dest")}
-                    disabled={locatingTarget !== null}
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer"
-                  >
-                    {locatingTarget === "dest" ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <LocateFixed size={11} />
-                    )}
-                    <span>Lokasi Saya</span>
-                  </button>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMapPickMode(mapPickMode === "dest" ? null : "dest");
+                        setActiveSearch(null);
+                      }}
+                      className={`inline-flex items-center gap-1 text-[11px] font-medium cursor-pointer transition-colors ${
+                        mapPickMode === "dest"
+                          ? "text-emerald-600 font-semibold"
+                          : "text-zinc-500 hover:text-zinc-800"
+                      }`}
+                    >
+                      <MapPin size={11} />
+                      <span>{mapPickMode === "dest" ? "Klik Peta…" : "Pilih di Peta"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleUseDeviceLocation("dest")}
+                      disabled={locatingTarget !== null}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer"
+                    >
+                      {locatingTarget === "dest" ? (
+                        <Loader2 size={11} className="animate-spin" />
+                      ) : (
+                        <LocateFixed size={11} />
+                      )}
+                      <span>Lokasi Saya</span>
+                    </button>
+                  </div>
                 </label>
                 <div className="relative flex items-center">
                   <span className="pointer-events-none absolute left-3 size-2.5 rounded-full bg-indigo-600 ring-3 ring-indigo-100" />
@@ -598,8 +771,16 @@ export function RouteEditor({
                       setDestQuery(e.target.value);
                       setActiveSearch("dest");
                     }}
-                    placeholder="Cari nama jalan / tujuan (mis. Jembatan Ampera)..."
-                    className="w-full rounded-lg border border-zinc-200 bg-white pl-8 pr-8 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none transition-colors"
+                    placeholder={
+                      mapPickMode === "dest"
+                        ? "Klik langsung titik tujuan Anda di peta Palembang..."
+                        : "Cari nama jalan / tujuan (mis. Jembatan Ampera)..."
+                    }
+                    className={`w-full rounded-lg border bg-white pl-8 pr-8 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-colors ${
+                      mapPickMode === "dest"
+                        ? "border-emerald-500 ring-2 ring-emerald-100"
+                        : "border-zinc-200 focus:border-blue-500"
+                    }`}
                   />
                   {destQuery && (
                     <button
@@ -660,6 +841,19 @@ export function RouteEditor({
                       </button>
                     ))
                   )}
+                </div>
+              )}
+              {/* Location Calibration / Accuracy Note */}
+              {locationNote && (
+                <div className="pt-1 flex items-start justify-between gap-2 text-[11px] leading-relaxed text-amber-700">
+                  <span>{locationNote}</span>
+                  <button
+                    type="button"
+                    onClick={() => setLocationNote("")}
+                    className="text-zinc-400 hover:text-zinc-600 shrink-0 mt-0.5"
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               )}
             </div>
@@ -847,6 +1041,8 @@ export function RouteEditor({
             nearbyCameraIds={nearbyCameraIds}
             nearbyPotholeIds={nearbyPotholeIds}
             onMapClick={handleMapClick}
+            onOriginDragEnd={handleOriginDragEnd}
+            onDestDragEnd={handleDestDragEnd}
           />
         </div>
       </div>

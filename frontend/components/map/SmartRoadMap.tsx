@@ -19,6 +19,8 @@ export interface SmartRoadMapProps {
   onSelectRoute?: (routeId: number) => void;
   draftPath?: [number, number][];
   onMapClick?: (point: [number, number]) => void;
+  onOriginDragEnd?: (point: [number, number]) => void;
+  onDestDragEnd?: (point: [number, number]) => void;
   showControls?: boolean;
   showLegend?: boolean;
   showCctvLayer?: boolean;
@@ -50,6 +52,8 @@ export default function SmartRoadMap({
   onSelectRoute,
   draftPath = [],
   onMapClick,
+  onOriginDragEnd,
+  onDestDragEnd,
   showControls = true,
   showLegend = true,
   showCctvLayer = true,
@@ -125,6 +129,8 @@ export default function SmartRoadMap({
             selectedRouteId={selectedRouteId}
             onSelectRoute={onSelectRoute}
             draftPath={draftPath}
+            onOriginDragEnd={onOriginDragEnd}
+            onDestDragEnd={onDestDragEnd}
           />
         )}
 
