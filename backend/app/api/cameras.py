@@ -322,13 +322,16 @@ class ThreadedCameraReader:
             cmd = [
                 "ffmpeg",
                 "-loglevel", "error",
-                "-re",
+                "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "-fflags", "nobuffer",
+                "-flags", "low_delay",
+                "-threads", "1",
                 "-reconnect", "1",
                 "-reconnect_streamed", "1",
                 "-reconnect_delay_max", "2",
                 "-i", self.source,
                 "-an",
-                "-vf", f"scale={w}:{h}",
+                "-vf", f"scale={w}:{h},fps=15",
                 "-f", "rawvideo",
                 "-pix_fmt", "bgr24",
                 "-",
@@ -738,8 +741,8 @@ class CameraStreamWorker:
                     is_fallback=reader.is_fallback,
                 )
 
-                # 3. High-speed JPEG encoding (Quality 65 for low latency and smooth frame delivery)
-                ret, buf = cv2.imencode(".jpg", frame_small, [cv2.IMWRITE_JPEG_QUALITY, 65])
+                # 3. High-speed JPEG encoding (Quality 55 for ultra low latency and lightweight frame delivery)
+                ret, buf = cv2.imencode(".jpg", frame_small, [cv2.IMWRITE_JPEG_QUALITY, 55])
                 if ret:
                     frame_bytes = buf.tobytes()
                     with self.condition:
@@ -846,8 +849,8 @@ async def _generate_video_stream(camera: Camera, video_source: str):
             current_fid = worker.frame_id
             latest_bytes = worker.latest_jpeg
 
-            # Yield new frame as soon as generated
-            if latest_bytes is not None and current_fid != last_sent_frame_id:
+            # Yield new frame as soon as generated (paced at ~15 FPS so TCP buffers never queue up)
+            if latest_bytes is not None and current_fid != last_sent_frame_id and (now - last_sent_time >= 0.060):
                 last_sent_frame_id = current_fid
                 last_sent_time = now
                 yield (
