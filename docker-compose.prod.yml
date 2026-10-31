@@ -15,6 +15,9 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-https://lajusmart.app,https://www.lajusmart.app,http://localhost:3000}
       PYTHONPATH: /app:/
       YOLO_CONFIG_DIR: /tmp/ultralytics
+      OMP_NUM_THREADS: "1"
+      OPENVINO_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
     volumes:
       - ./vision:/vision
       - ./yolo11n.pt:/app/yolo11n.pt
@@ -30,7 +33,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: capstone-worker
-    command: python -m vision.traffic_worker.multi_worker --workers 2 --duration 60
+    command: python -m vision.traffic_worker.multi_worker --workers 1 --duration 45
     restart: unless-stopped
     env_file:
       - .env
@@ -38,8 +41,8 @@ services:
       APP_ENV: production
       DATABASE_URL: ${DATABASE_URL}
       PYTHONPATH: /app:/
-      NUM_TRAFFIC_WORKERS: 2
-      ROUND_ROBIN_DURATION_SECONDS: 60
+      NUM_TRAFFIC_WORKERS: 1
+      ROUND_ROBIN_DURATION_SECONDS: 45
       YOLO_CONFIG_DIR: /tmp/ultralytics
       OMP_NUM_THREADS: "1"
       OPENVINO_NUM_THREADS: "1"

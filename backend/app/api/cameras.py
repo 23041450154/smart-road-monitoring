@@ -619,7 +619,7 @@ class CameraStreamWorker:
         latest_tracks: list[Track] = []
         last_frame_time = time.monotonic()
         last_inference_time = 0.0
-        min_inference_interval = 0.100  # ~10 inferences/sec: balanced CPU & smooth tracking
+        min_inference_interval = 0.180  # ~5.5 inferences/sec: optimized for 2 vCPU VPS & smooth tracking
         last_read_seq = -1
 
         try:
