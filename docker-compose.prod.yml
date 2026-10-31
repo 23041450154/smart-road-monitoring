@@ -1,0 +1,53 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: capstone-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://lajusmart.app,https://www.lajusmart.app,http://localhost:3000}
+      PYTHONPATH: /app:/
+      YOLO_CONFIG_DIR: /tmp/ultralytics
+    volumes:
+      - ./vision:/vision
+      - ./yolo11n.pt:/app/yolo11n.pt
+      - ./yolo11n_openvino_model:/app/yolo11n_openvino_model
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: capstone-worker
+    command: python -m vision.traffic_worker.multi_worker --workers 2 --duration 60
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      PYTHONPATH: /app:/
+      NUM_TRAFFIC_WORKERS: 2
+      ROUND_ROBIN_DURATION_SECONDS: 60
+      YOLO_CONFIG_DIR: /tmp/ultralytics
+      OMP_NUM_THREADS: "1"
+      OPENVINO_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    volumes:
+      - ./vision:/vision
+      - ./yolo11n.pt:/app/yolo11n.pt
+      - ./yolo11n_openvino_model:/app/yolo11n_openvino_model
+    depends_on:
+      backend:
+        condition: service_healthy
