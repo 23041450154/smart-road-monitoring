@@ -99,7 +99,7 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
       if (loggedUser?.role === "admin") {
         router.push("/admin");
       } else {
-        router.push("/dashboard");
+        router.push("/cctv");
       }
       router.refresh();
     } catch (err: unknown) {
@@ -191,7 +191,7 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
 
     try {
       await verifyRegistration(name.trim(), email.trim(), password, code, phone.trim());
-      router.push("/dashboard");
+      router.push("/cctv");
       router.refresh();
     } catch (err: unknown) {
       setError(
@@ -276,7 +276,7 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
       if (loggedUser?.role === "admin") {
         router.push("/admin");
       } else {
-        router.push("/dashboard");
+        router.push("/cctv");
       }
       router.refresh();
     } catch (err: unknown) {
@@ -892,7 +892,7 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
                   &larr; Form Login Biasa
                 </Link>
                 <Link
-                  href="/dashboard"
+                  href="/cctv"
                   className="hover:text-zinc-800 transition"
                 >
                   Mode Tamu &rarr;
@@ -901,7 +901,7 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
             ) : (
               <div className="w-full text-center">
                 <Link
-                  href="/dashboard"
+                  href="/cctv"
                   className="text-zinc-400 hover:text-zinc-700 transition"
                 >
                   Lanjutkan tanpa login &rarr;

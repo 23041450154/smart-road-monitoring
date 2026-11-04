@@ -29,21 +29,21 @@ interface NavItem {
   badge?: string;
 }
 
-// 1. Publik (Guest, User, Admin)
-const publicNav: NavItem[] = [
-  { href: "/dashboard", label: "Ringkasan", icon: Activity },
-  { href: "/cctv", label: "Kamera CCTV", icon: Video },
-  { href: "/map", label: "Peta Mobilitas", icon: Compass },
-  { href: "/potholes", label: "Jalan Rusak", icon: AlertTriangle },
+// Navigasi Utama: CCTV dan Rute (Menu lain di-hide)
+const mainNav: NavItem[] = [
+  { href: "/cctv", label: "CCTV", icon: Video },
+  { href: "/routes", label: "Rute", icon: Route, badge: "WA" },
 ];
 
-// 2. Personal (User & Admin)
-const userNav: NavItem[] = [
-  { href: "/routes", label: "Rute Favorit", icon: Route, badge: "WA" },
-  { href: "/settings", label: "Pengaturan Notif", icon: Settings },
-];
+// Menu lain di-hide sesuai preferensi (disimpan untuk referensi jika ingin diaktifkan kembali)
+// const hiddenNav: NavItem[] = [
+//   { href: "/dashboard", label: "Ringkasan", icon: Activity },
+//   { href: "/map", label: "Peta Mobilitas", icon: Compass },
+//   { href: "/potholes", label: "Jalan Rusak", icon: AlertTriangle },
+//   { href: "/settings", label: "Pengaturan Notif", icon: Settings },
+// ];
 
-// 3. Admin Only
+// Admin Only
 const adminNav: NavItem[] = [
   { href: "/admin", label: "Kelola Pengguna", icon: Shield },
   { href: "/admin/logs", label: "Log Notifikasi", icon: FileText },
@@ -56,10 +56,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Active navigation items allowed for current role (used by mobile dock)
   const activeNav = role === "admin"
-    ? [...publicNav, ...userNav, ...adminNav]
-    : role === "user"
-    ? [...publicNav, ...userNav]
-    : publicNav;
+    ? [...mainNav, ...adminNav]
+    : mainNav;
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[250px_1fr] bg-slate-50/60">
@@ -74,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* Logo & Brand Header */}
           <div className="mb-4 flex items-center justify-between px-2 pt-1">
             <Link
-              href="/dashboard"
+              href="/cctv"
               className="flex items-center gap-2.5 group"
               onClick={() => setOpen(false)}
             >
@@ -102,52 +100,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          {/* Nav Section: Pemantauan */}
+          {/* Nav Section: Menu Utama */}
           <div className="px-2 mb-1 mt-2">
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-              Pemantauan
+              Menu
             </span>
           </div>
           <nav className="space-y-0.5 mb-4">
-            {publicNav.map((item) => {
+            {mainNav.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
-                    active
-                      ? "bg-blue-50 font-medium text-blue-700 border border-blue-100/70 shadow-2xs"
-                      : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900",
-                  )}
-                >
-                  <item.icon
-                    size={15}
-                    className={cn(
-                      "shrink-0",
-                      active ? "text-blue-600" : "text-slate-400",
-                    )}
-                  />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Nav Section: Layanan Pribadi */}
-          <div className="px-2 mb-1 mt-1">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-              Layanan Pribadi
-            </span>
-          </div>
-          <nav className="space-y-0.5 mb-4">
-            {userNav.map((item) => {
-              const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const isLockedForGuest = role === "guest";
+              const isLockedForGuest = item.href === "/routes" && role === "guest";
               return (
                 <Link
                   key={item.href}
@@ -233,7 +196,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="border-t border-slate-200/80 pt-3">
           {user ? (
             <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-slate-50 transition group">
-              <div className="flex items-center gap-2.5 min-w-0">
+              <Link
+                href="/settings"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 min-w-0 flex-1 text-left"
+                title="Buka Pengaturan Akun"
+              >
                 <div className="size-7 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-xs font-semibold text-blue-700 shrink-0">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
@@ -243,14 +211,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {user.phone_number ? `WA: ${user.phone_number}` : user.email}
                   </span>
                 </div>
+              </Link>
+              <div className="flex items-center gap-0.5">
+                <Link
+                  href="/settings"
+                  onClick={() => setOpen(false)}
+                  className="text-slate-400 hover:text-slate-700 p-1.5 rounded-md hover:bg-slate-100 transition"
+                  title="Pengaturan"
+                >
+                  <Settings size={13} />
+                </Link>
+                <button
+                  onClick={logout}
+                  className="text-slate-400 hover:text-rose-600 p-1.5 rounded-md hover:bg-rose-50 transition"
+                  title="Keluar dari akun"
+                >
+                  <LogOut size={13} />
+                </button>
               </div>
-              <button
-                onClick={logout}
-                className="text-slate-400 hover:text-rose-600 p-1.5 rounded-md hover:bg-rose-50 transition"
-                title="Keluar dari akun"
-              >
-                <LogOut size={13} />
-              </button>
             </div>
           ) : (
             <Link
@@ -294,7 +272,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Menu size={16} />
             </button>
             <Link
-              href="/dashboard"
+              href="/cctv"
               className="flex items-center gap-2 lg:hidden"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -373,7 +351,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={active ? "text-blue-600" : "text-slate-400"}
               />
               <span className="truncate max-w-full">
-                {item.label.split(" ")[0]}
+                {item.label}
               </span>
             </Link>
           );
