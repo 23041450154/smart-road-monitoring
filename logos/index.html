@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>LAJU Palembang — Semua Revisi Brand Identity</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #060911;
+      color: #F8FAFC;
+      padding: 48px 24px 80px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .badge-top {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+      color: #FFFFFF;
+    }
+    p.subtitle {
+      color: #94A3B8;
+      font-size: 1rem;
+      max-width: 740px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .folder-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 44px;
+    }
+    .folder-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #0D1322;
+      color: #CBD5E1;
+      border: 1px solid #1E293B;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .folder-link:hover, .folder-link.active {
+      background: rgba(16, 185, 129, 0.14);
+      color: #34D399;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+    .section-divider {
+      margin: 48px 0 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #1E293B;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .section-divider h2 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #F8FAFC;
+      letter-spacing: -0.02em;
+    }
+    .section-divider span {
+      font-size: 0.8rem;
+      color: #64748B;
+      font-family: monospace;
+      background: #0D1322;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid #1E293B;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(540px, 1fr));
+      gap: 28px;
+    }
+    .card {
+      background: #0D1322;
+      border: 1px solid #1E293B;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card.recommended {
+      border-color: #10B981;
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25), 0 20px 40px -15px rgba(16, 185, 129, 0.12);
+    }
+    .preview-row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .preview-box {
+      background: #080C16;
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #162032;
+      gap: 10px;
+    }
+    .preview-box span {
+      font-size: 0.68rem;
+      color: #64748B;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .preview-box img.icon-only {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+    }
+    .preview-box img.full-lockup {
+      width: 100%;
+      max-height: 92px;
+      object-fit: contain;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #F8FAFC;
+    }
+    .badge {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-weight: 700;
+      background: #1E293B;
+      color: #38BDF8;
+      letter-spacing: 0.04em;
+    }
+    .badge.rec {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .desc {
+      color: #94A3B8;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .files {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: #94A3B8;
+      font-family: monospace;
+      background: #070A12;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #162032;
+    }
+    .files a {
+      color: #38BDF8;
+      text-decoration: none;
+      background: rgba(56, 189, 248, 0.08);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .files a:hover {
+      background: rgba(56, 189, 248, 0.18);
+    }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge-top">ORGANIZED BY REVISION FOLDERS</div>
+    <h1>LAJU Palembang — Katalog Semua Revisi Logo</h1>
+    <p class="subtitle">Setiap tahapan desain dipisahkan rapi ke dalam foldernya masing-masing: <strong>design_awal/</strong>, <strong>design_revisi1/</strong>, <strong>design_revisi2/</strong>, <strong>design_revisi3/</strong>, dan <strong>design_revisi4/ (Deteksi Objek AI)</strong>.</p>
+  </div>
+  
+  <div class="folder-nav">
+    <a class="folder-link active" href="index.html">📁 Semua Revisi (Root)</a>
+    <a class="folder-link " href="design_awal/index.html">📁 design_awal/</a>
+    <a class="folder-link " href="design_revisi1/index.html">📁 design_revisi1/ (Clean L)</a>
+    <a class="folder-link " href="design_revisi2/index.html">📁 design_revisi2/ (L + CCTV)</a>
+    <a class="folder-link " href="design_revisi3/index.html">📁 design_revisi3/ (L + CCTV + Mobil)</a>
+    <a class="folder-link " href="design_revisi4/index.html">📁 design_revisi4/ (L + CCTV + Mobil + Deteksi Objek YOLO)</a>
+  </div>
+
+  
+  <div class="section-divider">
+    <h2>🔥 Folder Terbaru: design_revisi4/ (Monogram L + CCTV + Mobil + Deteksi Objek AI YOLO)</h2>
+    <span>logos/design_revisi4/</span>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi4/konsep-1-ampera-cctv-car-detect.svg" alt="Ampera YOLO Detect Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi4/konsep-1-ampera-cctv-car-detect-full.svg" alt="Ampera YOLO Detect Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 1: Ampera + CCTV + YOLO Object Detection</div>
+        <div class="badge">YOLO AI DETECTION</div>
+      </div>
+      <div class="desc">
+        Pilar Jembatan Ampera & jalan raya membentuk <strong>L</strong>, dilengkapi <strong>CCTV</strong> yang memancarkan sinar pemindai ke <strong>Bounding Box Deteksi Objek (CAR 99%) + Target Reticle Crosshair</strong> pada mobil.
+      </div>
+      <div class="files">
+        <a href="design_revisi4/konsep-1-ampera-cctv-car-detect.svg" target="_blank">konsep-1-ampera-cctv-car-detect.svg</a>
+        <a href="design_revisi4/konsep-1-ampera-cctv-car-detect.png" target="_blank">konsep-1-ampera-cctv-car-detect.png</a>
+        <a href="design_revisi4/konsep-1-ampera-cctv-car-detect-full.svg" target="_blank">konsep-1-ampera-cctv-car-detect-full.svg</a>
+        <a href="design_revisi4/konsep-1-ampera-cctv-car-detect-full.png" target="_blank">konsep-1-ampera-cctv-car-detect-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi4/konsep-2-ai-bbox-cctv-car-detect.svg" alt="YOLO BBox Detect Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi4/konsep-2-ai-bbox-cctv-car-detect-full.svg" alt="YOLO BBox Detect Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 2: L-Gantry + CCTV + Full YOLO BBox (CAR 99%)</div>
+        <div class="badge">COMPUTER VISION</div>
+      </div>
+      <div class="desc">
+        Tiang L-Gantry dengan <strong>kamera CCTV</strong> yang mengunci <strong>mobil tampak depan</strong> di dalam <strong>kotak Bounding Box putus-putus + siku kunci sudut + label CAR 99% + titik tengah pelacakan (centroid crosshair)</strong>.
+      </div>
+      <div class="files">
+        <a href="design_revisi4/konsep-2-ai-bbox-cctv-car-detect.svg" target="_blank">konsep-2-ai-bbox-cctv-car-detect.svg</a>
+        <a href="design_revisi4/konsep-2-ai-bbox-cctv-car-detect.png" target="_blank">konsep-2-ai-bbox-cctv-car-detect.png</a>
+        <a href="design_revisi4/konsep-2-ai-bbox-cctv-car-detect-full.svg" target="_blank">konsep-2-ai-bbox-cctv-car-detect-full.svg</a>
+        <a href="design_revisi4/konsep-2-ai-bbox-cctv-car-detect-full.png" target="_blank">konsep-2-ai-bbox-cctv-car-detect-full.png</a>
+      </div>
+    </div>
+
+    <div class="card recommended">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi4/konsep-3-green-wave-cctv-car-detect.svg" alt="Green Wave Detect Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi4/konsep-3-green-wave-cctv-car-detect-full.svg" alt="Green Wave Detect Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 3: Green Wave + CCTV + YOLO Speed Detection</div>
+        <div class="badge rec">⭐ REKOMENDASI UTAMA</div>
+      </div>
+      <div class="desc">
+        Pita lajur hijau membentuk huruf <strong>L</strong> dengan <strong>kamera CCTV</strong> yang memindai <strong>mobil di lajur cepat</strong> menggunakan <strong>Bounding Box Cyan (CAR 99%) + Target Lock Crosshair Amber</strong>.
+      </div>
+      <div class="files">
+        <a href="design_revisi4/konsep-3-green-wave-cctv-car-detect.svg" target="_blank">konsep-3-green-wave-cctv-car-detect.svg</a>
+        <a href="design_revisi4/konsep-3-green-wave-cctv-car-detect.png" target="_blank">konsep-3-green-wave-cctv-car-detect.png</a>
+        <a href="design_revisi4/konsep-3-green-wave-cctv-car-detect-full.svg" target="_blank">konsep-3-green-wave-cctv-car-detect-full.svg</a>
+        <a href="design_revisi4/konsep-3-green-wave-cctv-car-detect-full.png" target="_blank">konsep-3-green-wave-cctv-car-detect-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi4/konsep-4-isometric-cctv-car-detect.svg" alt="Isometric Detect Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi4/konsep-4-isometric-cctv-car-detect-full.svg" alt="Isometric Detect Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 4: 3D Isometric Junction + CCTV + YOLO Detection</div>
+        <div class="badge">3D SMART TRAFFIC AI</div>
+      </div>
+      <div class="desc">
+        Simpang 3D isometrik membentuk <strong>L</strong> dengan <strong>CCTV 3D</strong> yang menyorot <strong>mobil isometrik</strong> di dalam <strong>kotak deteksi objek YOLO (CAR 99%) + titik lacak tengah</strong>.
+      </div>
+      <div class="files">
+        <a href="design_revisi4/konsep-4-isometric-cctv-car-detect.svg" target="_blank">konsep-4-isometric-cctv-car-detect.svg</a>
+        <a href="design_revisi4/konsep-4-isometric-cctv-car-detect.png" target="_blank">konsep-4-isometric-cctv-car-detect.png</a>
+        <a href="design_revisi4/konsep-4-isometric-cctv-car-detect-full.svg" target="_blank">konsep-4-isometric-cctv-car-detect-full.svg</a>
+        <a href="design_revisi4/konsep-4-isometric-cctv-car-detect-full.png" target="_blank">konsep-4-isometric-cctv-car-detect-full.png</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">
+    <h2>1. Folder: design_revisi3/ (Monogram L + CCTV + Kendaraan)</h2>
+    <span>logos/design_revisi3/</span>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi3/konsep-1-ampera-cctv-car.svg" alt="Ampera CCTV Car Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi3/konsep-1-ampera-cctv-car-full.svg" alt="Ampera CCTV Car Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 1: Ampera Pylon + CCTV + Car</div>
+        <div class="badge">SMART INFRASTRUCTURE</div>
+      </div>
+      <div class="desc">
+        Pilar kembar Jembatan Ampera dilengkapi <strong>kamera CCTV pengawas</strong> di puncak yang memancarkan kerucut optik ke arah <strong>siluet mobil tampak depan</strong> di atas dek jembatan.
+      </div>
+      <div class="files">
+        <a href="design_revisi3/konsep-1-ampera-cctv-car.svg" target="_blank">konsep-1-ampera-cctv-car.svg</a>
+        <a href="design_revisi3/konsep-1-ampera-cctv-car.png" target="_blank">konsep-1-ampera-cctv-car.png</a>
+        <a href="design_revisi3/konsep-1-ampera-cctv-car-full.svg" target="_blank">konsep-1-ampera-cctv-car-full.svg</a>
+        <a href="design_revisi3/konsep-1-ampera-cctv-car-full.png" target="_blank">konsep-1-ampera-cctv-car-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi3/konsep-2-ai-bbox-cctv-car.svg" alt="YOLO BBox CCTV Car Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi3/konsep-2-ai-bbox-cctv-car-full.svg" alt="YOLO BBox CCTV Car Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 2: YOLO AI Detection + CCTV + Car</div>
+        <div class="badge">COMPUTER VISION</div>
+      </div>
+      <div class="desc">
+        Lengan <strong>CCTV</strong> di pojok kanan atas menyorot langsung ke <strong>kendaraan (mobil)</strong> yang sedang dikunci oleh <strong>sikunya Bounding Box YOLO berwarna hijau emerald</strong> di bagian tengah bawah.
+      </div>
+      <div class="files">
+        <a href="design_revisi3/konsep-2-ai-bbox-cctv-car.svg" target="_blank">konsep-2-ai-bbox-cctv-car.svg</a>
+        <a href="design_revisi3/konsep-2-ai-bbox-cctv-car.png" target="_blank">konsep-2-ai-bbox-cctv-car.png</a>
+        <a href="design_revisi3/konsep-2-ai-bbox-cctv-car-full.svg" target="_blank">konsep-2-ai-bbox-cctv-car-full.svg</a>
+        <a href="design_revisi3/konsep-2-ai-bbox-cctv-car-full.png" target="_blank">konsep-2-ai-bbox-cctv-car-full.png</a>
+      </div>
+    </div>
+
+    <div class="card recommended">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi3/konsep-3-green-wave-cctv-car.svg" alt="Green Wave CCTV Car Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi3/konsep-3-green-wave-cctv-car-full.svg" alt="Green Wave CCTV Car Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 3: Green Wave Ribbon + CCTV + Car</div>
+        <div class="badge rec">⭐ REKOMENDASI UTAMA</div>
+      </div>
+      <div class="desc">
+        Pita lajur jalan membentuk huruf <strong>L</strong> dengan <strong>kamera CCTV</strong> di puncak tiang dan <strong>siluet mobil sedan samping yang melaju cepat (dengan garis speed)</strong> di lajur horizontal bawah.
+      </div>
+      <div class="files">
+        <a href="design_revisi3/konsep-3-green-wave-cctv-car.svg" target="_blank">konsep-3-green-wave-cctv-car.svg</a>
+        <a href="design_revisi3/konsep-3-green-wave-cctv-car.png" target="_blank">konsep-3-green-wave-cctv-car.png</a>
+        <a href="design_revisi3/konsep-3-green-wave-cctv-car-full.svg" target="_blank">konsep-3-green-wave-cctv-car-full.svg</a>
+        <a href="design_revisi3/konsep-3-green-wave-cctv-car-full.png" target="_blank">konsep-3-green-wave-cctv-car-full.png</a>
+        <a href="design_revisi3/konsep-3-green-wave-cctv-car-full-light.svg" target="_blank">full-light.svg</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi3/konsep-4-isometric-cctv-car.svg" alt="Isometric CCTV Car Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi3/konsep-4-isometric-cctv-car-full.svg" alt="Isometric CCTV Car Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 4: Isometric Junction + CCTV + Car</div>
+        <div class="badge">ENTERPRISE SAAS</div>
+      </div>
+      <div class="desc">
+        Blok simpang 3D isometrik membentuk <strong>L</strong>, dilengkapi <strong>CCTV</strong> di atas yang mengawasi <strong>mobil tampak depan dengan lampu utama menyala</strong> di persimpangan bawah.
+      </div>
+      <div class="files">
+        <a href="design_revisi3/konsep-4-isometric-cctv-car.svg" target="_blank">konsep-4-isometric-cctv-car.svg</a>
+        <a href="design_revisi3/konsep-4-isometric-cctv-car.png" target="_blank">konsep-4-isometric-cctv-car.png</a>
+        <a href="design_revisi3/konsep-4-isometric-cctv-car-full.svg" target="_blank">konsep-4-isometric-cctv-car-full.svg</a>
+        <a href="design_revisi3/konsep-4-isometric-cctv-car-full.png" target="_blank">konsep-4-isometric-cctv-car-full.png</a>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="section-divider">
+    <h2>2. Folder: design_revisi2/ (Monogram L + Kamera CCTV)</h2>
+    <span>logos/design_revisi2/</span>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi2/konsep-1-ampera-flow.svg" alt="Ampera CCTV Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi2/konsep-1-ampera-flow-full.svg" alt="Ampera CCTV Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 1: Ampera Pylon + CCTV</div>
+        <div class="badge">REVISI 2 (L + CCTV)</div>
+      </div>
+      <div class="desc">Pilar Jembatan Ampera membentuk huruf L dengan kamera CCTV di puncak menara yang menyorot ke lajur jalan.</div>
+      <div class="files">
+        <a href="design_revisi2/konsep-1-ampera-flow.svg" target="_blank">konsep-1-ampera-flow.svg</a>
+        <a href="design_revisi2/konsep-1-ampera-flow.png" target="_blank">konsep-1-ampera-flow.png</a>
+        <a href="design_revisi2/konsep-1-ampera-flow-full.svg" target="_blank">konsep-1-ampera-flow-full.svg</a>
+        <a href="design_revisi2/konsep-1-ampera-flow-full.png" target="_blank">konsep-1-ampera-flow-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi2/konsep-2-ai-radar.svg" alt="YOLO Vision CCTV Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi2/konsep-2-ai-radar-full.svg" alt="YOLO Vision CCTV Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 2: YOLO Vision + CCTV</div>
+        <div class="badge">REVISI 2 (L + CCTV)</div>
+      </div>
+      <div class="desc">Sudut Bounding Box membentuk huruf L dipadukan dengan kamera CCTV ber-LED indikator merah dan titik deteksi kendaraan.</div>
+      <div class="files">
+        <a href="design_revisi2/konsep-2-ai-radar.svg" target="_blank">konsep-2-ai-radar.svg</a>
+        <a href="design_revisi2/konsep-2-ai-radar.png" target="_blank">konsep-2-ai-radar.png</a>
+        <a href="design_revisi2/konsep-2-ai-radar-full.svg" target="_blank">konsep-2-ai-radar-full.svg</a>
+        <a href="design_revisi2/konsep-2-ai-radar-full.png" target="_blank">konsep-2-ai-radar-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi2/konsep-3-green-wave.svg" alt="Green Wave CCTV Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi2/konsep-3-green-wave-full.svg" alt="Green Wave CCTV Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 3: Green Wave Ribbon + CCTV</div>
+        <div class="badge">REVISI 2 (L + CCTV)</div>
+      </div>
+      <div class="desc">Pita lajur membentuk huruf L dengan kamera CCTV terintegrasi di tiang atas yang memancarkan sinar pemindai ke arah lajur bawah.</div>
+      <div class="files">
+        <a href="design_revisi2/konsep-3-green-wave.svg" target="_blank">konsep-3-green-wave.svg</a>
+        <a href="design_revisi2/konsep-3-green-wave.png" target="_blank">konsep-3-green-wave.png</a>
+        <a href="design_revisi2/konsep-3-green-wave-full.svg" target="_blank">konsep-3-green-wave-full.svg</a>
+        <a href="design_revisi2/konsep-3-green-wave-full.png" target="_blank">konsep-3-green-wave-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi2/konsep-4-hexa-core.svg" alt="Isometric CCTV Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi2/konsep-4-hexa-core-full.svg" alt="Isometric CCTV Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 4: Isometric Junction + CCTV</div>
+        <div class="badge">REVISI 2 (L + CCTV)</div>
+      </div>
+      <div class="desc">Blok simpang 3D isometrik membentuk L dengan kamera CCTV pengawas dan tiga node indikator lampu lalu lintas.</div>
+      <div class="files">
+        <a href="design_revisi2/konsep-4-hexa-core.svg" target="_blank">konsep-4-hexa-core.svg</a>
+        <a href="design_revisi2/konsep-4-hexa-core.png" target="_blank">konsep-4-hexa-core.png</a>
+        <a href="design_revisi2/konsep-4-hexa-core-full.svg" target="_blank">konsep-4-hexa-core-full.svg</a>
+        <a href="design_revisi2/konsep-4-hexa-core-full.png" target="_blank">konsep-4-hexa-core-full.png</a>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="section-divider">
+    <h2>3. Folder: design_revisi1/ (Clean Minimalist Monogram L)</h2>
+    <span>logos/design_revisi1/</span>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi1/konsep-1-ampera-flow.svg" alt="Klasik 1 Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi1/konsep-1-ampera-flow-full.svg" alt="Klasik 1 Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 1: Ampera Pylon Monogram (Clean)</div>
+        <div class="badge">REVISI 1 (CLEAN)</div>
+      </div>
+      <div class="desc">Versi minimalis murni tanpa ikon CCTV & kendaraan: penggabungan pilar Jembatan Ampera dan jalan raya membentuk huruf L.</div>
+      <div class="files">
+        <a href="design_revisi1/konsep-1-ampera-flow.svg" target="_blank">konsep-1-ampera-flow.svg</a>
+        <a href="design_revisi1/konsep-1-ampera-flow.png" target="_blank">konsep-1-ampera-flow.png</a>
+        <a href="design_revisi1/konsep-1-ampera-flow-full.svg" target="_blank">konsep-1-ampera-flow-full.svg</a>
+        <a href="design_revisi1/konsep-1-ampera-flow-full.png" target="_blank">konsep-1-ampera-flow-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi1/konsep-2-ai-radar.svg" alt="Klasik 2 Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi1/konsep-2-ai-radar-full.svg" alt="Klasik 2 Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 2: Vision Frame & Signal (Clean)</div>
+        <div class="badge">REVISI 1 (CLEAN)</div>
+      </div>
+      <div class="desc">Versi minimalis murni tanpa ikon CCTV & kendaraan: siku Bounding Box membentuk huruf L dengan 3 sinyal lingkaran lalu lintas.</div>
+      <div class="files">
+        <a href="design_revisi1/konsep-2-ai-radar.svg" target="_blank">konsep-2-ai-radar.svg</a>
+        <a href="design_revisi1/konsep-2-ai-radar.png" target="_blank">konsep-2-ai-radar.png</a>
+        <a href="design_revisi1/konsep-2-ai-radar-full.svg" target="_blank">konsep-2-ai-radar-full.svg</a>
+        <a href="design_revisi1/konsep-2-ai-radar-full.png" target="_blank">konsep-2-ai-radar-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi1/konsep-3-green-wave.svg" alt="Klasik 3 Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi1/konsep-3-green-wave-full.svg" alt="Klasik 3 Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 3: Green Wave Ribbon (Clean)</div>
+        <div class="badge">REVISI 1 (CLEAN)</div>
+      </div>
+      <div class="desc">Versi minimalis murni tanpa ikon CCTV & kendaraan: lipatan pita lajur jalan membentuk huruf L dan panah kelancaran arus.</div>
+      <div class="files">
+        <a href="design_revisi1/konsep-3-green-wave.svg" target="_blank">konsep-3-green-wave.svg</a>
+        <a href="design_revisi1/konsep-3-green-wave.png" target="_blank">konsep-3-green-wave.png</a>
+        <a href="design_revisi1/konsep-3-green-wave-full.svg" target="_blank">konsep-3-green-wave-full.svg</a>
+        <a href="design_revisi1/konsep-3-green-wave-full.png" target="_blank">konsep-3-green-wave-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="design_revisi1/konsep-4-hexa-core.svg" alt="Klasik 4 Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="design_revisi1/konsep-4-hexa-core-full.svg" alt="Klasik 4 Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 4: Isometric Smart Junction (Clean)</div>
+        <div class="badge">REVISI 1 (CLEAN)</div>
+      </div>
+      <div class="desc">Versi minimalis murni tanpa ikon CCTV & kendaraan: arsitektur blok simpang 3D isometrik membentuk huruf L.</div>
+      <div class="files">
+        <a href="design_revisi1/konsep-4-hexa-core.svg" target="_blank">konsep-4-hexa-core.svg</a>
+        <a href="design_revisi1/konsep-4-hexa-core.png" target="_blank">konsep-4-hexa-core.png</a>
+        <a href="design_revisi1/konsep-4-hexa-core-full.svg" target="_blank">konsep-4-hexa-core-full.svg</a>
+        <a href="design_revisi1/konsep-4-hexa-core-full.png" target="_blank">konsep-4-hexa-core-full.png</a>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="section-divider">
+    <h2>4. Folder: design_awal/ (Desain Pertama Kali)</h2>
+    <span>logos/design_awal/</span>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="preview-box">
+        <img class="icon-only" style="width:130px;height:130px;" src="design_awal/konsep-1-ampera-flow.svg" alt="Awal 1">
+        <span>Desain Awal 1</span>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 1: Ampera Cyber Flow (Awal)</div>
+        <div class="badge">ARSIP AWAL</div>
+      </div>
+      <div class="files">
+        <a href="design_awal/konsep-1-ampera-flow.svg" target="_blank">konsep-1-ampera-flow.svg</a>
+        <a href="design_awal/konsep-1-ampera-flow.png" target="_blank">konsep-1-ampera-flow.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-box">
+        <img class="icon-only" style="width:130px;height:130px;" src="design_awal/konsep-2-ai-radar.svg" alt="Awal 2">
+        <span>Desain Awal 2</span>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 2: AI Vision Radar (Awal)</div>
+        <div class="badge">ARSIP AWAL</div>
+      </div>
+      <div class="files">
+        <a href="design_awal/konsep-2-ai-radar.svg" target="_blank">konsep-2-ai-radar.svg</a>
+        <a href="design_awal/konsep-2-ai-radar.png" target="_blank">konsep-2-ai-radar.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-box">
+        <img class="icon-only" style="width:130px;height:130px;" src="design_awal/konsep-3-green-wave.svg" alt="Awal 3">
+        <span>Desain Awal 3</span>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 3: Dynamic L Green-Wave (Awal)</div>
+        <div class="badge">ARSIP AWAL</div>
+      </div>
+      <div class="files">
+        <a href="design_awal/konsep-3-green-wave.svg" target="_blank">konsep-3-green-wave.svg</a>
+        <a href="design_awal/konsep-3-green-wave.png" target="_blank">konsep-3-green-wave.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-box">
+        <img class="icon-only" style="width:130px;height:130px;" src="design_awal/konsep-4-hexa-core.svg" alt="Awal 4">
+        <span>Desain Awal 4</span>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 4: Hexa Traffic Core (Awal)</div>
+        <div class="badge">ARSIP AWAL</div>
+      </div>
+      <div class="files">
+        <a href="design_awal/konsep-4-hexa-core.svg" target="_blank">konsep-4-hexa-core.svg</a>
+        <a href="design_awal/konsep-4-hexa-core.png" target="_blank">konsep-4-hexa-core.png</a>
+      </div>
+    </div>
+  </div>
+
+
+</body>
+</html>

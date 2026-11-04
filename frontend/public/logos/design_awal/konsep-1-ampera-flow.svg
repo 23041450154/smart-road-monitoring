@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="50%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#070a10" />
+    </linearGradient>
+    <linearGradient id="amperaRed" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF4B4B" />
+      <stop offset="50%" stop-color="#DC2626" />
+      <stop offset="100%" stop-color="#991B1B" />
+    </linearGradient>
+    <linearGradient id="roadBlue" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="cableGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.2" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGrad)" stroke="#1E293B" stroke-width="3" />
+  <rect x="28" y="28" width="456" height="456" rx="108" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+  <path d="M72 400 C 160 380, 240 420, 440 395" stroke="rgba(56, 189, 248, 0.12)" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M88 420 C 180 405, 260 435, 430 415" stroke="rgba(37, 99, 235, 0.15)" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <g stroke="url(#cableGrad)" stroke-width="2.5" stroke-linecap="round" opacity="0.85">
+    <line x1="168" y1="160" x2="108" y2="330" />
+    <line x1="168" y1="190" x2="128" y2="330" />
+    <line x1="192" y1="160" x2="260" y2="330" />
+    <line x1="192" y1="190" x2="236" y2="330" />
+    <line x1="192" y1="220" x2="216" y2="330" />
+  </g>
+  <path d="M 148 108 L 164 108 L 164 340 L 142 340 Z" fill="url(#amperaRed)" />
+  <path d="M 176 108 L 192 108 L 200 340 L 176 340 Z" fill="url(#amperaRed)" />
+  <rect x="144" y="148" width="52" height="12" rx="3" fill="#FECACA" />
+  <rect x="146" y="212" width="52" height="12" rx="3" fill="#FECACA" />
+  <path d="M 140 108 L 170 82 L 200 108 Z" fill="#EF4444" />
+  <circle cx="170" cy="84" r="5" fill="#FEE2E2" />
+  <g>
+    <path d="M 132 336 L 210 336 C 270 336, 320 344, 380 354 L 424 362 C 438 365, 442 384, 428 392 L 404 402 C 330 428, 230 424, 154 416 C 126 413, 112 392, 120 366 Z" fill="url(#roadBlue)" />
+    <path d="M 142 338 C 240 338, 320 348, 416 366 C 424 368, 422 376, 412 378 C 314 360, 228 352, 142 352 Z" fill="#BAE6FD" opacity="0.9" />
+    <path d="M 160 380 C 230 380, 290 384, 386 394" stroke="#F8FAFC" stroke-width="4.5" stroke-dasharray="14 12" stroke-linecap="round" fill="none" opacity="0.95"/>
+    <path d="M 364 330 L 416 358 L 372 384" stroke="#38BDF8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.9" />
+    <path d="M 396 332 L 438 358 L 404 382" stroke="#F43F5E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.8" />
+  </g>
+  <circle cx="170" cy="84" r="14" fill="#38BDF8" opacity="0.25" />
+  <circle cx="170" cy="84" r="5" fill="#FFFFFF" />
+</svg>

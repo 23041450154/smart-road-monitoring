@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="#090D16" />
+  <rect x="26" y="26" width="460" height="460" rx="102" fill="none" stroke="#1E293B" stroke-width="4" />
+  <!-- 1. Primary Structural 'L' Roadway & Gantry Ribbon (68px weight) -->
+  <path d="M 108 128
+           Q 108 116 120 116
+           L 176 116
+           Q 188 116 188 128
+           L 188 296
+           Q 188 320 212 320
+           L 388 320
+           Q 400 320 400 332
+           L 400 388
+           Q 400 400 388 400
+           L 180 400
+           Q 108 400 108 328 Z"
+        fill="#2563EB" />
+
+  <!-- 2. Articulated CCTV Mounting Bracket (16px Negative Space Gap from L Stem) -->
+  <polygon points="204,218 242,218 258,198 240,188 228,200 204,200" fill="#38BDF8" />
+
+  <!-- 3. Monumental Geometric Bullet CCTV Camera Centered in the 'L' -->
+  <polygon points="262.4,132.0 406.8,190.3 384.8,206.9 253.5,153.9" fill="#38BDF8" />
+  <polygon points="256.6,165.3 363.8,208.6 331.2,251.4 252.4,219.6 243.3,198.1" fill="#FFFFFF" />
+  <polygon points="368.6,215.6 386.1,222.7 359.2,257.7 341.7,250.6" fill="#10B981" />
+</svg>

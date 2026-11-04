@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#021c17" />
+      <stop offset="50%" stop-color="#0b1728" />
+      <stop offset="100%" stop-color="#040d1a" />
+    </linearGradient>
+    <linearGradient id="laneGreen" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="50%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="laneBlue" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="50%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#bgGrad3)" stroke="#1E293B" stroke-width="3" />
+  <rect x="28" y="28" width="456" height="456" rx="108" fill="none" stroke="rgba(16, 185, 129, 0.2)" stroke-width="1.5" />
+  <g stroke="rgba(52, 211, 153, 0.12)" stroke-width="1.5">
+    <line x1="140" y1="60" x2="140" y2="440" stroke-dasharray="8 6" />
+    <line x1="190" y1="60" x2="190" y2="440" stroke-dasharray="8 6" />
+    <line x1="80" y1="360" x2="440" y2="360" stroke-dasharray="8 6" />
+    <line x1="80" y1="410" x2="440" y2="410" stroke-dasharray="8 6" />
+  </g>
+  <g transform="skewX(-10) translate(30, 0)">
+    <path d="M 148 110 C 148 96, 160 88, 174 88 L 204 88 C 218 88, 226 96, 226 110 L 226 270 C 226 314, 256 344, 300 344 L 404 344 C 418 344, 428 354, 428 368 L 428 388 C 428 402, 418 412, 404 412 L 280 412 C 192 412, 148 368, 148 280 Z" fill="url(#laneBlue)" />
+    <path d="M 178 130 C 178 120, 186 112, 196 112 L 222 112 C 232 112, 240 120, 240 130 L 240 262 C 240 294, 264 318, 296 318 L 420 318 C 430 318, 438 326, 438 336 L 438 358 C 438 368, 430 376, 420 376 L 286 376 C 214 376, 178 340, 178 268 Z" fill="url(#laneGreen)" />
+    <path d="M 209 130 L 209 262 C 209 308, 242 347, 288 347 L 416 347" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" fill="none" opacity="0.95" />
+    <g transform="translate(320, 252)">
+      <path d="M 10 14 L 38 42 L 10 70" stroke="#FDE047" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <path d="M 40 14 L 68 42 L 40 70" stroke="#34D399" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+      <path d="M 70 14 L 98 42 L 70 70" stroke="#38BDF8" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    </g>
+  </g>
+  <g transform="translate(90, 86)">
+    <circle cx="16" cy="16" r="16" fill="#064E3B" stroke="#10B981" stroke-width="2" />
+    <circle cx="16" cy="16" r="6" fill="#34D399" />
+  </g>
+</svg>

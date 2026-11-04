@@ -5,7 +5,7 @@ export function getApiUrl(): string {
     }
     return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   }
-  return process.env.NEXT_PUBLIC_API_URL || "";
+  return process.env.NEXT_PUBLIC_API_URL || "https://api.lajusmart.app";
 }
 
 export const API_URL = "";

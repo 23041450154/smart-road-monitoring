@@ -1,13 +1,13 @@
 {
   "id": "6YuTX0Lj7lNgYsa3",
   "name": "Smart Road - Commute Briefing (WhatsApp Ready)",
-  "active": false,
+  "active": true,
   "isArchived": false,
-  "versionId": "b3207be5-3f36-442e-93b2-7e470ad48dcd",
-  "activeVersionId": null,
-  "triggerCount": 0,
+  "versionId": "1f8c34d3-f2c7-4462-a8e6-015238e2a3ce",
+  "activeVersionId": "1f8c34d3-f2c7-4462-a8e6-015238e2a3ce",
+  "triggerCount": 2,
   "createdAt": "2026-09-04T17:15:19.294Z",
-  "updatedAt": "2026-10-21T15:54:18.208Z",
+  "updatedAt": "2026-10-26T14:15:57.055Z",
   "settings": {
     "executionOrder": "v1",
     "availableInMCP": true,
@@ -58,11 +58,187 @@
         ]
       ]
     },
+    "Fetch All Briefings & Routes": {
+      "main": [
+        [
+          {
+            "node": "Fetch City Traffic Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter Incoming Message Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch City Traffic Summary": {
+      "main": [
+        [
+          {
+            "node": "Fetch Live CCTV Traffic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Live CCTV Traffic": {
+      "main": [
+        [
+          {
+            "node": "Fetch Potholes Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Potholes Data": {
+      "main": [
+        [
+          {
+            "node": "Build AI Context & Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Context & Prompt": {
+      "main": [
+        [
+          {
+            "node": "LAJU AI Chatbot Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory (Per Nomor WA)": {
+      "ai_memory": [
+        [
+          {
+            "node": "LAJU AI Chatbot Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tandai Dibaca (Send Seen)": {
+      "main": [
+        [
+          {
+            "node": "Mulai Mengetik (Start Typing)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mulai Mengetik (Start Typing)": {
+      "main": [
+        [
+          {
+            "node": "Fetch All Briefings & Routes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Berhenti Mengetik (Stop Typing)": {
+      "main": [
+        [
+          {
+            "node": "WAHA Bot Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "WhatsApp Outbox \u2014 Connect Provider Here": {
       "main": [
         [
           {
+            "node": "Mulai Mengetik Jadwal (WAHA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mulai Mengetik Jadwal (WAHA)": {
+      "main": [
+        [
+          {
+            "node": "Jeda Mengetik Jadwal (3 dtk)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jeda Mengetik Jadwal (3 dtk)": {
+      "main": [
+        [
+          {
+            "node": "Stop Mengetik Jadwal (WAHA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stop Mengetik Jadwal (WAHA)": {
+      "main": [
+        [
+          {
             "node": "WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LAJU AI Chatbot Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Incoming Message Only": {
+      "main": [
+        [
+          {
+            "node": "Tandai Dibaca (Send Seen)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LAJU AI Chatbot Agent": {
+      "main": [
+        [
+          {
+            "node": "Berhenti Mengetik (Stop Typing)",
             "type": "main",
             "index": 0
           }
@@ -73,7 +249,7 @@
   "nodes": [
     {
       "parameters": {
-        "url": "={{ ($env.BACKEND_API_URL || \"https://laju.naufal.me\") + \"/api/routes\" }}",
+        "url": "https://lajusmart.app/api/routes",
         "options": {
           "response": {
             "response": {
@@ -88,8 +264,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        240,
-        -432
+        -192,
+        -112
       ]
     },
     {
@@ -101,13 +277,13 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        464,
-        -432
+        32,
+        -112
       ]
     },
     {
       "parameters": {
-        "url": "={{ ($env.BACKEND_API_URL || \"https://laju.naufal.me\") + \"/api/routes/\" + $json.id + \"/briefing\" }}",
+        "url": "=https://lajusmart.app/api/routes/{{ $json.id }}/briefing",
         "options": {
           "response": {
             "response": {
@@ -122,8 +298,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        688,
-        -432
+        256,
+        -112
       ]
     },
     {
@@ -205,8 +381,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        960,
-        -432
+        480,
+        -112
       ]
     },
     {
@@ -221,8 +397,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -32,
-        -176
+        144,
+        128
       ]
     },
     {
@@ -239,26 +415,26 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
-        0,
-        -432
+        -416,
+        -112
       ],
       "id": "c35126c2-bc7f-4e88-8d67-1542534ccf52",
       "name": "Schedule Trigger"
     },
     {
       "parameters": {
-        "requestOptions": {},
         "resource": "Chatting",
         "operation": "Send Text",
-        "session": "n8n",
-        "chatId": "={{ $json.chatId }}",
-        "text": "={{ $json.message }}"
+        "session": "lajusmart",
+        "chatId": "={{ $('WhatsApp Outbox \u2014 Connect Provider Here').item.json.chatId }}",
+        "text": "={{ $('WhatsApp Outbox \u2014 Connect Provider Here').item.json.message }}",
+        "requestOptions": {}
       },
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        1200,
-        -432
+        1376,
+        -112
       ],
       "id": "e387ca20-7a36-412f-a2d4-e62898caa98e",
       "name": "WAHA",
@@ -268,14 +444,1140 @@
           "name": "WAHA account"
         }
       }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "16a0dd5b-33de-46d7-92e0-a5e9afd7b4c2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        -448
+      ],
+      "id": "c072368a-3936-4bf3-bbfb-04b3d6cbf6b9",
+      "name": "Webhook",
+      "webhookId": "16a0dd5b-33de-46d7-92e0-a5e9afd7b4c2"
+    },
+    {
+      "parameters": {
+        "url": "https://lajusmart.app/api/notifications/upcoming-briefings?force_all=true",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "bot-fetch-briefings",
+      "name": "Fetch All Briefings & Routes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        704,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://lajusmart.app/api/traffic/summary",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "bot-fetch-traffic",
+      "name": "Fetch City Traffic Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        928,
+        -448
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $('Filter Incoming Message Only').first().json;\nconst rawChatId = msg.chatId;\nconst userText = msg.textRaw;\nconst senderName = msg.senderName;\n\nconst briefings = $('Fetch All Briefings & Routes').all().flatMap(i => Array.isArray(i.json) ? i.json : [i.json]).filter(b => b && b.route_id);\nconst summary = $('Fetch City Traffic Summary').first()?.json || {};\nconst cameras = $('Fetch Live CCTV Traffic').all().flatMap(i => Array.isArray(i.json) ? i.json : [i.json]).filter(c => c && c.camera_id);\nconst potholes = $('Fetch Potholes Data').all().flatMap(i => Array.isArray(i.json) ? i.json : [i.json]).filter(p => p && p.id);\n\nconst cameraLines = cameras.map(c => \n  `\u2022 ${c.road_name} (${c.camera_name}): Status *${c.traffic_status}* | ${c.vehicles_per_minute} kend/menit | Tren: ${c.trend} | Total 5 mnt: ${c.total_count} (Motor:${c.motorcycle_count}, Mobil:${c.car_count}, Bus:${c.bus_count}, Truk:${c.truck_count})`\n).join('\\n');\n\nconst potholeLines = potholes.map(p =>\n  `\u2022 ${p.road_name}: Tingkat keparahan *${String(p.severity || '').toUpperCase()}* (Confidence: ${Math.round((p.confidence || 0)*100)}%, Status: ${p.status})`\n).join('\\n');\n\nconst routeLines = briefings.map(b =>\n  `\u2022 Rute \"${b.route_name}\" (Milik: ${b.user_name}, HP: ${b.phone_number}, Jadwal: ${b.scheduled_time} WIB) -> Status: *${b.overall_status}*\\n  Ringkasan Briefing:\\n${b.message}`\n).join('\\n\\n');\n\nconst systemContext = [\n  `=== DATA REAL-TIME SISTEM LAJU (PALEMBANG SMART ROAD MONITORING) ===`,\n  `[Ringkasan Kota]`,\n  `- CCTV Aktif: ${summary.cctv_online ?? cameras.length} titik`,\n  `- Total Kendaraan (5 menit terakhir): ${summary.vehicles_last_5_minutes ?? 0} kendaraan`,\n  `- Titik Koridor Padat/Macet: ${summary.congested_roads ?? 0} titik`,\n  `- Total Titik Jalan Berlubang Aktif: ${summary.detected_potholes ?? potholes.length} titik`,\n  `- Total Rute Terdaftar: ${summary.total_routes ?? briefings.length} rute`,\n  ``,\n  `[Detail Pantauan Tiap Kamera CCTV Real-Time]`,\n  cameraLines || 'Tidak ada data kamera.',\n  ``,\n  `[Detail Titik Jalan Berlubang (Potholes)]`,\n  potholeLines || 'Tidak ada jalan berlubang terdeteksi.',\n  ``,\n  `[Daftar Rute & Briefing Keberangkatan]`,\n  routeLines || 'Belum ada rute aktif.'\n].join('\\n');\n\nreturn [{\n  json: {\n    chatId: rawChatId,\n    senderName,\n    userText,\n    systemContext\n  }\n}];"
+      },
+      "id": "bot-process-command",
+      "name": "Build AI Context & Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "lajusmart",
+        "chatId": "={{ $('Filter Incoming Message Only').first().json.chatId }}",
+        "text": "={{ $('LAJU AI Chatbot Agent').first().json.output }}",
+        "requestOptions": {}
+      },
+      "id": "bot-waha-reply",
+      "name": "WAHA Bot Reply",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2624,
+        -448
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "hOB9qawRHJeUuy0x",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const wh = $input.first().json;\nconst body = wh.body || wh;\nconst payload = body.payload || {};\nconst data = payload._data || payload.data?._data || {};\n\nconst fromMe = Boolean(payload.fromMe ?? data.id?.fromMe ?? false);\nconst eventName = String(payload.event || body.event || '').trim();\n\n// Hanya izinkan persis event \"message\" (abaikan message.any, message.ack, session.status, dll)\nif (fromMe || eventName !== 'message') {\n  return [];\n}\n\nconst rawChatId = payload.from || data.from || data.id?.remote || '';\nconst messageId = payload.id || data.id?._serialized || '';\nconst textRaw = String(payload.body || data.body || '').trim();\nconst senderName = data.notifyName || payload._data?.notifyName || 'Sobat LAJU';\n\nif (!rawChatId || !textRaw) {\n  return [];\n}\n\nreturn [{\n  json: {\n    chatId: rawChatId,\n    messageId,\n    textRaw,\n    text: textRaw.toLowerCase(),\n    senderName,\n    readDelaySec: Math.floor(Math.random() * 2) + 1,\n    typingDelaySec: Math.floor(Math.random() * 3) + 2\n  }\n}];"
+      },
+      "id": "bot-filter-message",
+      "name": "Filter Incoming Message Only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://lajusmart.app/api/traffic/current",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "bot-fetch-cameras",
+      "name": "Fetch Live CCTV Traffic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1152,
+        -448
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "https://lajusmart.app/api/potholes",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "bot-fetch-potholes",
+      "name": "Fetch Potholes Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1376,
+        -448
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userText }}",
+        "options": {
+          "systemMessage": "={{ `Kamu adalah asisten WhatsApp sistem LAJU (Smart Road Palembang).\nWebsite: https://lajusmart.app\nUser: ${$json.senderName}\n\nDATA REAL-TIME SAAT INI:\n${$json.systemContext}\n\nATURAN MENJAWAB (PENTING - CLEAN & TO THE POINT):\n1. JANGAN PERNAH gunakan gaya bahasa klise/basa-basi AI (\"Tentu!\", \"Saya di sini...\", \"Ada yang bisa saya bantu?\", \"Halo Naufal! Saya siap membantu...\", \"Semoga harimu menyenangkan!\").\n2. Minimalkan emoji. Maksimal 1-2 emoji fungsional per pesan (misal titik status atau rute). Jangan spam emoji di setiap baris.\n3. Jawaban harus padat, ringkas, langsung ke inti fakta, dan natural seperti customer service profesional manusia.\n4. Jika user menyapa singkat (halo/p/tes/pagi/siang):\n   Balas singkat dalam 2-3 baris saja. Sebutkan ringkasan kondisi lalin Palembang saat ini (berapa titik padat & lancar), lalu infokan bahwa user bisa tanya kondisi jalan atau rute tertentu.\n5. Jika user tanya kondisi jalan tertentu (misal Sudirman, Demang, dll):\n   Langsung sebutkan statusnya (*LANCAR*, *PADAT*, atau *MACET*), kecepatan/volume kendaraan, trennya, dan apakah ada lubang di jalan tersebut sesuai data. Tidak perlu bertele-tele.\n6. Jika user tanya rute/briefing:\n   Tampilkan ringkasan rute dan kondisi jalurnya secara jelas dan rapi.\n7. Gunakan format WhatsApp bold (*teks*) dan bullet (-) seperlunya agar mudah dibaca di layar HP.` }}",
+          "maxIterations": 3
+        }
+      },
+      "id": "bot-ai-agent",
+      "name": "LAJU AI Chatbot Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1824,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Filter Incoming Message Only').first().json.chatId }}"
+      },
+      "id": "bot-chat-memory",
+      "name": "Chat Memory (Per Nomor WA)",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1960,
+        -216
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "session": "lajusmart",
+        "chatId": "={{ $('Filter Incoming Message Only').first().json.chatId }}",
+        "messageId": "={{ $('Filter Incoming Message Only').first().json.messageId }}",
+        "requestOptions": {}
+      },
+      "id": "bot-send-seen",
+      "name": "Tandai Dibaca (Send Seen)",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        256,
+        -448
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "wahaApi": {
+          "id": "hOB9qawRHJeUuy0x",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "lajusmart",
+        "chatId": "={{ $('Filter Incoming Message Only').first().json.chatId }}",
+        "requestOptions": {}
+      },
+      "id": "bot-start-typing",
+      "name": "Mulai Mengetik (Start Typing)",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        480,
+        -448
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "wahaApi": {
+          "id": "hOB9qawRHJeUuy0x",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Stop Typing",
+        "session": "lajusmart",
+        "chatId": "={{ $('Filter Incoming Message Only').first().json.chatId }}",
+        "requestOptions": {}
+      },
+      "id": "bot-stop-typing",
+      "name": "Berhenti Mengetik (Stop Typing)",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2400,
+        -448
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "wahaApi": {
+          "id": "hOB9qawRHJeUuy0x",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "lajusmart",
+        "chatId": "={{ $json.chatId }}",
+        "requestOptions": {}
+      },
+      "id": "sched-start-typing",
+      "name": "Mulai Mengetik Jadwal (WAHA)",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        704,
+        -112
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "wahaApi": {
+          "id": "hOB9qawRHJeUuy0x",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "sched-wait-typing",
+      "name": "Jeda Mengetik Jadwal (3 dtk)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        928,
+        -112
+      ],
+      "webhookId": "9d43826a-ebc3-4e20-b7ab-d170b10c844a"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Stop Typing",
+        "session": "lajusmart",
+        "chatId": "={{ $('WhatsApp Outbox \u2014 Connect Provider Here').item.json.chatId }}",
+        "requestOptions": {}
+      },
+      "id": "sched-stop-typing",
+      "name": "Stop Mengetik Jadwal (WAHA)",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1152,
+        -112
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "wahaApi": {
+          "id": "hOB9qawRHJeUuy0x",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "auto/deepseek",
+          "mode": "list",
+          "value": "auto/deepseek"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1832,
+        -216
+      ],
+      "id": "29998574-db6b-4f57-a4a7-d1f25760d23f",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "CwIw6hU71jiB4pYC",
+          "name": "OpenAI account"
+        }
+      }
     }
   ],
   "nodeGroups": [],
-  "activeVersion": null,
+  "activeVersion": {
+    "nodes": [
+      {
+        "parameters": {
+          "url": "https://lajusmart.app/api/routes",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        "id": "1b569583-d4c9-49d5-bf07-11ce5d33b7e7",
+        "name": "Get Active Routes",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          -192,
+          -112
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const nowParts = new Intl.DateTimeFormat('en-GB', {\n  timeZone: 'Asia/Jakarta',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: false,\n}).formatToParts(new Date());\nconst hour = nowParts.find((part) => part.type === 'hour')?.value ?? '';\nconst minute = nowParts.find((part) => part.type === 'minute')?.value ?? '';\nconst now = hour + ':' + minute;\nconst routes = $input.all().flatMap((item) =>\n  Array.isArray(item.json) ? item.json : [item.json],\n);\n\nreturn routes\n  .filter((route) => {\n    const fallback =\n      route.route_type === 'commute_to_work'\n        ? '06:45'\n        : route.route_type === 'commute_home'\n          ? '16:45'\n          : '';\n    const scheduledFor = String(route.notification_time || fallback).slice(0, 5);\n    return route.is_active === true && scheduledFor === now;\n  })\n  .map((route) => ({ json: route }));"
+        },
+        "id": "0c8f807a-5084-40b1-beb5-fbaf8fff6c67",
+        "name": "Filter Routes Due Now",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          32,
+          -112
+        ]
+      },
+      {
+        "parameters": {
+          "url": "=https://lajusmart.app/api/routes/{{ $json.id }}/briefing",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        "id": "8b40da4d-1e2a-4c5a-a5c3-13257ce1e154",
+        "name": "Get Deterministic Briefing",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          256,
+          -112
+        ]
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "channel",
+                "name": "channel",
+                "value": "whatsapp",
+                "type": "string"
+              },
+              {
+                "id": "delivery-status",
+                "name": "delivery_status",
+                "value": "ready_to_send",
+                "type": "string"
+              },
+              {
+                "id": "recipient-user-id",
+                "name": "recipient_user_id",
+                "value": "={{ $(\"Filter Routes Due Now\").item.json.user_id }}",
+                "type": "number"
+              },
+              {
+                "id": "recipient-phone",
+                "name": "recipient_phone",
+                "value": "={{ $json.phone_number || $(\"Filter Routes Due Now\").item.json.phone_number || \"081234567890\" }}",
+                "type": "string"
+              },
+              {
+                "id": "chatId",
+                "name": "chatId",
+                "value": "={{ (($json.phone_number || $(\"Filter Routes Due Now\").item.json.phone_number || \"081234567890\").replace(/\\D/g, \"\").replace(/^0/, \"62\")) + \"@c.us\" }}",
+                "type": "string"
+              },
+              {
+                "id": "route-id",
+                "name": "route_id",
+                "value": "={{ $json.route_id }}",
+                "type": "number"
+              },
+              {
+                "id": "route-name",
+                "name": "route_name",
+                "value": "={{ $json.route_name }}",
+                "type": "string"
+              },
+              {
+                "id": "message",
+                "name": "message",
+                "value": "={{ $json.message }}",
+                "type": "string"
+              },
+              {
+                "id": "overall-status",
+                "name": "overall_status",
+                "value": "={{ $json.overall_status }}",
+                "type": "string"
+              },
+              {
+                "id": "generated-at",
+                "name": "generated_at",
+                "value": "={{ $json.generated_at }}",
+                "type": "string"
+              },
+              {
+                "id": "ready-to-send",
+                "name": "ready_to_send",
+                "value": true,
+                "type": "boolean"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "1f594f91-e03d-4c61-923e-534d7a43c4d0",
+        "name": "WhatsApp Outbox \u2014 Connect Provider Here",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.5,
+        "position": [
+          480,
+          -112
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## Sambungkan WhatsApp nanti\nTambahkan node provider WhatsApp setelah outbox ini. Petakan nomor tujuan dan field message, ubah ready_to_send setelah konfigurasi tervalidasi, lalu publish workflow.",
+          "height": 200,
+          "width": 300,
+          "color": 5
+        },
+        "id": "f0042bd2-57bb-43b6-85f2-cf6a23abe6e2",
+        "name": "Sticky Note 89112654",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          144,
+          128
+        ]
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 1
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3,
+        "position": [
+          -416,
+          -112
+        ],
+        "id": "c35126c2-bc7f-4e88-8d67-1542534ccf52",
+        "name": "Schedule Trigger"
+      },
+      {
+        "parameters": {
+          "resource": "Chatting",
+          "operation": "Send Text",
+          "session": "lajusmart",
+          "chatId": "={{ $('WhatsApp Outbox \u2014 Connect Provider Here').item.json.chatId }}",
+          "text": "={{ $('WhatsApp Outbox \u2014 Connect Provider Here').item.json.message }}",
+          "requestOptions": {}
+        },
+        "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+        "typeVersion": 202502,
+        "position": [
+          1376,
+          -112
+        ],
+        "id": "e387ca20-7a36-412f-a2d4-e62898caa98e",
+        "name": "WAHA",
+        "credentials": {
+          "wahaApi": {
+            "id": "hOB9qawRHJeUuy0x",
+            "name": "WAHA account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "16a0dd5b-33de-46d7-92e0-a5e9afd7b4c2",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -416,
+          -448
+        ],
+        "id": "c072368a-3936-4bf3-bbfb-04b3d6cbf6b9",
+        "name": "Webhook",
+        "webhookId": "16a0dd5b-33de-46d7-92e0-a5e9afd7b4c2"
+      },
+      {
+        "parameters": {
+          "url": "https://lajusmart.app/api/notifications/upcoming-briefings?force_all=true",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        "id": "bot-fetch-briefings",
+        "name": "Fetch All Briefings & Routes",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          704,
+          -448
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://lajusmart.app/api/traffic/summary",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        "id": "bot-fetch-traffic",
+        "name": "Fetch City Traffic Summary",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          928,
+          -448
+        ],
+        "executeOnce": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const msg = $('Filter Incoming Message Only').first().json;\nconst rawChatId = msg.chatId;\nconst userText = msg.textRaw;\nconst senderName = msg.senderName;\n\nconst briefings = $('Fetch All Briefings & Routes').all().flatMap(i => Array.isArray(i.json) ? i.json : [i.json]).filter(b => b && b.route_id);\nconst summary = $('Fetch City Traffic Summary').first()?.json || {};\nconst cameras = $('Fetch Live CCTV Traffic').all().flatMap(i => Array.isArray(i.json) ? i.json : [i.json]).filter(c => c && c.camera_id);\nconst potholes = $('Fetch Potholes Data').all().flatMap(i => Array.isArray(i.json) ? i.json : [i.json]).filter(p => p && p.id);\n\nconst cameraLines = cameras.map(c => \n  `\u2022 ${c.road_name} (${c.camera_name}): Status *${c.traffic_status}* | ${c.vehicles_per_minute} kend/menit | Tren: ${c.trend} | Total 5 mnt: ${c.total_count} (Motor:${c.motorcycle_count}, Mobil:${c.car_count}, Bus:${c.bus_count}, Truk:${c.truck_count})`\n).join('\\n');\n\nconst potholeLines = potholes.map(p =>\n  `\u2022 ${p.road_name}: Tingkat keparahan *${String(p.severity || '').toUpperCase()}* (Confidence: ${Math.round((p.confidence || 0)*100)}%, Status: ${p.status})`\n).join('\\n');\n\nconst routeLines = briefings.map(b =>\n  `\u2022 Rute \"${b.route_name}\" (Milik: ${b.user_name}, HP: ${b.phone_number}, Jadwal: ${b.scheduled_time} WIB) -> Status: *${b.overall_status}*\\n  Ringkasan Briefing:\\n${b.message}`\n).join('\\n\\n');\n\nconst systemContext = [\n  `=== DATA REAL-TIME SISTEM LAJU (PALEMBANG SMART ROAD MONITORING) ===`,\n  `[Ringkasan Kota]`,\n  `- CCTV Aktif: ${summary.cctv_online ?? cameras.length} titik`,\n  `- Total Kendaraan (5 menit terakhir): ${summary.vehicles_last_5_minutes ?? 0} kendaraan`,\n  `- Titik Koridor Padat/Macet: ${summary.congested_roads ?? 0} titik`,\n  `- Total Titik Jalan Berlubang Aktif: ${summary.detected_potholes ?? potholes.length} titik`,\n  `- Total Rute Terdaftar: ${summary.total_routes ?? briefings.length} rute`,\n  ``,\n  `[Detail Pantauan Tiap Kamera CCTV Real-Time]`,\n  cameraLines || 'Tidak ada data kamera.',\n  ``,\n  `[Detail Titik Jalan Berlubang (Potholes)]`,\n  potholeLines || 'Tidak ada jalan berlubang terdeteksi.',\n  ``,\n  `[Daftar Rute & Briefing Keberangkatan]`,\n  routeLines || 'Belum ada rute aktif.'\n].join('\\n');\n\nreturn [{\n  json: {\n    chatId: rawChatId,\n    senderName,\n    userText,\n    systemContext\n  }\n}];"
+        },
+        "id": "bot-process-command",
+        "name": "Build AI Context & Prompt",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1600,
+          -448
+        ]
+      },
+      {
+        "parameters": {
+          "resource": "Chatting",
+          "operation": "Send Text",
+          "session": "lajusmart",
+          "chatId": "={{ $('Filter Incoming Message Only').first().json.chatId }}",
+          "text": "={{ $('LAJU AI Chatbot Agent').first().json.output }}",
+          "requestOptions": {}
+        },
+        "id": "bot-waha-reply",
+        "name": "WAHA Bot Reply",
+        "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+        "typeVersion": 202502,
+        "position": [
+          2624,
+          -448
+        ],
+        "credentials": {
+          "wahaApi": {
+            "id": "hOB9qawRHJeUuy0x",
+            "name": "WAHA account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const wh = $input.first().json;\nconst body = wh.body || wh;\nconst payload = body.payload || {};\nconst data = payload._data || payload.data?._data || {};\n\nconst fromMe = Boolean(payload.fromMe ?? data.id?.fromMe ?? false);\nconst eventName = String(payload.event || body.event || '').trim();\n\n// Hanya izinkan persis event \"message\" (abaikan message.any, message.ack, session.status, dll)\nif (fromMe || eventName !== 'message') {\n  return [];\n}\n\nconst rawChatId = payload.from || data.from || data.id?.remote || '';\nconst messageId = payload.id || data.id?._serialized || '';\nconst textRaw = String(payload.body || data.body || '').trim();\nconst senderName = data.notifyName || payload._data?.notifyName || 'Sobat LAJU';\n\nif (!rawChatId || !textRaw) {\n  return [];\n}\n\nreturn [{\n  json: {\n    chatId: rawChatId,\n    messageId,\n    textRaw,\n    text: textRaw.toLowerCase(),\n    senderName,\n    readDelaySec: Math.floor(Math.random() * 2) + 1,\n    typingDelaySec: Math.floor(Math.random() * 3) + 2\n  }\n}];"
+        },
+        "id": "bot-filter-message",
+        "name": "Filter Incoming Message Only",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -192,
+          -448
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://lajusmart.app/api/traffic/current",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        "id": "bot-fetch-cameras",
+        "name": "Fetch Live CCTV Traffic",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          1152,
+          -448
+        ],
+        "executeOnce": true
+      },
+      {
+        "parameters": {
+          "url": "https://lajusmart.app/api/potholes",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        "id": "bot-fetch-potholes",
+        "name": "Fetch Potholes Data",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          1376,
+          -448
+        ],
+        "executeOnce": true
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.userText }}",
+          "options": {
+            "systemMessage": "={{ `Kamu adalah asisten WhatsApp sistem LAJU (Smart Road Palembang).\nWebsite: https://lajusmart.app\nUser: ${$json.senderName}\n\nDATA REAL-TIME SAAT INI:\n${$json.systemContext}\n\nATURAN MENJAWAB (PENTING - CLEAN & TO THE POINT):\n1. JANGAN PERNAH gunakan gaya bahasa klise/basa-basi AI (\"Tentu!\", \"Saya di sini...\", \"Ada yang bisa saya bantu?\", \"Halo Naufal! Saya siap membantu...\", \"Semoga harimu menyenangkan!\").\n2. Minimalkan emoji. Maksimal 1-2 emoji fungsional per pesan (misal titik status atau rute). Jangan spam emoji di setiap baris.\n3. Jawaban harus padat, ringkas, langsung ke inti fakta, dan natural seperti customer service profesional manusia.\n4. Jika user menyapa singkat (halo/p/tes/pagi/siang):\n   Balas singkat dalam 2-3 baris saja. Sebutkan ringkasan kondisi lalin Palembang saat ini (berapa titik padat & lancar), lalu infokan bahwa user bisa tanya kondisi jalan atau rute tertentu.\n5. Jika user tanya kondisi jalan tertentu (misal Sudirman, Demang, dll):\n   Langsung sebutkan statusnya (*LANCAR*, *PADAT*, atau *MACET*), kecepatan/volume kendaraan, trennya, dan apakah ada lubang di jalan tersebut sesuai data. Tidak perlu bertele-tele.\n6. Jika user tanya rute/briefing:\n   Tampilkan ringkasan rute dan kondisi jalurnya secara jelas dan rapi.\n7. Gunakan format WhatsApp bold (*teks*) dan bullet (-) seperlunya agar mudah dibaca di layar HP.` }}",
+            "maxIterations": 3
+          }
+        },
+        "id": "bot-ai-agent",
+        "name": "LAJU AI Chatbot Agent",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3.1,
+        "position": [
+          1824,
+          -448
+        ]
+      },
+      {
+        "parameters": {
+          "sessionIdType": "customKey",
+          "sessionKey": "={{ $('Filter Incoming Message Only').first().json.chatId }}"
+        },
+        "id": "bot-chat-memory",
+        "name": "Chat Memory (Per Nomor WA)",
+        "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "typeVersion": 1.4,
+        "position": [
+          1960,
+          -216
+        ]
+      },
+      {
+        "parameters": {
+          "resource": "Chatting",
+          "operation": "Send Seen",
+          "session": "lajusmart",
+          "chatId": "={{ $('Filter Incoming Message Only').first().json.chatId }}",
+          "messageId": "={{ $('Filter Incoming Message Only').first().json.messageId }}",
+          "requestOptions": {}
+        },
+        "id": "bot-send-seen",
+        "name": "Tandai Dibaca (Send Seen)",
+        "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+        "typeVersion": 202502,
+        "position": [
+          256,
+          -448
+        ],
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "wahaApi": {
+            "id": "hOB9qawRHJeUuy0x",
+            "name": "WAHA account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "resource": "Chatting",
+          "operation": "Start Typing",
+          "session": "lajusmart",
+          "chatId": "={{ $('Filter Incoming Message Only').first().json.chatId }}",
+          "requestOptions": {}
+        },
+        "id": "bot-start-typing",
+        "name": "Mulai Mengetik (Start Typing)",
+        "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+        "typeVersion": 202502,
+        "position": [
+          480,
+          -448
+        ],
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "wahaApi": {
+            "id": "hOB9qawRHJeUuy0x",
+            "name": "WAHA account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "resource": "Chatting",
+          "operation": "Stop Typing",
+          "session": "lajusmart",
+          "chatId": "={{ $('Filter Incoming Message Only').first().json.chatId }}",
+          "requestOptions": {}
+        },
+        "id": "bot-stop-typing",
+        "name": "Berhenti Mengetik (Stop Typing)",
+        "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+        "typeVersion": 202502,
+        "position": [
+          2400,
+          -448
+        ],
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "wahaApi": {
+            "id": "hOB9qawRHJeUuy0x",
+            "name": "WAHA account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "resource": "Chatting",
+          "operation": "Start Typing",
+          "session": "lajusmart",
+          "chatId": "={{ $json.chatId }}",
+          "requestOptions": {}
+        },
+        "id": "sched-start-typing",
+        "name": "Mulai Mengetik Jadwal (WAHA)",
+        "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+        "typeVersion": 202502,
+        "position": [
+          704,
+          -112
+        ],
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "wahaApi": {
+            "id": "hOB9qawRHJeUuy0x",
+            "name": "WAHA account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "amount": 3
+        },
+        "id": "sched-wait-typing",
+        "name": "Jeda Mengetik Jadwal (3 dtk)",
+        "type": "n8n-nodes-base.wait",
+        "typeVersion": 1.1,
+        "position": [
+          928,
+          -112
+        ],
+        "webhookId": "9d43826a-ebc3-4e20-b7ab-d170b10c844a"
+      },
+      {
+        "parameters": {
+          "resource": "Chatting",
+          "operation": "Stop Typing",
+          "session": "lajusmart",
+          "chatId": "={{ $('WhatsApp Outbox \u2014 Connect Provider Here').item.json.chatId }}",
+          "requestOptions": {}
+        },
+        "id": "sched-stop-typing",
+        "name": "Stop Mengetik Jadwal (WAHA)",
+        "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+        "typeVersion": 202502,
+        "position": [
+          1152,
+          -112
+        ],
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "wahaApi": {
+            "id": "hOB9qawRHJeUuy0x",
+            "name": "WAHA account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "cachedResultName": "auto/deepseek",
+            "mode": "list",
+            "value": "auto/deepseek"
+          },
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.3,
+        "position": [
+          1832,
+          -216
+        ],
+        "id": "29998574-db6b-4f57-a4a7-d1f25760d23f",
+        "name": "OpenAI Chat Model",
+        "credentials": {
+          "openAiApi": {
+            "id": "CwIw6hU71jiB4pYC",
+            "name": "OpenAI account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Get Active Routes": {
+        "main": [
+          [
+            {
+              "node": "Filter Routes Due Now",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Routes Due Now": {
+        "main": [
+          [
+            {
+              "node": "Get Deterministic Briefing",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Deterministic Briefing": {
+        "main": [
+          [
+            {
+              "node": "WhatsApp Outbox \u2014 Connect Provider Here",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Get Active Routes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch All Briefings & Routes": {
+        "main": [
+          [
+            {
+              "node": "Fetch City Traffic Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Filter Incoming Message Only",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch City Traffic Summary": {
+        "main": [
+          [
+            {
+              "node": "Fetch Live CCTV Traffic",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Live CCTV Traffic": {
+        "main": [
+          [
+            {
+              "node": "Fetch Potholes Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch Potholes Data": {
+        "main": [
+          [
+            {
+              "node": "Build AI Context & Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build AI Context & Prompt": {
+        "main": [
+          [
+            {
+              "node": "LAJU AI Chatbot Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Chat Memory (Per Nomor WA)": {
+        "ai_memory": [
+          [
+            {
+              "node": "LAJU AI Chatbot Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tandai Dibaca (Send Seen)": {
+        "main": [
+          [
+            {
+              "node": "Mulai Mengetik (Start Typing)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mulai Mengetik (Start Typing)": {
+        "main": [
+          [
+            {
+              "node": "Fetch All Briefings & Routes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Berhenti Mengetik (Stop Typing)": {
+        "main": [
+          [
+            {
+              "node": "WAHA Bot Reply",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "WhatsApp Outbox \u2014 Connect Provider Here": {
+        "main": [
+          [
+            {
+              "node": "Mulai Mengetik Jadwal (WAHA)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mulai Mengetik Jadwal (WAHA)": {
+        "main": [
+          [
+            {
+              "node": "Jeda Mengetik Jadwal (3 dtk)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Jeda Mengetik Jadwal (3 dtk)": {
+        "main": [
+          [
+            {
+              "node": "Stop Mengetik Jadwal (WAHA)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Stop Mengetik Jadwal (WAHA)": {
+        "main": [
+          [
+            {
+              "node": "WAHA",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenAI Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "LAJU AI Chatbot Agent",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filter Incoming Message Only": {
+        "main": [
+          [
+            {
+              "node": "Tandai Dibaca (Send Seen)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "LAJU AI Chatbot Agent": {
+        "main": [
+          [
+            {
+              "node": "Berhenti Mengetik (Stop Typing)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": []
+  },
   "tags": [],
   "meta": {
     "aiBuilderAssisted": true,
-    "builderVariant": "mcp"
+    "builderVariant": "mcp",
+    "templateCredsSetupCompleted": true
   },
   "parentFolderId": null,
   "description": "Scheduled Smart Road commute briefing workflow. Fetches active routes, selects due routes in Asia/Jakarta, builds deterministic briefings, and stops at a WhatsApp-ready outbox without sending.",

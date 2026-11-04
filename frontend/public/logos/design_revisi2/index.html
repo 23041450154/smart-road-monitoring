@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>LAJU Palembang — Revisi 2 — Monogram L + Kamera CCTV</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #060911;
+      color: #F8FAFC;
+      padding: 48px 24px 80px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .badge-top {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 10px;
+      color: #FFFFFF;
+    }
+    p.subtitle {
+      color: #94A3B8;
+      font-size: 1rem;
+      max-width: 740px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .folder-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 44px;
+    }
+    .folder-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #0D1322;
+      color: #CBD5E1;
+      border: 1px solid #1E293B;
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .folder-link:hover, .folder-link.active {
+      background: rgba(16, 185, 129, 0.14);
+      color: #34D399;
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+    .section-divider {
+      margin: 48px 0 24px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #1E293B;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .section-divider h2 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #F8FAFC;
+      letter-spacing: -0.02em;
+    }
+    .section-divider span {
+      font-size: 0.8rem;
+      color: #64748B;
+      font-family: monospace;
+      background: #0D1322;
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid #1E293B;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(540px, 1fr));
+      gap: 28px;
+    }
+    .card {
+      background: #0D1322;
+      border: 1px solid #1E293B;
+      border-radius: 20px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card.recommended {
+      border-color: #10B981;
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.25), 0 20px 40px -15px rgba(16, 185, 129, 0.12);
+    }
+    .preview-row {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .preview-box {
+      background: #080C16;
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #162032;
+      gap: 10px;
+    }
+    .preview-box span {
+      font-size: 0.68rem;
+      color: #64748B;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .preview-box img.icon-only {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+    }
+    .preview-box img.full-lockup {
+      width: 100%;
+      max-height: 92px;
+      object-fit: contain;
+    }
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #F8FAFC;
+    }
+    .badge {
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-weight: 700;
+      background: #1E293B;
+      color: #38BDF8;
+      letter-spacing: 0.04em;
+    }
+    .badge.rec {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .desc {
+      color: #94A3B8;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .files {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: #94A3B8;
+      font-family: monospace;
+      background: #070A12;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #162032;
+    }
+    .files a {
+      color: #38BDF8;
+      text-decoration: none;
+      background: rgba(56, 189, 248, 0.08);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .files a:hover {
+      background: rgba(56, 189, 248, 0.18);
+    }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge-top">FOLDER: logos/design_revisi2/</div>
+    <h1>LAJU Palembang — Revisi 2 — Monogram L + Kamera CCTV</h1>
+    <p class="subtitle">Menampilkan seluruh file SVG dan PNG di dalam folder <code>logos/design_revisi2/</code>.</p>
+  </div>
+  
+  <div class="folder-nav">
+    <a class="folder-link " href="../index.html">📁 Semua Revisi (Root)</a>
+    <a class="folder-link " href="../design_awal/index.html">📁 design_awal/</a>
+    <a class="folder-link " href="../design_revisi1/index.html">📁 design_revisi1/ (Clean L)</a>
+    <a class="folder-link active" href="../design_revisi2/index.html">📁 design_revisi2/ (L + CCTV)</a>
+    <a class="folder-link " href="../design_revisi3/index.html">📁 design_revisi3/ (L + CCTV + Mobil)</a>
+    <a class="folder-link " href="../design_revisi4/index.html">📁 design_revisi4/ (L + CCTV + Mobil + Deteksi Objek YOLO)</a>
+  </div>
+
+  <div class="section-divider">
+    <h2>2. Folder: design_revisi2/ (Monogram L + Kamera CCTV)</h2>
+    <span>logos/design_revisi2/</span>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="konsep-1-ampera-flow.svg" alt="Ampera CCTV Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="konsep-1-ampera-flow-full.svg" alt="Ampera CCTV Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 1: Ampera Pylon + CCTV</div>
+        <div class="badge">REVISI 2 (L + CCTV)</div>
+      </div>
+      <div class="desc">Pilar Jembatan Ampera membentuk huruf L dengan kamera CCTV di puncak menara yang menyorot ke lajur jalan.</div>
+      <div class="files">
+        <a href="konsep-1-ampera-flow.svg" target="_blank">konsep-1-ampera-flow.svg</a>
+        <a href="konsep-1-ampera-flow.png" target="_blank">konsep-1-ampera-flow.png</a>
+        <a href="konsep-1-ampera-flow-full.svg" target="_blank">konsep-1-ampera-flow-full.svg</a>
+        <a href="konsep-1-ampera-flow-full.png" target="_blank">konsep-1-ampera-flow-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="konsep-2-ai-radar.svg" alt="YOLO Vision CCTV Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="konsep-2-ai-radar-full.svg" alt="YOLO Vision CCTV Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 2: YOLO Vision + CCTV</div>
+        <div class="badge">REVISI 2 (L + CCTV)</div>
+      </div>
+      <div class="desc">Sudut Bounding Box membentuk huruf L dipadukan dengan kamera CCTV ber-LED indikator merah dan titik deteksi kendaraan.</div>
+      <div class="files">
+        <a href="konsep-2-ai-radar.svg" target="_blank">konsep-2-ai-radar.svg</a>
+        <a href="konsep-2-ai-radar.png" target="_blank">konsep-2-ai-radar.png</a>
+        <a href="konsep-2-ai-radar-full.svg" target="_blank">konsep-2-ai-radar-full.svg</a>
+        <a href="konsep-2-ai-radar-full.png" target="_blank">konsep-2-ai-radar-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="konsep-3-green-wave.svg" alt="Green Wave CCTV Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="konsep-3-green-wave-full.svg" alt="Green Wave CCTV Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 3: Green Wave Ribbon + CCTV</div>
+        <div class="badge">REVISI 2 (L + CCTV)</div>
+      </div>
+      <div class="desc">Pita lajur membentuk huruf L dengan kamera CCTV terintegrasi di tiang atas yang memancarkan sinar pemindai ke arah lajur bawah.</div>
+      <div class="files">
+        <a href="konsep-3-green-wave.svg" target="_blank">konsep-3-green-wave.svg</a>
+        <a href="konsep-3-green-wave.png" target="_blank">konsep-3-green-wave.png</a>
+        <a href="konsep-3-green-wave-full.svg" target="_blank">konsep-3-green-wave-full.svg</a>
+        <a href="konsep-3-green-wave-full.png" target="_blank">konsep-3-green-wave-full.png</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="preview-row">
+        <div class="preview-box">
+          <img class="icon-only" src="konsep-4-hexa-core.svg" alt="Isometric CCTV Icon">
+          <span>App Icon</span>
+        </div>
+        <div class="preview-box">
+          <img class="full-lockup" src="konsep-4-hexa-core-full.svg" alt="Isometric CCTV Full">
+          <span>Full Brand Lockup</span>
+        </div>
+      </div>
+      <div class="title-row">
+        <div class="title">Konsep 4: Isometric Junction + CCTV</div>
+        <div class="badge">REVISI 2 (L + CCTV)</div>
+      </div>
+      <div class="desc">Blok simpang 3D isometrik membentuk L dengan kamera CCTV pengawas dan tiga node indikator lampu lalu lintas.</div>
+      <div class="files">
+        <a href="konsep-4-hexa-core.svg" target="_blank">konsep-4-hexa-core.svg</a>
+        <a href="konsep-4-hexa-core.png" target="_blank">konsep-4-hexa-core.png</a>
+        <a href="konsep-4-hexa-core-full.svg" target="_blank">konsep-4-hexa-core-full.svg</a>
+        <a href="konsep-4-hexa-core-full.png" target="_blank">konsep-4-hexa-core-full.png</a>
+      </div>
+    </div>
+  </div>
+
+
+</body>
+</html>

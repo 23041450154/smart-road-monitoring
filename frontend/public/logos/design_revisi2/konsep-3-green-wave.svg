@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="#071318" />
+  <rect x="26" y="26" width="460" height="460" rx="102" fill="none" stroke="#1E293B" stroke-width="4" />
+  <!-- Outer Arterial Lane (Cobalt Blue #2563EB) -->
+  <path d="M 129.6 108.0 L 179.6 108.0 L 157.9 314.0 Q 154.1 350.0 190.1 350.0 L 300.1 350.0 L 256.9 400.0 L 170.9 400.0 Q 98.9 400.0 106.4 328.0 Z" fill="#2563EB" />
+
+  <!-- Inner Green Wave Express Lane (Emerald #10B981) -->
+  <path d="M 195.6 108.0 L 245.6 108.0 L 228.9 266.0 Q 227.3 282.0 243.3 282.0 L 269.3 282.0 L 301.8 334.0 L 207.8 334.0 Q 171.8 334.0 175.6 298.0 Z" fill="#10B981" />
+
+  <!-- Monumental Forward Chevron Terminal -->
+  <polygon points="287.3,282.0 343.3,282.0 381.1,341.0 330.9,400.0 274.9,400.0 325.1,341.0" fill="#34D399" />
+
+  <!-- CCTV Mounting Arm (16px Negative Space Gap from Green Lane at x=248) -->
+  <polygon points="248,162 280,162 272,182 246,182" fill="#38BDF8" />
+
+  <!-- Geometric Bullet CCTV Camera Watching Over the Green Wave Corridor -->
+  <polygon points="291.7,115.8 416.6,166.2 397.6,180.5 284.1,134.7" fill="#10B981" />
+  <polygon points="286.7,144.5 379.4,182.0 351.2,219.0 283.1,191.5 275.3,172.9" fill="#FFFFFF" />
+  <polygon points="383.5,188.0 398.7,194.2 375.5,224.4 360.3,218.3" fill="#38BDF8" />
+</svg>
