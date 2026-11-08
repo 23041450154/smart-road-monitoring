@@ -289,6 +289,7 @@ class ThreadedCameraReader:
         self.running = True
         self.lock = threading.Lock()
         self._queue: queue.Queue[tuple[np.ndarray, int]] = queue.Queue(maxsize=30)
+        self._primed: bool = False
         self._proc: subprocess.Popen | None = None
         self.thread = threading.Thread(
             target=self._reader_loop,
@@ -325,6 +326,7 @@ class ThreadedCameraReader:
                 "ffmpeg",
                 "-loglevel", "error",
                 "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "-live_start_index", "-4",
                 "-re",
                 "-http_persistent", "1",
                 "-http_multiple", "1",
@@ -503,7 +505,12 @@ class ThreadedCameraReader:
             except Exception:
                 pass
 
-    def read(self, timeout: float = 0.040) -> tuple[np.ndarray | None, int]:
+    def read(self, timeout: float = 0.050) -> tuple[np.ndarray | None, int]:
+        if not self._primed:
+            start_w = time.monotonic()
+            while self._queue.qsize() < 5 and (time.monotonic() - start_w < 0.6) and self.running:
+                time.sleep(0.02)
+            self._primed = True
         try:
             return self._queue.get(timeout=timeout)
         except queue.Empty:
@@ -779,9 +786,17 @@ class CameraStreamWorker:
                 except Exception as exc:
                     logging.getLogger("traffic-worker").warning("Error annotating/encoding frame: %s", exc)
 
-                # Smooth wall-clock pacing: maintain rock-solid ~15 FPS cadence without bursts or stalls
+                # Adaptive jitter pacing: maintain rock-solid ~15 FPS cadence (66.7ms)
+                # Dynamically adjusts pacing within ±5ms based on queue depth to prevent both underflow and latency buildup
+                qsize = reader._queue.qsize()
+                if qsize > 12:
+                    target_interval = 0.058  # gently drain surplus frames
+                elif qsize < 3:
+                    target_interval = 0.072  # gently protect queue from starvation
+                else:
+                    target_interval = 0.0667  # 15.0 FPS standard
+
                 elapsed = time.monotonic() - loop_start
-                target_interval = 0.066  # ~15.0 FPS (matches Diskominfo camera 15 fps)
                 if elapsed < target_interval:
                     time.sleep(target_interval - elapsed)
         finally:
