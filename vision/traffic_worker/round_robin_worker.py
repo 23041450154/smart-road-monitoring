@@ -122,15 +122,18 @@ def save_camera_window(
     )
 
 
-def resolve_model_path(path_str: str = "yolo11n.pt") -> str:
+def resolve_model_path(path_str: str = "yolo11s.pt") -> str:
     """Robustly resolves YOLO model path across local host, docker, and project roots."""
     candidates = [
+        PROJECT_ROOT / "yolo11s_openvino_model",
+        Path("/app/yolo11s_openvino_model"),
         PROJECT_ROOT / "yolo11n_openvino_model",
         Path("/app/yolo11n_openvino_model"),
         Path(path_str),
         PROJECT_ROOT / path_str,
         Path("/app") / path_str,
         Path("/") / path_str,
+        PROJECT_ROOT / "yolo11s.pt",
         PROJECT_ROOT / "yolo11n.pt",
     ]
     for c in candidates:
@@ -142,8 +145,8 @@ def resolve_model_path(path_str: str = "yolo11n.pt") -> str:
 def sample_camera(
     camera_id: int,
     duration_seconds: int = 120,
-    model_path: str = "yolo11n.pt",
-    confidence: float = 0.20,
+    model_path: str = "yolo11s.pt",
+    confidence: float = 0.18,
 ) -> None:
     """Samples a single camera for duration_seconds, then cleanly disconnects."""
     effective_model = resolve_model_path(model_path)
