@@ -288,7 +288,7 @@ class ThreadedCameraReader:
         self.is_fallback: bool = False
         self.running = True
         self.lock = threading.Lock()
-        self._queue: queue.Queue[tuple[np.ndarray, int]] = queue.Queue(maxsize=15)
+        self._queue: queue.Queue[tuple[np.ndarray, int]] = queue.Queue(maxsize=30)
         self._proc: subprocess.Popen | None = None
         self.thread = threading.Thread(
             target=self._reader_loop,
@@ -326,9 +326,8 @@ class ThreadedCameraReader:
                 "-loglevel", "error",
                 "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "-re",
-                "-fflags", "nobuffer",
-                "-flags", "low_delay",
-                "-threads", "2",
+                "-http_persistent", "1",
+                "-http_multiple", "1",
                 "-reconnect", "1",
                 "-reconnect_streamed", "1",
                 "-reconnect_delay_max", "2",
@@ -367,7 +366,8 @@ class ThreadedCameraReader:
                         break
                     got_any_frame = True
                     failed_attempts = 0
-                    f = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
+                    # .copy() ensures the NumPy array is fully writable and avoids in-place mutation errors
+                    f = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3)).copy()
                     with self.lock:
                         self.frame = f
                         self.frame_seq += 1
@@ -664,7 +664,7 @@ class CameraStreamWorker:
                 if (w, h) != (target_w, target_h):
                     frame_small = cv2.resize(frame, (target_w, target_h))
                 else:
-                    frame_small = frame
+                    frame_small = frame.copy()
 
                 now = time.monotonic()
                 dt = min(0.1, max(0.01, now - last_frame_time))
@@ -757,24 +757,33 @@ class CameraStreamWorker:
                     ).start()
 
                 # 2. Annotate frame with 5-minute accumulation and vehicles per minute
-                active_counts = rolling_5m_counts if sum(rolling_5m_counts.values()) > 0 else session_counts
-                _annotate_frame(
-                    frame_small,
-                    latest_tracks,
-                    active_counts,
-                    rolling_5m_total=rolling_5m_total,
-                    rolling_5m_vpm=rolling_5m_vpm,
-                    is_fallback=reader.is_fallback,
-                )
+                try:
+                    active_counts = rolling_5m_counts if sum(rolling_5m_counts.values()) > 0 else session_counts
+                    _annotate_frame(
+                        frame_small,
+                        latest_tracks,
+                        active_counts,
+                        rolling_5m_total=rolling_5m_total,
+                        rolling_5m_vpm=rolling_5m_vpm,
+                        is_fallback=reader.is_fallback,
+                    )
 
-                # 3. High-speed JPEG encoding (Quality 55 for ultra low latency and lightweight frame delivery)
-                ret, buf = cv2.imencode(".jpg", frame_small, [cv2.IMWRITE_JPEG_QUALITY, 55])
-                if ret:
-                    frame_bytes = buf.tobytes()
-                    with self.condition:
-                        self.latest_jpeg = frame_bytes
-                        self.frame_id += 1
-                        self.condition.notify_all()
+                    # 3. High-speed JPEG encoding (Quality 55 for ultra low latency and lightweight frame delivery)
+                    ret, buf = cv2.imencode(".jpg", frame_small, [cv2.IMWRITE_JPEG_QUALITY, 55])
+                    if ret:
+                        frame_bytes = buf.tobytes()
+                        with self.condition:
+                            self.latest_jpeg = frame_bytes
+                            self.frame_id += 1
+                            self.condition.notify_all()
+                except Exception as exc:
+                    logging.getLogger("traffic-worker").warning("Error annotating/encoding frame: %s", exc)
+
+                # Smooth wall-clock pacing: maintain rock-solid ~15 FPS cadence without bursts or stalls
+                elapsed = time.monotonic() - loop_start
+                target_interval = 0.066  # ~15.0 FPS (matches Diskominfo camera 15 fps)
+                if elapsed < target_interval:
+                    time.sleep(target_interval - elapsed)
         finally:
             reader.stop()
             executor.shutdown(wait=False)
