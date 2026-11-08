@@ -1,6 +1,7 @@
 import asyncio
 import math
 import os
+import queue
 import sys
 import threading
 import time
@@ -287,6 +288,7 @@ class ThreadedCameraReader:
         self.is_fallback: bool = False
         self.running = True
         self.lock = threading.Lock()
+        self._queue: queue.Queue[tuple[np.ndarray, int]] = queue.Queue(maxsize=15)
         self._proc: subprocess.Popen | None = None
         self.thread = threading.Thread(
             target=self._reader_loop,
@@ -369,6 +371,12 @@ class ThreadedCameraReader:
                     with self.lock:
                         self.frame = f
                         self.frame_seq += 1
+                    try:
+                        if self._queue.full():
+                            self._queue.get_nowait()
+                        self._queue.put_nowait((f, self.frame_seq))
+                    except Exception:
+                        pass
             except Exception:
                 pass
             finally:
@@ -445,6 +453,12 @@ class ThreadedCameraReader:
                 with self.lock:
                     self.frame = f
                     self.frame_seq += 1
+                try:
+                    if self._queue.full():
+                        self._queue.get_nowait()
+                    self._queue.put_nowait((f, self.frame_seq))
+                except Exception:
+                    pass
 
                 # Smooth wall-clock pacing: prevents fast-forwarding & stabilizes frame cadence
                 elapsed = time.monotonic() - frame_start
@@ -489,11 +503,14 @@ class ThreadedCameraReader:
             except Exception:
                 pass
 
-    def read(self) -> tuple[np.ndarray | None, int]:
-        with self.lock:
-            if self.frame is not None:
-                return self.frame.copy(), self.frame_seq
-            return None, 0
+    def read(self, timeout: float = 0.040) -> tuple[np.ndarray | None, int]:
+        try:
+            return self._queue.get(timeout=timeout)
+        except queue.Empty:
+            with self.lock:
+                if self.frame is not None:
+                    return self.frame.copy(), self.frame_seq
+                return None, 0
 
     def stop(self) -> None:
         self.running = False
@@ -633,12 +650,11 @@ class CameraStreamWorker:
                         break
 
                 loop_start = time.monotonic()
-                frame, seq = reader.read()
+                frame, seq = reader.read(timeout=0.040)
                 if frame is None:
-                    time.sleep(0.010)
                     continue
                 if seq == last_read_seq:
-                    time.sleep(0.008)
+                    time.sleep(0.005)
                     continue
                 last_read_seq = seq
 
@@ -717,19 +733,28 @@ class CameraStreamWorker:
                         events.clear()
                     last_db_save = now
 
-                # Periodically re-sync baseline 5-minute accumulation with DB
+                # Periodically re-sync baseline 5-minute accumulation with DB in background daemon thread
+                # Completely non-blocking: never halts frame delivery or causes 250ms stream hiccups
                 if now - last_metrics_refresh >= 30.0:
-                    try:
-                        with SessionLocal() as db_session:
-                            cam = db_session.get(Camera, self.camera_id)
-                            if cam:
-                                m = camera_metrics(db_session, cam)
-                                if m.rolling_5_minute > 0:
-                                    rolling_5m_total = max(rolling_5m_total, m.rolling_5_minute)
-                                    rolling_5m_vpm = round(rolling_5m_total / 5.0, 1)
-                    except Exception:
-                        pass
                     last_metrics_refresh = now
+                    def _sync_metrics_bg(cam_id: int):
+                        nonlocal rolling_5m_total, rolling_5m_vpm
+                        try:
+                            with SessionLocal() as db_session:
+                                cam = db_session.get(Camera, cam_id)
+                                if cam:
+                                    m = camera_metrics(db_session, cam)
+                                    if m.rolling_5_minute > 0:
+                                        rolling_5m_total = max(rolling_5m_total, m.rolling_5_minute)
+                                        rolling_5m_vpm = round(rolling_5m_total / 5.0, 1)
+                        except Exception:
+                            pass
+                    threading.Thread(
+                        target=_sync_metrics_bg,
+                        args=(self.camera_id,),
+                        daemon=True,
+                        name=f"SyncMetrics-{self.camera_id}",
+                    ).start()
 
                 # 2. Annotate frame with 5-minute accumulation and vehicles per minute
                 active_counts = rolling_5m_counts if sum(rolling_5m_counts.values()) > 0 else session_counts
@@ -850,8 +875,8 @@ async def _generate_video_stream(camera: Camera, video_source: str):
             current_fid = worker.frame_id
             latest_bytes = worker.latest_jpeg
 
-            # Yield new frame as soon as generated (paced at ~30 FPS for buttery smooth playback)
-            if latest_bytes is not None and current_fid != last_sent_frame_id and (now - last_sent_time >= 0.033):
+            # Yield new frame as soon as generated by worker (instant zero-delay delivery)
+            if latest_bytes is not None and current_fid != last_sent_frame_id:
                 last_sent_frame_id = current_fid
                 last_sent_time = now
                 yield (
