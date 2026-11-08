@@ -323,15 +323,16 @@ class ThreadedCameraReader:
                 "ffmpeg",
                 "-loglevel", "error",
                 "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "-re",
                 "-fflags", "nobuffer",
                 "-flags", "low_delay",
-                "-threads", "1",
+                "-threads", "2",
                 "-reconnect", "1",
                 "-reconnect_streamed", "1",
                 "-reconnect_delay_max", "2",
                 "-i", self.source,
                 "-an",
-                "-vf", f"scale={w}:{h},fps=15",
+                "-vf", f"scale={w}:{h}",
                 "-f", "rawvideo",
                 "-pix_fmt", "bgr24",
                 "-",
@@ -622,7 +623,7 @@ class CameraStreamWorker:
         latest_tracks: list[Track] = []
         last_frame_time = time.monotonic()
         last_inference_time = 0.0
-        min_inference_interval = 0.180  # ~5.5 inferences/sec: optimized for 2 vCPU VPS & smooth tracking
+        min_inference_interval = 0.040  # ~25 inferences/sec: real-time per frame on 4 vCPU EPYC
         last_read_seq = -1
 
         try:
@@ -849,8 +850,8 @@ async def _generate_video_stream(camera: Camera, video_source: str):
             current_fid = worker.frame_id
             latest_bytes = worker.latest_jpeg
 
-            # Yield new frame as soon as generated (paced at ~15 FPS so TCP buffers never queue up)
-            if latest_bytes is not None and current_fid != last_sent_frame_id and (now - last_sent_time >= 0.060):
+            # Yield new frame as soon as generated (paced at ~30 FPS for buttery smooth playback)
+            if latest_bytes is not None and current_fid != last_sent_frame_id and (now - last_sent_time >= 0.033):
                 last_sent_frame_id = current_fid
                 last_sent_time = now
                 yield (
@@ -872,7 +873,7 @@ async def _generate_video_stream(camera: Camera, video_source: str):
                     + b"\r\n"
                 )
 
-            await asyncio.sleep(0.015)
+            await asyncio.sleep(0.005)
     finally:
         worker.remove_client()
 

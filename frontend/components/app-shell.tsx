@@ -29,14 +29,14 @@ interface NavItem {
   badge?: string;
 }
 
-// Navigasi Utama: CCTV dan Rute (Menu lain di-hide)
+// Navigasi Utama: Hanya Kamera CCTV yang ditampilkan (Menu lain di-hide)
 const mainNav: NavItem[] = [
-  { href: "/cctv", label: "CCTV", icon: Video },
-  { href: "/routes", label: "Rute", icon: Route, badge: "WA" },
+  { href: "/cctv", label: "Kamera CCTV", icon: Video },
 ];
 
-// Menu lain di-hide sesuai preferensi (disimpan untuk referensi jika ingin diaktifkan kembali)
+// Menu lain di-hide sesuai permintaan user
 // const hiddenNav: NavItem[] = [
+//   { href: "/routes", label: "Rute", icon: Route, badge: "WA" },
 //   { href: "/dashboard", label: "Ringkasan", icon: Activity },
 //   { href: "/map", label: "Peta Mobilitas", icon: Compass },
 //   { href: "/potholes", label: "Jalan Rusak", icon: AlertTriangle },
