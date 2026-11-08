@@ -15,13 +15,15 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-https://lajusmart.app,https://www.lajusmart.app,http://localhost:3000}
       PYTHONPATH: /app:/
       YOLO_CONFIG_DIR: /tmp/ultralytics
-      OMP_NUM_THREADS: "1"
-      OPENVINO_NUM_THREADS: "1"
-      MKL_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "2"
+      OPENVINO_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
     volumes:
       - ./vision:/vision
       - ./yolo11n.pt:/app/yolo11n.pt
       - ./yolo11n_openvino_model:/app/yolo11n_openvino_model
+      - ./yolo11s.pt:/app/yolo11s.pt
+      - ./yolo11s_openvino_model:/app/yolo11s_openvino_model
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
@@ -44,13 +46,15 @@ services:
       NUM_TRAFFIC_WORKERS: 1
       ROUND_ROBIN_DURATION_SECONDS: 45
       YOLO_CONFIG_DIR: /tmp/ultralytics
-      OMP_NUM_THREADS: "1"
-      OPENVINO_NUM_THREADS: "1"
-      MKL_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "2"
+      OPENVINO_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
     volumes:
       - ./vision:/vision
       - ./yolo11n.pt:/app/yolo11n.pt
       - ./yolo11n_openvino_model:/app/yolo11n_openvino_model
+      - ./yolo11s.pt:/app/yolo11s.pt
+      - ./yolo11s_openvino_model:/app/yolo11s_openvino_model
     depends_on:
       backend:
         condition: service_healthy

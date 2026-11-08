@@ -604,7 +604,7 @@ class CameraStreamWorker:
 
         processor = YoloByteTrackProcessor(
             model_path=chosen_model,
-            confidence=0.15,
+            confidence=0.18,
             device="cpu",
             exclusion_zones=self.exclusion_zones,
         )

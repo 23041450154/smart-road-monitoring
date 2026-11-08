@@ -253,8 +253,12 @@ class YoloByteTrackProcessor:
 
         # Prefer OpenVINO optimized model if available for ~18x CPU acceleration
         p = Path(model_path)
-        ov_dir = p.parent / f"{p.stem}_openvino_model"
-        use_ov = ov_dir.exists() and (any(ov_dir.glob("*.xml")) or (ov_dir / "metadata.yaml").exists())
+        if p.is_dir() and "openvino" in p.name.lower():
+            ov_dir = p
+            use_ov = True
+        else:
+            ov_dir = p.parent / f"{p.stem}_openvino_model"
+            use_ov = ov_dir.exists() and (any(ov_dir.glob("*.xml")) or (ov_dir / "metadata.yaml").exists())
         model_key = str(ov_dir) if use_ov else str(model_path)
 
         with _MODEL_LOCK:
