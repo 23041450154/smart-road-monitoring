@@ -1,11 +1,9 @@
 "use client";
 
 import {
-  Compass,
   LogIn,
   LogOut,
   Menu,
-  Route,
   Settings,
   Shield,
   User as UserIcon,
@@ -26,8 +24,6 @@ interface NavItem {
 
 const mainNav: NavItem[] = [
   { href: "/cctv", label: "Kamera CCTV", icon: Video },
-  { href: "/map", label: "Peta Lalu Lintas", icon: Compass },
-  { href: "/routes", label: "Rute WA", icon: Route },
 ];
 
 const adminNav: NavItem[] = [
