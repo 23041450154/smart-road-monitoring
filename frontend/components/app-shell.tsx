@@ -1,11 +1,7 @@
 "use client";
 
 import {
-  Activity,
-  AlertTriangle,
   Compass,
-  FileText,
-  Lock,
   LogIn,
   LogOut,
   Menu,
@@ -18,35 +14,24 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
   label: string;
-  icon: typeof Activity;
-  badge?: string;
+  icon: typeof Video;
 }
 
-// Navigasi Utama: Hanya Kamera CCTV yang ditampilkan (Menu lain di-hide)
 const mainNav: NavItem[] = [
   { href: "/cctv", label: "Kamera CCTV", icon: Video },
+  { href: "/map", label: "Peta Lalu Lintas", icon: Compass },
+  { href: "/routes", label: "Rute WA", icon: Route },
 ];
 
-// Menu lain di-hide sesuai permintaan user
-// const hiddenNav: NavItem[] = [
-//   { href: "/routes", label: "Rute", icon: Route, badge: "WA" },
-//   { href: "/dashboard", label: "Ringkasan", icon: Activity },
-//   { href: "/map", label: "Peta Mobilitas", icon: Compass },
-//   { href: "/potholes", label: "Jalan Rusak", icon: AlertTriangle },
-//   { href: "/settings", label: "Pengaturan Notif", icon: Settings },
-// ];
-
-// Admin Only
 const adminNav: NavItem[] = [
   { href: "/admin", label: "Kelola Pengguna", icon: Shield },
-  { href: "/admin/logs", label: "Log Notifikasi", icon: FileText },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -54,17 +39,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const { user, role, logout } = useAuth();
 
-  // Active navigation items allowed for current role (used by mobile dock)
-  const activeNav = role === "admin"
-    ? [...mainNav, ...adminNav]
-    : mainNav;
+  const activeNav = role === "admin" ? [...mainNav, ...adminNav] : mainNav;
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[250px_1fr] bg-slate-50/60">
-      {/* 21st.dev Style Clean Light Sidebar */}
+    <div className="min-h-screen lg:grid lg:grid-cols-[250px_1fr] bg-slate-50 text-slate-900">
+      {/* Sidebar Navigasi */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-[1001] w-[250px] bg-white p-3.5 flex flex-col justify-between border-r border-slate-200/90 text-slate-700 transition-transform lg:translate-x-0 shadow-2xs",
+          "fixed inset-y-0 left-0 z-[1001] w-[250px] bg-white p-3.5 flex flex-col justify-between border-r border-slate-200 text-slate-700 transition-transform lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -80,82 +71,71 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <img
                 src="/logo.svg"
                 alt="LAJU Palembang"
-                className="size-8 shrink-0 object-contain transition-transform group-hover:scale-105"
+                width={32}
+                height={32}
+                className="size-8 shrink-0 object-contain"
               />
               <div className="flex flex-col">
                 <span className="text-xs font-semibold tracking-tight text-slate-900 leading-tight">
                   LAJU Palembang
                 </span>
-                <span className="text-[10px] text-slate-400 font-normal">
-                  Smart Road Mobility
+                <span className="text-[11px] text-slate-600 font-normal">
+                  Pemantauan Lalu Lintas
                 </span>
               </div>
             </Link>
             <button
-              className="lg:hidden text-slate-400 hover:text-slate-700 p-1 rounded-md hover:bg-slate-100 transition"
+              type="button"
+              className="lg:hidden text-slate-600 hover:text-slate-900 p-2 rounded-md hover:bg-slate-100 transition"
               onClick={() => setOpen(false)}
               aria-label="Tutup menu"
             >
-              <X size={16} />
+              <X size={16} aria-hidden="true" />
             </button>
           </div>
 
-          {/* Nav Section: Menu Utama */}
           <div className="px-2 mb-1 mt-2">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">
               Menu
             </span>
           </div>
-          <nav className="space-y-0.5 mb-4">
+          <nav aria-label="Menu utama" className="space-y-0.5 mb-4">
             {mainNav.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const isLockedForGuest = item.href === "/routes" && role === "guest";
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+                    "flex min-h-[38px] items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors",
                     active
-                      ? "bg-blue-50 font-medium text-blue-700 border border-blue-100/70 shadow-2xs"
-                      : isLockedForGuest
-                      ? "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
-                      : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900",
+                      ? "bg-blue-50 font-semibold text-blue-700 border border-blue-100"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                   )}
                 >
                   <div className="flex items-center gap-2.5">
                     <item.icon
                       size={15}
-                      className={cn(
-                        "shrink-0",
-                        active ? "text-blue-600" : "text-slate-400",
-                      )}
+                      aria-hidden="true"
+                      className={cn("shrink-0", active ? "text-blue-700" : "text-slate-600")}
                     />
                     <span>{item.label}</span>
                   </div>
-                  {isLockedForGuest ? (
-                    <Lock size={11} className="text-slate-350 shrink-0" />
-                  ) : item.badge ? (
-                    <span className="text-[9px] font-mono font-semibold text-emerald-600">
-                      {item.badge}
-                    </span>
-                  ) : null}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Nav Section: Administrator */}
           {role === "admin" && (
             <>
               <div className="px-2 mb-1 mt-1">
-                <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wider">
                   Administrasi
                 </span>
               </div>
-              <nav className="space-y-0.5">
+              <nav aria-label="Menu admin" className="space-y-0.5">
                 {adminNav.map((item) => {
                   const active =
                     pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -165,25 +145,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       href={item.href}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+                        "flex min-h-[38px] items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors",
                         active
-                          ? "bg-blue-50 font-medium text-blue-700 border border-blue-100/70 shadow-2xs"
-                          : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-900",
+                          ? "bg-blue-50 font-semibold text-blue-700 border border-blue-100"
+                          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
                       )}
                     >
                       <div className="flex items-center gap-2.5">
                         <item.icon
                           size={15}
-                          className={cn(
-                            "shrink-0",
-                            active ? "text-blue-600" : "text-slate-400",
-                          )}
+                          aria-hidden="true"
+                          className={cn("shrink-0", active ? "text-blue-700" : "text-slate-600")}
                         />
                         <span>{item.label}</span>
                       </div>
-                      <span className="text-[9px] font-mono text-slate-400">
-                        Root
-                      </span>
                     </Link>
                   );
                 })}
@@ -192,10 +167,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        {/* Sidebar Footer (User Profile) */}
-        <div className="border-t border-slate-200/80 pt-3">
+        {/* Sidebar Footer */}
+        <div className="border-t border-slate-200 pt-3">
           {user ? (
-            <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-slate-50 transition group">
+            <div className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-slate-50 transition">
               <Link
                 href="/settings"
                 onClick={() => setOpen(false)}
@@ -207,7 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="flex flex-col min-w-0 text-left">
                   <span className="text-xs font-medium text-slate-900 truncate">{user.name}</span>
-                  <span className="text-[10px] text-slate-400 truncate">
+                  <span className="text-[11px] text-slate-600 truncate">
                     {user.phone_number ? `WA: ${user.phone_number}` : user.email}
                   </span>
                 </div>
@@ -216,35 +191,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   href="/settings"
                   onClick={() => setOpen(false)}
-                  className="text-slate-400 hover:text-slate-700 p-1.5 rounded-md hover:bg-slate-100 transition"
+                  aria-label="Pengaturan akun"
+                  className="text-slate-600 hover:text-slate-900 p-1.5 rounded-md hover:bg-slate-100 transition"
                   title="Pengaturan"
                 >
-                  <Settings size={13} />
+                  <Settings size={13} aria-hidden="true" />
                 </Link>
                 <button
+                  type="button"
                   onClick={logout}
-                  className="text-slate-400 hover:text-rose-600 p-1.5 rounded-md hover:bg-rose-50 transition"
+                  aria-label="Keluar dari akun"
+                  className="text-slate-600 hover:text-rose-700 p-1.5 rounded-md hover:bg-rose-50 transition"
                   title="Keluar dari akun"
                 >
-                  <LogOut size={13} />
+                  <LogOut size={13} aria-hidden="true" />
                 </button>
               </div>
             </div>
           ) : (
             <Link
               href="/login"
-              className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-700 hover:bg-blue-50/60 hover:border-blue-200 hover:text-blue-700 transition group"
+              className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 transition"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="size-6 rounded-full bg-slate-200/80 flex items-center justify-center text-slate-500 group-hover:text-blue-600 shrink-0">
-                  <UserIcon size={12} />
+                <div className="size-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+                  <UserIcon size={12} aria-hidden="true" />
                 </div>
                 <div className="flex flex-col text-left min-w-0">
-                  <span className="text-xs font-medium text-slate-800 group-hover:text-blue-700">Masuk Akun</span>
-                  <span className="text-[10px] text-slate-400">Aktifkan bot WA</span>
+                  <span className="text-xs font-medium text-slate-900">Masuk Akun</span>
+                  <span className="text-[11px] text-slate-600">Aktifkan bot WA</span>
                 </div>
               </div>
-              <span className="text-xs text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+              <LogIn size={13} aria-hidden="true" className="text-slate-600 shrink-0" />
             </Link>
           )}
         </div>
@@ -253,7 +231,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Backdrop for Mobile */}
       {open && (
         <button
-          className="fixed inset-0 z-[1000] bg-slate-900/30 backdrop-blur-xs lg:hidden"
+          type="button"
+          className="fixed inset-0 z-[1000] bg-slate-900/40 lg:hidden"
           onClick={() => setOpen(false)}
           aria-label="Tutup menu"
         />
@@ -261,28 +240,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <div className="min-w-0 lg:col-start-2 flex flex-col">
-        {/* Sleek Minimal Header Bar */}
-        <header className="sticky top-0 z-[900] flex h-13 items-center justify-between border-b border-slate-200/80 bg-white/85 px-4 sm:px-6 backdrop-blur-md">
+        <header className="sticky top-0 z-[900] flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button
-              className="grid size-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-2xs hover:bg-slate-50 lg:hidden"
+              type="button"
+              className="grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 lg:hidden"
               onClick={() => setOpen(true)}
               aria-label="Buka menu"
+              aria-expanded={open}
             >
-              <Menu size={16} />
+              <Menu size={16} aria-hidden="true" />
             </button>
-            <Link
-              href="/cctv"
-              className="flex items-center gap-2 lg:hidden"
-            >
+            <Link href="/cctv" className="flex items-center gap-2 lg:hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/logo.svg"
-                alt="LAJU"
+                alt="LAJU Palembang"
+                width={28}
+                height={28}
                 className="size-7 shrink-0 object-contain"
               />
               <span className="font-semibold text-xs tracking-tight text-slate-900">
-                LAJU
+                LAJU Palembang
               </span>
             </Link>
           </div>
@@ -291,19 +270,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {user ? (
               <div className="flex items-center gap-2.5">
                 <div className="hidden text-right sm:block">
-                  <span className="block text-xs font-medium text-slate-800">
+                  <span className="block text-xs font-medium text-slate-900">
                     {user.name}
                   </span>
-                  <span className="block text-[10px] text-slate-400 uppercase font-mono">
+                  <span className="block text-[10px] text-slate-600 uppercase font-mono">
                     {user.role}
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={logout}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition"
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 transition"
                   title="Keluar"
                 >
-                  <LogOut size={12} />
+                  <LogOut size={12} aria-hidden="true" />
                   <span className="hidden sm:inline">Keluar</span>
                 </button>
               </div>
@@ -311,9 +291,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               pathname !== "/login" && (
                 <Link
                   href="/login"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-2xs hover:bg-blue-700 transition"
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-blue-700 px-3.5 py-1.5 text-xs font-medium text-white hover:bg-blue-800 transition"
                 >
-                  <LogIn size={12} />
+                  <LogIn size={12} aria-hidden="true" />
                   <span>Masuk Akun</span>
                 </Link>
               )
@@ -321,7 +301,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="mx-auto w-full max-w-[1400px] p-4 sm:p-6 lg:p-7 pb-24 lg:pb-12">
           {children}
         </main>
@@ -329,7 +308,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Bottom Dock */}
       <nav
-        className="fixed inset-x-3 bottom-3 z-[950] grid gap-1 rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 text-slate-500 shadow-xl backdrop-blur-xl lg:hidden"
+        aria-label="Navigasi mobile"
+        className="fixed inset-x-3 bottom-3 z-[950] grid gap-1 rounded-2xl border border-slate-200 bg-white p-1.5 text-slate-600 shadow-lg lg:hidden"
         style={{ gridTemplateColumns: `repeat(${activeNav.length}, minmax(0, 1fr))` }}
       >
         {activeNav.map((item) => {
@@ -340,19 +320,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 rounded-xl py-2 px-1 text-[9px] font-medium transition",
+                "flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl py-2 px-1 text-[10px] font-medium transition",
                 active
-                  ? "bg-blue-50 text-blue-700 font-semibold shadow-2xs"
-                  : "hover:text-slate-900 hover:bg-slate-50/80",
+                  ? "bg-blue-50 text-blue-700 font-semibold"
+                  : "text-slate-700 hover:text-slate-900 hover:bg-slate-50",
               )}
             >
               <item.icon
                 size={15}
-                className={active ? "text-blue-600" : "text-slate-400"}
+                aria-hidden="true"
+                className={active ? "text-blue-700" : "text-slate-600"}
               />
-              <span className="truncate max-w-full">
-                {item.label}
-              </span>
+              <span className="truncate max-w-full">{item.label}</span>
             </Link>
           );
         })}

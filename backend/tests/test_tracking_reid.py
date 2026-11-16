@@ -226,3 +226,67 @@ def test_allocate_id_cycles_cleanly():
     none_id = processor._allocate_id(None)
     assert none_id == "vehicle_3"
 
+
+def _make_mock_processor():
+    processor = YoloByteTrackProcessor.__new__(YoloByteTrackProcessor)
+    processor.confidence = 0.10
+    processor.device = "cpu"
+    processor.exclusion_zones = []
+    processor._next_id = 1
+    processor._active_tracks = {}
+    processor._bytetrack_remap = {}
+    processor._reid_memory_seconds = 2.5
+    processor._stationary_memory_seconds = 15.0
+    processor._tracker_cfg = "bytetrack.yaml"
+    processor.model = MagicMock()
+    return processor
+
+
+def test_pedestrian_person_only_ignored():
+    processor = _make_mock_processor()
+    frame_dummy = MagicMock()
+    frame_dummy.shape = (360, 640, 3)
+
+    # Standalone pedestrian walking across frame (cls=0, no motorcycle/bicycle)
+    for step in range(4):
+        x = 100.0 + step * 15.0
+        box = MockBox([x, 150.0, x + 28.0, 230.0], 0.85, 0)
+        processor.model.track.return_value = [MockResult([box], [10])]
+        tracks = processor.process(frame_dummy)
+        assert tracks == []
+
+
+def test_rider_on_motorcycle_merged():
+    processor = _make_mock_processor()
+    frame_dummy = MagicMock()
+    frame_dummy.shape = (360, 640, 3)
+
+    rider_box = MockBox([200.0, 130.0, 230.0, 185.0], 0.85, 0)
+    bike_box = MockBox([202.0, 165.0, 234.0, 210.0], 0.70, 3)
+    processor.model.track.return_value = [MockResult([rider_box, bike_box], [11, 12])]
+
+    tracks = processor.process(frame_dummy)
+    assert len(tracks) == 1
+    assert tracks[0].vehicle_type == "motorcycle"
+    assert tracks[0].bounding_box == [200.0, 130.0, 234.0, 210.0]
+
+
+def test_stopped_car_not_counted_and_marked_stationary():
+    processor = _make_mock_processor()
+    counter = LineCrossingCounter([[0.0, 0.5], [1.0, 0.5]])
+    frame_dummy = MagicMock()
+    frame_dummy.shape = (400, 640, 3)
+
+    # Parked/stopped car sitting on the counting line (y=200) with +/- 3px bbox jitter
+    jitters = [0.0, -2.0, 3.0, -1.0, 2.0]
+    last_tracks = []
+    for dy in jitters:
+        box = MockBox([100.0, 180.0 + dy, 160.0, 220.0 + dy], 0.88, 2)
+        processor.model.track.return_value = [MockResult([box], [77])]
+        last_tracks = processor.process(frame_dummy)
+        assert len(last_tracks) == 1
+        assert counter.update(last_tracks[0], 640, 400) is None
+
+    assert last_tracks[0].is_stationary is True
+
+

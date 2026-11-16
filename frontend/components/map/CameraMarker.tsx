@@ -89,20 +89,20 @@ export function CameraMarker({ camera, current, isHighlighted, isDimmed }: Camer
       <Popup className="smartroad-popup">
         <div className="min-w-56 p-1 text-slate-800">
           <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
               CCTV {camera.is_demo ? "· DEMO" : "· LIVE"}
             </span>
             {status ? (
               <StatusBadge status={status} />
             ) : (
-              <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+              <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
                 BELUM ADA ARUS
               </span>
             )}
           </div>
 
           <h3 className="mt-2 text-sm font-bold leading-snug">{camera.name}</h3>
-          <p className="text-xs text-slate-500">{camera.road_name}</p>
+          <p className="text-xs text-slate-600">{camera.road_name}</p>
 
           {current && (
             <div className="mt-3 rounded-lg bg-slate-50 p-2 text-xs">
@@ -122,7 +122,7 @@ export function CameraMarker({ camera, current, isHighlighted, isDimmed }: Camer
                 <span>Tren:</span>
                 <TrendView trend={current.trend} />
               </div>
-              <p className="mt-2 text-[10px] text-slate-400">
+              <p className="mt-2 text-[10px] text-slate-600">
                 Update: {dateTime(current.timestamp)}
               </p>
             </div>
@@ -133,7 +133,7 @@ export function CameraMarker({ camera, current, isHighlighted, isDimmed }: Camer
               href={`/cctv/${camera.id}`}
               className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900"
             >
-              Buka Detail CCTV &rarr;
+              Buka Detail CCTV
             </Link>
           </div>
         </div>

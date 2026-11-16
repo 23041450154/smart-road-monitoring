@@ -18,15 +18,15 @@ export function PageHeading({
       <div className="min-w-0 flex-1">
         {eyebrow && (
           <div className="mb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            <span className="text-xs font-medium text-slate-600">
               {eyebrow}
             </span>
           </div>
         )}
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           {title}
         </h1>
-        <p className="mt-1.5 max-w-3xl text-sm text-zinc-500 leading-relaxed">
+        <p className="mt-1.5 max-w-3xl text-sm text-slate-600 leading-relaxed">
           {description}
         </p>
       </div>
@@ -107,11 +107,15 @@ export function TrendView({ trend }: { trend: Trend }) {
 
 export function LoadingCards({ count = 4 }: { count?: number }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div
+      role="status"
+      aria-label="Memuat data"
+      className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+    >
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="skeleton h-28 rounded-xl border border-zinc-200/60"
+          className="skeleton h-28 rounded-xl border border-slate-200"
         />
       ))}
     </div>
@@ -126,22 +130,25 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-rose-200/80 bg-rose-50/60 p-5 text-rose-900 shadow-xs">
+    <div
+      role="alert"
+      className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-rose-900"
+    >
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-start gap-3">
-          <AlertCircle size={20} className="text-rose-600 shrink-0 mt-0.5" />
+          <AlertCircle size={20} className="text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />
           <div>
             <strong className="block text-sm font-semibold text-rose-900">
               Koneksi Data Terputus
             </strong>
-            <p className="mt-1 text-xs text-rose-700 leading-relaxed">{message}</p>
+            <p className="mt-1 text-xs text-rose-800 leading-relaxed">{message}</p>
           </div>
         </div>
         {onRetry && (
           <button
             type="button"
             onClick={onRetry}
-            className="shrink-0 rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 active:scale-95 transition cursor-pointer"
+            className="shrink-0 min-h-[36px] rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 transition-colors"
           >
             Coba Muat Ulang
           </button>
@@ -159,10 +166,10 @@ export function EmptyState({
   description: string;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-zinc-200 bg-white p-8 text-center shadow-xs">
-      <RefreshCw size={20} className="mx-auto mb-2.5 text-zinc-400" />
-      <strong className="block text-sm font-medium text-zinc-800">{title}</strong>
-      <p className="mt-1 text-xs text-zinc-500">{description}</p>
+    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
+      <RefreshCw size={20} className="mx-auto mb-2.5 text-slate-500" aria-hidden="true" />
+      <strong className="block text-sm font-medium text-slate-900">{title}</strong>
+      <p className="mt-1 text-xs text-slate-600">{description}</p>
     </div>
   );
 }

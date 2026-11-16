@@ -184,6 +184,8 @@ def _annotate_frame(
         "truck": (245, 130, 48),      # Deep Sky Blue / Teal
     }
     for track in tracks:
+        if getattr(track, "is_stationary", False):
+            continue
         try:
             b = track.bounding_box
             if not b or len(b) < 4:
@@ -697,6 +699,9 @@ class CameraStreamWorker:
                     # In-between inferences: extrapolate bounding box position smoothly using velocity
                     extrapolated = []
                     for tr in latest_tracks:
+                        if getattr(tr, "is_stationary", False):
+                            extrapolated.append(tr)
+                            continue
                         vx, vy = tr.velocity
                         if abs(vx) > 0.01 or abs(vy) > 0.01:
                             b = tr.bounding_box
@@ -714,6 +719,7 @@ class CameraStreamWorker:
                                     confidence=tr.confidence,
                                     bounding_box=nb,
                                     velocity=tr.velocity,
+                                    is_stationary=tr.is_stationary,
                                 )
                             )
                         else:

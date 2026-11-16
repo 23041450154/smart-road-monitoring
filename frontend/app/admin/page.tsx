@@ -24,7 +24,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { PageHeading } from "@/components/ui";
 import { fetcher, mutateApi } from "@/lib/api";
@@ -75,6 +75,19 @@ export default function AdminPage() {
   const [editLeadMinutes, setEditLeadMinutes] = useState(5);
   const [editIsVerified, setEditIsVerified] = useState(true);
   const [showEditPassword, setShowEditPassword] = useState(false);
+
+  useEffect(() => {
+    if (!selectedUser && !isCreateModalOpen && !editingUser) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedUser(null);
+        setIsCreateModalOpen(false);
+        setEditingUser(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedUser, isCreateModalOpen, editingUser]);
 
   const fetchUpcoming = async (forceAll: boolean = false) => {
     setLoadingBriefings(true);
@@ -271,14 +284,14 @@ export default function AdminPage() {
           <ShieldAlert size={24} />
         </div>
         <h1 className="text-lg font-bold text-zinc-900">Akses Dibatasi</h1>
-        <p className="mt-1.5 text-xs text-zinc-500">
+        <p className="mt-1.5 text-xs text-slate-600">
           Halaman ini khusus untuk pengguna dengan hak akses <strong>Administrator</strong>. Silakan masuk dengan akun admin Anda.
         </p>
         <Link
           href="/login"
           className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-zinc-800 transition"
         >
-          Ke Halaman Login &rarr;
+          Ke Halaman Login
         </Link>
       </div>
     );
@@ -292,79 +305,79 @@ export default function AdminPage() {
         description="Kelola akun pengguna terdaftar (tambah, edit, hapus, reset password), periksa status verifikasi, dan pantau pengiriman bot WhatsApp."
       />
 
-      {/* Metrics Grid (5 Bento Cards) */}
+      {/* Metrics Grid */}
       <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-5 mb-8">
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-zinc-500 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          <div className="flex items-center justify-between text-slate-600 mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-600">
               Total Pengguna
             </span>
-            <Users size={16} className="text-zinc-400" />
+            <Users size={16} aria-hidden="true" className="text-slate-600" />
           </div>
           <strong className="text-2xl font-bold tracking-tight text-zinc-900 block tabular">
-            {stats?.total_users ?? "—"}
+            {stats?.total_users ?? "-"}
           </strong>
-          <span className="text-[11px] text-zinc-400 mt-1 block">
+          <span className="text-[11px] text-slate-600 mt-1 block">
             Semua akun terdaftar
           </span>
         </div>
 
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-zinc-500 mb-2">
+          <div className="flex items-center justify-between text-slate-600 mb-2">
             <span className="text-[11px] font-medium uppercase tracking-wider text-emerald-700">
               Terverifikasi
             </span>
-            <CheckCircle2 size={16} className="text-emerald-500" />
+            <CheckCircle2 size={16} aria-hidden="true" className="text-emerald-600" />
           </div>
-          <strong className="text-2xl font-bold tracking-tight text-emerald-600 block tabular">
-            {stats?.verified_users ?? stats?.total_users ?? "—"}
+          <strong className="text-2xl font-bold tracking-tight text-emerald-700 block tabular">
+            {stats?.verified_users ?? stats?.total_users ?? "-"}
           </strong>
-          <span className="text-[11px] text-emerald-600/80 mt-1 block">
+          <span className="text-[11px] text-emerald-700 mt-1 block">
             Email & OTP tervalidasi
           </span>
         </div>
 
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-zinc-500 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          <div className="flex items-center justify-between text-slate-600 mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-600">
               WhatsApp Aktif
             </span>
-            <MessageSquare size={16} className="text-emerald-500" />
+            <MessageSquare size={16} aria-hidden="true" className="text-slate-600" />
           </div>
           <strong className="text-2xl font-bold tracking-tight text-zinc-900 block tabular">
-            {stats?.users_with_whatsapp ?? "—"}
+            {stats?.users_with_whatsapp ?? "-"}
           </strong>
-          <span className="text-[11px] text-zinc-400 mt-1 block">
+          <span className="text-[11px] text-slate-600 mt-1 block">
             Notifikasi rute aktif
           </span>
         </div>
 
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-zinc-500 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          <div className="flex items-center justify-between text-slate-600 mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-600">
               Rute Tersimpan
             </span>
-            <RouteIcon size={16} className="text-blue-500" />
+            <RouteIcon size={16} aria-hidden="true" className="text-slate-600" />
           </div>
           <strong className="text-2xl font-bold tracking-tight text-zinc-900 block tabular">
-            {stats?.total_routes ?? "—"}
+            {stats?.total_routes ?? "-"}
           </strong>
-          <span className="text-[11px] text-zinc-400 mt-1 block">
+          <span className="text-[11px] text-slate-600 mt-1 block">
             Rute personal warga
           </span>
         </div>
 
         <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-          <div className="flex items-center justify-between text-zinc-500 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+          <div className="flex items-center justify-between text-slate-600 mb-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-600">
               CCTV Aktif
             </span>
-            <Camera size={16} className="text-purple-500" />
+            <Camera size={16} aria-hidden="true" className="text-slate-600" />
           </div>
           <strong className="text-2xl font-bold tracking-tight text-zinc-900 block tabular">
-            {stats?.active_cameras ?? "—"}
+            {stats?.active_cameras ?? "-"}
           </strong>
-          <span className="text-[11px] text-zinc-400 mt-1 block">
+          <span className="text-[11px] text-slate-600 mt-1 block">
             Kamera streaming aktif
           </span>
         </div>
@@ -430,7 +443,7 @@ export default function AdminPage() {
                         {item.user_name}
                       </strong>
                       <span className="text-[11px] font-mono text-emerald-700 font-medium">
-                        📱 {item.phone_number}
+                        {item.phone_number}
                       </span>
                     </div>
                     <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
@@ -447,12 +460,12 @@ export default function AdminPage() {
                     {item.message}
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between text-[11px] text-zinc-500 border-t border-zinc-100 pt-2">
-                    <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                      <CheckCircle2 size={12} />
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-slate-600 border-t border-zinc-100 pt-2">
+                    <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                      <CheckCircle2 size={12} aria-hidden="true" />
                       Format Bot WhatsApp Valid
                     </span>
-                    <span className="text-zinc-400">Advance: {item.notification_lead_minutes} mnt</span>
+                    <span className="text-slate-600">Advance: {item.notification_lead_minutes} mnt</span>
                   </div>
                 </article>
               ))}
@@ -501,20 +514,23 @@ export default function AdminPage() {
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between mb-4">
           {/* Search Input */}
           <div className="relative flex-1 max-w-md">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <Search size={14} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
             <input
               type="text"
+              aria-label="Cari nama, email, atau nomor HP"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Cari nama, email, atau nomor HP..."
-              className="h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50/50 pl-9 pr-8 text-xs text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white focus:outline-none transition"
+              className="h-9 w-full rounded-lg border border-zinc-200 bg-zinc-50/50 pl-9 pr-8 text-xs text-zinc-900 placeholder:text-slate-600 focus:border-zinc-400 focus:bg-white transition"
             />
             {searchQuery && (
               <button
+                type="button"
+                aria-label="Hapus pencarian"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-zinc-900 cursor-pointer"
               >
-                <X size={13} />
+                <X size={13} aria-hidden="true" />
               </button>
             )}
           </div>
@@ -563,7 +579,7 @@ export default function AdminPage() {
         <div className="overflow-x-auto rounded-xl border border-zinc-200">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/80 text-zinc-500 uppercase tracking-wider text-[10px]">
+              <tr className="border-b border-zinc-200 bg-zinc-50/80 text-slate-600 uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-3.5 font-semibold">Pengguna</th>
                 <th className="py-3 px-3.5 font-semibold">Email & Verifikasi</th>
                 <th className="py-3 px-3.5 font-semibold">Role</th>
@@ -575,7 +591,7 @@ export default function AdminPage() {
             <tbody className="divide-y divide-zinc-100">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-zinc-400">
+                  <td colSpan={6} className="py-8 text-center text-slate-600">
                     Tidak ada pengguna yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
@@ -610,7 +626,7 @@ export default function AdminPage() {
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] text-zinc-400 font-mono block">
+                            <span className="text-[10px] text-slate-600 font-mono block">
                               ID: #{u.id} · {dateTime(u.created_at)}
                             </span>
                           </div>
@@ -621,7 +637,7 @@ export default function AdminPage() {
                       <td className="py-3 px-3.5">
                         <div className="space-y-1">
                           <span className="text-zinc-700 block truncate font-mono text-[11px]">
-                            {u.email || "—"}
+                            {u.email || "-"}
                           </span>
                           <button
                             type="button"
@@ -667,9 +683,9 @@ export default function AdminPage() {
                               {u.phone_number}
                             </span>
                           ) : (
-                            <span className="text-zinc-400 italic block">Belum diatur</span>
+                            <span className="text-slate-600 italic block">Belum diatur</span>
                           )}
-                          <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                          <div className="flex items-center gap-2 text-[10px] text-slate-600">
                             <span className="inline-flex items-center gap-1">
                               <span
                                 className={cn(
@@ -722,17 +738,19 @@ export default function AdminPage() {
 
                           {/* Delete */}
                           <button
+                            type="button"
                             onClick={() => handleDeleteUser(u)}
                             disabled={isCurrent}
+                            aria-label={isCurrent ? "Tidak dapat menghapus akun sendiri" : `Hapus pengguna ${u.name}`}
                             className={cn(
-                              "inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition shadow-2xs cursor-pointer",
+                              "inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition shadow-2xs",
                               isCurrent
-                                ? "border-zinc-200 bg-zinc-100 text-zinc-300 cursor-not-allowed"
+                                ? "border-zinc-200 bg-zinc-100 text-slate-500 cursor-not-allowed"
                                 : "border-rose-200 bg-rose-50/60 text-rose-700 hover:bg-rose-100 hover:text-rose-800"
                             )}
                             title={isCurrent ? "Tidak dapat menghapus akun sendiri" : "Hapus Pengguna"}
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={12} aria-hidden="true" />
                           </button>
                         </div>
                       </td>
@@ -747,8 +765,13 @@ export default function AdminPage() {
 
       {/* MODAL 1: Detail Pengguna */}
       {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Detail pengguna ${selectedUser.name}`}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        >
+          <div className="relative w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between border-b border-zinc-100 pb-4">
               <div className="flex items-center gap-3">
                 <div className="grid size-11 place-items-center rounded-xl bg-zinc-900 text-sm font-bold text-white shadow-2xs">
@@ -759,53 +782,55 @@ export default function AdminPage() {
                     <h3 className="text-base font-bold text-zinc-900">{selectedUser.name}</h3>
                     {selectedUser.role === "admin" ? (
                       <span className="inline-flex items-center gap-1 rounded bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200">
-                        <ShieldCheck size={11} />
+                        <ShieldCheck size={11} aria-hidden="true" />
                         ADMIN
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">
-                        <UserCheck size={11} />
+                        <UserCheck size={11} aria-hidden="true" />
                         USER
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-zinc-500 font-mono">ID Pengguna: #{selectedUser.id}</p>
+                  <p className="text-xs text-slate-600 font-mono">ID Pengguna: #{selectedUser.id}</p>
                 </div>
               </div>
               <button
+                type="button"
+                aria-label="Tutup detail pengguna"
                 onClick={() => setSelectedUser(null)}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition cursor-pointer"
+                className="rounded-lg p-1.5 text-slate-600 hover:bg-zinc-100 hover:text-zinc-900 transition cursor-pointer"
               >
-                <X size={18} />
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
 
             <div className="mt-4 space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg bg-zinc-50/80 p-3 border border-zinc-200/60">
-                  <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
-                    <Mail size={11} />
+                  <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-600 font-medium">
+                    <Mail size={11} aria-hidden="true" />
                     <span>Email & Verifikasi</span>
                   </div>
                   <div className="mt-1 font-medium text-zinc-900 break-all text-xs">
-                    {selectedUser.email || "—"}
+                    {selectedUser.email || "-"}
                   </div>
                   <div className="mt-1.5">
                     {selectedUser.is_verified ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/80">
-                        <CheckCircle2 size={10} /> Terverifikasi
+                        <CheckCircle2 size={10} aria-hidden="true" /> Terverifikasi
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/80">
-                        <Clock size={10} /> Belum Terverifikasi
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/80">
+                        <Clock size={10} aria-hidden="true" /> Belum Terverifikasi
                       </span>
                     )}
                   </div>
                 </div>
 
                 <div className="rounded-lg bg-zinc-50/80 p-3 border border-zinc-200/60">
-                  <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-zinc-400 font-medium">
-                    <Phone size={11} />
+                  <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-600 font-medium">
+                    <Phone size={11} aria-hidden="true" />
                     <span>Nomor WhatsApp</span>
                   </div>
                   <div className="mt-1 font-mono font-medium text-zinc-900 text-xs">
@@ -817,7 +842,7 @@ export default function AdminPage() {
                         <span className="size-1 rounded-full bg-emerald-500" /> Notifikasi Aktif
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-zinc-500 bg-zinc-100 px-1.5 py-0.5 rounded">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-zinc-100 px-1.5 py-0.5 rounded">
                         Notifikasi Nonaktif
                       </span>
                     )}
@@ -827,38 +852,38 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-lg bg-zinc-50/80 p-3 border border-zinc-200/60">
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium block">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-600 font-medium block">
                     Lead Notifikasi
                   </span>
                   <span className="mt-1 font-bold text-zinc-900 block font-mono text-sm">
                     {selectedUser.notification_lead_minutes} mnt
                   </span>
-                  <span className="text-[10px] text-zinc-400">Sebelum rute</span>
+                  <span className="text-[10px] text-slate-600">Sebelum rute</span>
                 </div>
 
                 <div className="rounded-lg bg-zinc-50/80 p-3 border border-zinc-200/60">
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium block">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-600 font-medium block">
                     Rute Aktif
                   </span>
                   <span className="mt-1 font-bold text-zinc-900 block font-mono text-sm">
                     {selectedUser.routes_count ?? 0}
                   </span>
-                  <span className="text-[10px] text-zinc-400">Jalur disimpan</span>
+                  <span className="text-[10px] text-slate-600">Jalur disimpan</span>
                 </div>
 
                 <div className="rounded-lg bg-zinc-50/80 p-3 border border-zinc-200/60">
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium block">
+                  <span className="text-[10px] uppercase tracking-wider text-slate-600 font-medium block">
                     Zona Waktu
                   </span>
                   <span className="mt-1 font-medium text-zinc-800 block truncate text-xs">
                     {selectedUser.timezone}
                   </span>
-                  <span className="text-[10px] text-zinc-400">WIB / GMT+7</span>
+                  <span className="text-[10px] text-slate-600">WIB / GMT+7</span>
                 </div>
               </div>
 
               <div className="rounded-lg bg-zinc-50/80 p-3 border border-zinc-200/60">
-                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-medium block">
+                <span className="text-[10px] uppercase tracking-wider text-slate-600 font-medium block">
                   Tanggal Registrasi Akun
                 </span>
                 <span className="mt-0.5 font-mono text-zinc-800 block text-xs">
@@ -906,23 +931,30 @@ export default function AdminPage() {
 
       {/* MODAL 2: Tambah Pengguna Baru */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tambah Pengguna Baru"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        >
+          <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between border-b border-zinc-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                  <UserPlus size={16} />
+                  <UserPlus size={16} aria-hidden="true" />
                   Tambah Pengguna Baru
                 </h3>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Daftarkan akun baru ke dalam sistem Palembang Smart Mobility.
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Daftarkan akun baru ke dalam sistem LAJU Palembang.
                 </p>
               </div>
               <button
+                type="button"
+                aria-label="Tutup form tambah pengguna"
                 onClick={() => setIsCreateModalOpen(false)}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition cursor-pointer"
+                className="rounded-lg p-1.5 text-slate-600 hover:bg-zinc-100 hover:text-zinc-900 transition cursor-pointer"
               >
-                <X size={16} />
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
 
@@ -941,7 +973,7 @@ export default function AdminPage() {
                   value={createName}
                   onChange={(e) => setCreateName(e.target.value)}
                   placeholder="Nama lengkap pengguna"
-                  className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                  className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-blue-600"
                 />
               </div>
 
@@ -953,7 +985,7 @@ export default function AdminPage() {
                   value={createEmail}
                   onChange={(e) => setCreateEmail(e.target.value)}
                   placeholder="contoh@gmail.com"
-                  className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                  className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-blue-600"
                 />
               </div>
 
@@ -967,14 +999,15 @@ export default function AdminPage() {
                     value={createPassword}
                     onChange={(e) => setCreatePassword(e.target.value)}
                     placeholder="Minimal 6 karakter"
-                    className="w-full h-8.5 rounded-lg border border-zinc-200 pl-3 pr-8 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                    className="w-full h-8.5 rounded-lg border border-zinc-200 pl-3 pr-8 text-xs text-zinc-900 focus:border-blue-600"
                   />
                   <button
                     type="button"
+                    aria-label={showCreatePassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                     onClick={() => setShowCreatePassword(!showCreatePassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-zinc-900 cursor-pointer"
                   >
-                    {showCreatePassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                    {showCreatePassword ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}
                   </button>
                 </div>
               </div>
@@ -985,7 +1018,7 @@ export default function AdminPage() {
                   <select
                     value={createRole}
                     onChange={(e) => setCreateRole(e.target.value as "user" | "admin")}
-                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-2.5 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none bg-white"
+                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-2.5 text-xs text-zinc-900 focus:border-blue-600 bg-white"
                   >
                     <option value="user">User Biasa</option>
                     <option value="admin">Administrator</option>
@@ -999,7 +1032,7 @@ export default function AdminPage() {
                     value={createPhone}
                     onChange={(e) => setCreatePhone(e.target.value)}
                     placeholder="081234567890"
-                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-blue-600"
                   />
                 </div>
               </div>
@@ -1013,7 +1046,7 @@ export default function AdminPage() {
                     max={60}
                     value={createLeadMinutes}
                     onChange={(e) => setCreateLeadMinutes(Number(e.target.value))}
-                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-blue-600"
                   />
                 </div>
 
@@ -1053,21 +1086,28 @@ export default function AdminPage() {
 
       {/* MODAL 3: Edit Pengguna */}
       {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl animate-in fade-in zoom-in-95 duration-150">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Edit pengguna ${editingUser.name}`}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        >
+          <div className="relative w-full max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between border-b border-zinc-100 pb-3">
               <div>
                 <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                  <Pencil size={15} />
+                  <Pencil size={15} aria-hidden="true" />
                   Edit Pengguna: {editingUser.name}
                 </h3>
-                <p className="text-xs text-zinc-500 mt-0.5">ID Pengguna: #{editingUser.id}</p>
+                <p className="text-xs text-slate-600 mt-0.5">ID Pengguna: #{editingUser.id}</p>
               </div>
               <button
+                type="button"
+                aria-label="Tutup form edit pengguna"
                 onClick={() => setEditingUser(null)}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 transition cursor-pointer"
+                className="rounded-lg p-1.5 text-slate-600 hover:bg-zinc-100 hover:text-zinc-900 transition cursor-pointer"
               >
-                <X size={16} />
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
 
@@ -1085,7 +1125,7 @@ export default function AdminPage() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                  className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-blue-600"
                 />
               </div>
 
@@ -1096,17 +1136,17 @@ export default function AdminPage() {
                   required
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                  className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-blue-600"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-zinc-700 font-medium flex items-center gap-1">
-                    <KeyRound size={12} />
+                    <KeyRound size={12} aria-hidden="true" />
                     <span>Reset Password (Opsional)</span>
                   </label>
-                  <span className="text-[10px] text-zinc-400">Biarkan kosong jika tidak diubah</span>
+                  <span className="text-[10px] text-slate-600">Biarkan kosong jika tidak diubah</span>
                 </div>
                 <div className="relative">
                   <input
@@ -1114,14 +1154,15 @@ export default function AdminPage() {
                     value={editPassword}
                     onChange={(e) => setEditPassword(e.target.value)}
                     placeholder="Masukkan password baru..."
-                    className="w-full h-8.5 rounded-lg border border-zinc-200 pl-3 pr-8 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                    className="w-full h-8.5 rounded-lg border border-zinc-200 pl-3 pr-8 text-xs text-zinc-900 focus:border-zinc-400"
                   />
                   <button
                     type="button"
+                    aria-label={showEditPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                     onClick={() => setShowEditPassword(!showEditPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 hover:text-zinc-900 cursor-pointer"
                   >
-                    {showEditPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                    {showEditPassword ? <EyeOff size={13} aria-hidden="true" /> : <Eye size={13} aria-hidden="true" />}
                   </button>
                 </div>
               </div>
@@ -1133,13 +1174,13 @@ export default function AdminPage() {
                     value={editRole}
                     disabled={editingUser.id === currentUser?.id}
                     onChange={(e) => setEditRole(e.target.value as "user" | "admin")}
-                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-2.5 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none bg-white disabled:bg-zinc-100 disabled:text-zinc-400"
+                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-2.5 text-xs text-zinc-900 focus:border-zinc-400 bg-white disabled:bg-zinc-100 disabled:text-slate-600"
                   >
                     <option value="user">User Biasa</option>
                     <option value="admin">Administrator</option>
                   </select>
                   {editingUser.id === currentUser?.id && (
-                    <span className="text-[10px] text-zinc-400 mt-0.5 block">Akun Anda sendiri</span>
+                    <span className="text-[10px] text-slate-600 mt-0.5 block">Akun Anda sendiri</span>
                   )}
                 </div>
 
@@ -1150,7 +1191,7 @@ export default function AdminPage() {
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value)}
                     placeholder="081234567890"
-                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-blue-600"
                   />
                 </div>
               </div>
@@ -1164,7 +1205,7 @@ export default function AdminPage() {
                     max={60}
                     value={editLeadMinutes}
                     onChange={(e) => setEditLeadMinutes(Number(e.target.value))}
-                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+                    className="w-full h-8.5 rounded-lg border border-zinc-200 px-3 text-xs text-zinc-900 focus:border-blue-600"
                   />
                 </div>
 

@@ -119,8 +119,8 @@ function WhatsAppPreferencesForm({
               Nomor WhatsApp Aktif
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 grid w-10 place-items-center text-zinc-400">
-                <Phone size={14} />
+              <span className="absolute inset-y-0 left-0 grid w-10 place-items-center text-slate-600">
+                <Phone size={14} aria-hidden="true" />
               </span>
               <input
                 type="tel"
@@ -128,10 +128,10 @@ function WhatsAppPreferencesForm({
                 placeholder="Mis. 08123456789 atau 628123456789"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-3.5 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400 focus:outline-none"
+                className="w-full rounded-xl border border-zinc-200 bg-white pl-10 pr-3.5 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400"
               />
             </div>
-            <p className="mt-1 text-[10px] text-zinc-400">
+            <p className="mt-1 text-[10px] text-slate-600">
               Format lokal (08...) akan dinormalisasi otomatis ke standar internasional (628...).
             </p>
           </div>
@@ -143,14 +143,14 @@ function WhatsAppPreferencesForm({
             <select
               value={leadMinutes}
               onChange={(e) => setLeadMinutes(Number(e.target.value))}
-              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400"
             >
               <option value={5}>5 Menit Sebelum Berangkat (Rekomendasi)</option>
               <option value={10}>10 Menit Sebelum Berangkat</option>
               <option value={15}>15 Menit Sebelum Berangkat</option>
               <option value={30}>30 Menit Sebelum Berangkat</option>
             </select>
-            <p className="mt-1 text-[10px] text-zinc-400">
+            <p className="mt-1 text-[10px] text-slate-600">
               Bot WA akan mengirimkan update kondisi kemacetan & lubang jalan pada jendela waktu ini.
             </p>
           </div>
@@ -175,7 +175,7 @@ function WhatsAppPreferencesForm({
             disabled={saving}
             className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-50 transition"
           >
-            <Save size={13} />
+            <Save size={13} aria-hidden="true" />
             <span>{saving ? "Menyimpan..." : "Simpan Preferensi WhatsApp"}</span>
           </button>
 
@@ -183,7 +183,7 @@ function WhatsAppPreferencesForm({
             href="/routes"
             className="text-xs text-emerald-700 font-semibold hover:underline"
           >
-            Uji Notifikasi pada Rute &rarr;
+            Uji Notifikasi pada Rute
           </Link>
         </div>
       </form>
@@ -273,7 +273,7 @@ function ChangePasswordForm({
               placeholder="••••••••"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-blue-600"
             />
           </div>
           <div>
@@ -286,7 +286,7 @@ function ChangePasswordForm({
               placeholder="Minimal 6 karakter"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-blue-600"
             />
           </div>
           <div>
@@ -299,7 +299,7 @@ function ChangePasswordForm({
               placeholder="Ulangi kata sandi baru"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-zinc-400 focus:outline-none"
+              className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs text-zinc-900 focus:border-blue-600"
             />
           </div>
         </div>

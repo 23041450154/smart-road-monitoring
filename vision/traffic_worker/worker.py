@@ -140,6 +140,8 @@ def _draw(frame, tracks: list[Track]) -> None:
     import cv2
 
     for track in tracks:
+        if getattr(track, "is_stationary", False):
+            continue
         left, top, right, bottom = map(int, track.bounding_box)
         cv2.rectangle(frame, (left, top), (right, bottom), (48, 209, 88), 2)
         cv2.putText(

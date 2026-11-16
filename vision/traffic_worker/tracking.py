@@ -19,6 +19,7 @@ class Track:
     confidence: float
     bounding_box: list[float]
     velocity: tuple[float, float] = (0.0, 0.0)
+    is_stationary: bool = False
 
     @property
     def center(self) -> tuple[float, float]:
@@ -109,6 +110,55 @@ def _nms(
     return keep
 
 
+def _filter_pedestrians_and_merge_riders(
+    raw_boxes: list[list[float]],
+    raw_confs: list[float],
+    raw_clss: list[int],
+    native_ids: list[int | None],
+) -> tuple[list[list[float]], list[float], list[int], list[int | None]]:
+    """Discard standalone pedestrians (cls=0) and merge riders onto overlapping two-wheelers (cls 1 or 3)."""
+    bike_indices = [i for i, c in enumerate(raw_clss) if c in (1, 3)]
+    merged_boxes = [list(b) for b in raw_boxes]
+    merged_confs = list(raw_confs)
+
+    for i, cls_id in enumerate(raw_clss):
+        if cls_id != 0 or not bike_indices:
+            continue
+        p_box = raw_boxes[i]
+        p_w = max(1.0, p_box[2] - p_box[0])
+        p_cx = (p_box[0] + p_box[2]) / 2.0
+
+        best_bike: int | None = None
+        best_dx = float("inf")
+        for b_idx in bike_indices:
+            b_box = merged_boxes[b_idx]
+            b_w = max(1.0, b_box[2] - b_box[0])
+            b_cx = (b_box[0] + b_box[2]) / 2.0
+            dx = abs(p_cx - b_cx)
+            y_overlap = min(p_box[3], b_box[3]) - max(p_box[1], b_box[1])
+            if dx <= max(p_w, b_w) * 0.65 and y_overlap >= -8.0 and dx < best_dx:
+                best_dx = dx
+                best_bike = b_idx
+
+        if best_bike is not None:
+            b_box = merged_boxes[best_bike]
+            merged_boxes[best_bike] = [
+                min(b_box[0], p_box[0]),
+                min(b_box[1], p_box[1]),
+                max(b_box[2], p_box[2]),
+                max(b_box[3], p_box[3]),
+            ]
+            merged_confs[best_bike] = max(merged_confs[best_bike], raw_confs[i])
+
+    keep = [i for i, c in enumerate(raw_clss) if c != 0 and c in VEHICLE_CLASSES]
+    return (
+        [merged_boxes[i] for i in keep],
+        [merged_confs[i] for i in keep],
+        [raw_clss[i] for i in keep],
+        [native_ids[i] for i in keep],
+    )
+
+
 CAMERA_EXCLUSION_ZONES: dict[int, list[list[tuple[float, float]]]] = {
     4: [
         # Cam 4 (Masjid Agung) - bottom-left fountain monument & bright spotlights
@@ -171,7 +221,8 @@ def _calculate_match_cost(
         return float("inf")
 
     dt = max(0.01, now - track_info.get("last_seen", now))
-    if dt > 3.0:
+    max_dt = 15.0 if track_info.get("is_stationary", False) else 3.0
+    if dt > max_dt:
         return float("inf")
 
     det_cx = (det_box[0] + det_box[2]) / 2.0
@@ -278,6 +329,7 @@ class YoloByteTrackProcessor:
         # Persistent mapping from ByteTrack native integer ID -> canonical track ID (e.g. 250 -> "vehicle_247")
         self._bytetrack_remap: dict[int, str] = {}
         self._reid_memory_seconds: float = 2.5
+        self._stationary_memory_seconds: float = 15.0
 
         # Path to custom tracker config
         custom_tracker = Path(__file__).parent / "bytetrack_custom.yaml"
@@ -297,7 +349,7 @@ class YoloByteTrackProcessor:
         return f"vehicle_{self._next_id}"
 
     def process(self, frame: Any) -> list[Track]:
-        classes = list(VEHICLE_CLASSES.keys())
+        classes = sorted(set(VEHICLE_CLASSES.keys()) | {0})
         try:
             result = self.model.track(
                 frame,
@@ -318,12 +370,17 @@ class YoloByteTrackProcessor:
             )[0]
 
         now = time.monotonic()
+        stationary_mem = getattr(self, "_stationary_memory_seconds", 15.0)
         if not hasattr(result, "boxes") or len(result.boxes) == 0:
             tracks: list[Track] = []
             for tid, tinfo in list(self._active_tracks.items()):
                 missed = tinfo.get("missed_count", 0) + 1
                 tinfo["missed_count"] = missed
-                if missed <= 4 and (now - tinfo["last_seen"]) < 0.60:
+                if (
+                    not tinfo.get("is_stationary", False)
+                    and missed <= 4
+                    and (now - tinfo["last_seen"]) < 0.60
+                ):
                     tracks.append(
                         Track(
                             tracker_id=tid,
@@ -331,12 +388,15 @@ class YoloByteTrackProcessor:
                             confidence=max(0.05, tinfo.get("conf", 0.20) * 0.8),
                             bounding_box=tinfo["box"],
                             velocity=(0.0, 0.0),
+                            is_stationary=False,
                         )
                     )
             self._active_tracks = {
                 tid: info
                 for tid, info in self._active_tracks.items()
-                if now - info["last_seen"] < self._reid_memory_seconds
+                if now - info["last_seen"] < (
+                    stationary_mem if info.get("is_stationary", False) else self._reid_memory_seconds
+                )
             }
             return tracks
 
@@ -354,6 +414,11 @@ class YoloByteTrackProcessor:
             ]
         else:
             native_ids = [None] * len(raw_boxes)
+
+        # Discard standalone pedestrians (cls=0) and merge riders onto overlapping two-wheelers
+        raw_boxes, raw_confs, raw_clss, native_ids = _filter_pedestrians_and_merge_riders(
+            raw_boxes, raw_confs, raw_clss, native_ids
+        )
 
         # Filter out detections inside exclusion zones (e.g. non-drivable park or fountain)
         if self.exclusion_zones and hasattr(frame, "shape"):
@@ -477,10 +542,35 @@ class YoloByteTrackProcessor:
                 vy_step = vy_sec * 0.10
 
                 class_votes = Counter(prev_info.get("class_votes", {}))
+                first_seen = prev_info.get("first_seen", now)
+                first_center = prev_info.get("first_center", (new_cx, new_cy))
+                hits = prev_info.get("hits", 0) + 1
+                anchor_center = prev_info.get("anchor_center", (new_cx, new_cy))
+                anchor_time = prev_info.get("anchor_time", now)
+                prev_has_moved = bool(prev_info.get("has_moved", False))
             else:
                 vx_sec, vy_sec = 0.0, 0.0
                 vx_step, vy_step = 0.0, 0.0
                 class_votes = Counter()
+                first_seen = now
+                first_center = (new_cx, new_cy)
+                hits = 1
+                anchor_center = (new_cx, new_cy)
+                anchor_time = now
+                prev_has_moved = False
+
+            net_disp = math.hypot(new_cx - first_center[0], new_cy - first_center[1])
+            has_moved = prev_has_moved or (net_disp >= 14.0)
+            anchor_disp = math.hypot(new_cx - anchor_center[0], new_cy - anchor_center[1])
+            speed = math.hypot(vx_sec, vy_sec)
+            if anchor_disp >= 12.0:
+                anchor_center = (new_cx, new_cy)
+                anchor_time = now
+
+            is_stationary = bool(
+                (hits >= 4 and not has_moved and net_disp < 10.0)
+                or ((now - anchor_time) >= 1.8 and anchor_disp < 12.0 and speed < 12.0)
+            )
 
             class_votes[vtype] += 1
             # Canonical vehicle type from consensus majority voting across track lifetime
@@ -497,6 +587,13 @@ class YoloByteTrackProcessor:
                 "last_seen": now,
                 "missed_count": 0,
                 "class_votes": class_votes,
+                "first_seen": first_seen,
+                "first_center": first_center,
+                "hits": hits,
+                "has_moved": has_moved,
+                "anchor_center": anchor_center,
+                "anchor_time": anchor_time,
+                "is_stationary": is_stationary,
             }
 
             tracks.append(
@@ -506,6 +603,7 @@ class YoloByteTrackProcessor:
                     confidence=conf,
                     bounding_box=box,
                     velocity=(vx_step, vy_step),
+                    is_stationary=is_stationary,
                 )
             )
 
@@ -530,7 +628,11 @@ class YoloByteTrackProcessor:
 
             missed = tinfo.get("missed_count", 0) + 1
             tinfo["missed_count"] = missed
-            if missed <= 4 and (now - tinfo["last_seen"]) < 0.60:
+            if (
+                not tinfo.get("is_stationary", False)
+                and missed <= 4
+                and (now - tinfo["last_seen"]) < 0.60
+            ):
                 tracks.append(
                     Track(
                         tracker_id=tid,
@@ -538,14 +640,17 @@ class YoloByteTrackProcessor:
                         confidence=max(0.05, tinfo.get("conf", 0.20) * 0.8),
                         bounding_box=tbox,
                         velocity=(0.0, 0.0),
+                        is_stationary=False,
                     )
                 )
 
-        # Phase 6: Memory Pruning (retains tracks for up to self._reid_memory_seconds for Re-ID)
+        # Phase 6: Memory Pruning (retains moving tracks for Re-ID and stationary tracks longer to avoid re-spawning)
         self._active_tracks = {
             tid: info
             for tid, info in self._active_tracks.items()
-            if now - info["last_seen"] < self._reid_memory_seconds
+            if now - info["last_seen"] < (
+                stationary_mem if info.get("is_stationary", False) else self._reid_memory_seconds
+            )
         }
         if len(self._bytetrack_remap) > 500:
             active_cids = set(self._active_tracks.keys())
@@ -583,14 +688,16 @@ def _side(
 
 
 class LineCrossingCounter:
-    """Detects when vehicles cross a counting line segment using trajectory and bounding box intersection."""
+    """Detects when moving vehicles cross a counting line segment with displacement and cooldown guards."""
 
     def __init__(self, line: list[list[float]]) -> None:
         self.line = line
+        self.first_centers: dict[str, tuple[float, float]] = {}
         self.previous_centers: dict[str, tuple[float, float]] = {}
         self.previous_sides: dict[str, float] = {}
         self.counted: set[str] = set()
         self.counted_at: dict[str, float] = {}
+        self.recent_crossings: list[tuple[float, float, float, str]] = []
 
     def update(self, track: Track, frame_width: int, frame_height: int) -> str | None:
         if track.tracker_id in self.counted:
@@ -605,44 +712,66 @@ class LineCrossingCounter:
 
         curr_center = track.center
         curr_side = _side(curr_center, L1, L2)
+        first_center = self.first_centers.setdefault(track.tracker_id, curr_center)
         prev_center = self.previous_centers.get(track.tracker_id)
         prev_side = self.previous_sides.get(track.tracker_id)
 
-        self.previous_centers[track.tracker_id] = curr_center
-        self.previous_sides[track.tracker_id] = curr_side
-
-        crossed = False
-
-        # 1. Trajectory segment crossing check
-        if prev_center is not None:
-            if _segments_intersect(prev_center, curr_center, L1, L2):
-                crossed = True
-            elif prev_side is not None and prev_side != 0 and curr_side != 0:
-                if prev_side * curr_side < 0:
-                    mid_x = (prev_center[0] + curr_center[0]) / 2
-                    mid_y = (prev_center[1] + curr_center[1]) / 2
-                    min_lx = min(lx1, lx2) - 40
-                    max_lx = max(lx1, lx2) + 40
-                    min_ly = min(ly1, ly2) - 40
-                    max_ly = max(ly1, ly2) + 40
-                    if min_lx <= mid_x <= max_lx and min_ly <= mid_y <= max_ly:
-                        crossed = True
-
-        # 2. Bounding box diagonal intersection check
-        if not crossed:
-            b = track.bounding_box
-            d1_a, d1_b = (b[0], b[1]), (b[2], b[3])
-            d2_a, d2_b = (b[0], b[3]), (b[2], b[1])
-            if _segments_intersect(d1_a, d1_b, L1, L2) or _segments_intersect(
-                d2_a, d2_b, L1, L2
-            ):
-                crossed = True
-
-        if not crossed:
+        if getattr(track, "is_stationary", False):
+            self.previous_centers[track.tracker_id] = curr_center
+            self.previous_sides[track.tracker_id] = curr_side
             return None
 
-        self.counted.add(track.tracker_id)
+        if prev_center is None:
+            self.previous_centers[track.tracker_id] = curr_center
+            self.previous_sides[track.tracker_id] = curr_side
+            return None
+
+        crossed = False
+        if _segments_intersect(prev_center, curr_center, L1, L2):
+            crossed = True
+        elif prev_side is not None and prev_side != 0 and curr_side != 0:
+            if prev_side * curr_side < 0:
+                mid_x = (prev_center[0] + curr_center[0]) / 2
+                mid_y = (prev_center[1] + curr_center[1]) / 2
+                min_lx = min(lx1, lx2) - 40
+                max_lx = max(lx1, lx2) + 40
+                min_ly = min(ly1, ly2) - 40
+                max_ly = max(ly1, ly2) + 40
+                if min_lx <= mid_x <= max_lx and min_ly <= mid_y <= max_ly:
+                    crossed = True
+
+        if not crossed:
+            self.previous_centers[track.tracker_id] = curr_center
+            self.previous_sides[track.tracker_id] = curr_side
+            return None
+
+        net_disp = math.hypot(curr_center[0] - first_center[0], curr_center[1] - first_center[1])
+        step_disp = math.hypot(curr_center[0] - prev_center[0], curr_center[1] - prev_center[1])
+        if net_disp < 12.0 or step_disp < 2.0:
+            # Keep previous_sides intact so tiny bbox jitter doesn't mask a real crossing later
+            self.previous_centers[track.tracker_id] = curr_center
+            return None
+
         now = time.monotonic()
+        self.recent_crossings = [
+            item for item in self.recent_crossings if now - item[2] <= 3.0
+        ]
+        for rcx, rcy, _rts, rtype in self.recent_crossings:
+            if (
+                rtype == track.vehicle_type
+                and math.hypot(curr_center[0] - rcx, curr_center[1] - rcy) < 20.0
+                and step_disp < 15.0
+            ):
+                self.previous_centers[track.tracker_id] = curr_center
+                self.previous_sides[track.tracker_id] = curr_side
+                self.counted.add(track.tracker_id)
+                self.counted_at[track.tracker_id] = now
+                return None
+
+        self.recent_crossings.append((curr_center[0], curr_center[1], now, track.vehicle_type))
+        self.previous_centers[track.tracker_id] = curr_center
+        self.previous_sides[track.tracker_id] = curr_side
+        self.counted.add(track.tracker_id)
         self.counted_at[track.tracker_id] = now
 
         # Prune very old counted IDs
@@ -655,19 +784,16 @@ class LineCrossingCounter:
             for tid in stale:
                 self.counted.discard(tid)
                 self.counted_at.pop(tid, None)
+                self.first_centers.pop(tid, None)
+                self.previous_centers.pop(tid, None)
+                self.previous_sides.pop(tid, None)
 
         dx = lx2 - lx1
         dy = ly2 - ly1
         nx, ny = -dy, dx
 
-        if prev_center is not None:
-            vx = curr_center[0] - prev_center[0]
-            vy = curr_center[1] - prev_center[1]
-        else:
-            mid_lx = (lx1 + lx2) / 2
-            mid_ly = (ly1 + ly2) / 2
-            vx = curr_center[0] - mid_lx
-            vy = curr_center[1] - mid_ly
+        vx = curr_center[0] - prev_center[0]
+        vy = curr_center[1] - prev_center[1]
 
         dot = vx * nx + vy * ny
         return "A_TO_B" if dot >= 0 else "B_TO_A"

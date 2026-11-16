@@ -123,7 +123,7 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
           saveUserLocation(pos.lat, pos.lng);
           userPin
             .setPopupContent(
-              `<div style="font-size:12px"><b>✓ Lokasi Saya Tersimpan</b><br/><span style="color:#64748b">${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}</span></div>`
+              `<div style="font-size:12px"><b>Lokasi Saya Tersimpan</b><br/><span style="color:#475569">${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}</span></div>`
             )
             .openPopup();
         });
@@ -144,7 +144,7 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
       <button
         type="button"
         onClick={handleResetToPalembang}
-        className="flex items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs backdrop-blur hover:bg-zinc-50 transition"
+        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
         title="Pusatkan peta ke Kota Palembang"
       >
         <MapPin size={13} className="text-zinc-600" />
@@ -167,7 +167,7 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
         type="button"
         onClick={handleUserLocation}
         disabled={locating}
-        className="flex items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs backdrop-blur hover:bg-zinc-50 transition disabled:opacity-50"
+        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50"
         title="Tampilkan lokasi saya saat ini"
       >
         {locating ? (
@@ -183,7 +183,7 @@ export function MapControls({ selectedRouteBounds }: MapControlsProps) {
       <button
         type="button"
         onClick={handleToggleFullscreen}
-        className="flex items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-xs backdrop-blur hover:bg-zinc-50 transition"
+        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
         title={isMapFullscreen ? "Keluar Layar Penuh Peta" : "Mode Layar Penuh Peta"}
       >
         {isMapFullscreen ? (

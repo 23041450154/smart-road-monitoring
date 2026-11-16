@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, KeyRound, Loader2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -301,6 +301,8 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
           <img
             src="/logo.svg"
             alt="LAJU Palembang"
+            width={44}
+            height={44}
             className="size-11 mb-3 object-contain"
           />
 
@@ -350,8 +352,7 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
               {isTesting && (
                 <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-3 space-y-2 mb-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-zinc-800 flex items-center gap-1.5">
-                      <Sparkles size={12} className="text-blue-600" />
+                    <span className="text-[11px] font-semibold text-zinc-800">
                       Pilih Akun Demo (Auto-Fill Form)
                     </span>
                     <span className="text-[10px] text-blue-600 font-mono">1-Klik Isi</span>
@@ -375,8 +376,8 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
                         <span className="font-semibold text-zinc-900 text-[11px]">User Testing</span>
                         <span className="rounded bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700">USER</span>
                       </div>
-                      <span className="text-[10px] font-mono text-zinc-500 truncate max-w-full">user@test.com</span>
-                      <span className="text-[9px] font-mono text-zinc-400">pass: test</span>
+                      <span className="text-[10px] font-mono text-slate-600 truncate max-w-full">user@test.com</span>
+                      <span className="text-[9px] font-mono text-slate-600">pass: test</span>
                     </button>
 
                     <button
@@ -396,8 +397,8 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
                         <span className="font-semibold text-zinc-900 text-[11px]">Admin Testing</span>
                         <span className="rounded bg-rose-100 px-1 py-0.2 text-[9px] font-bold text-rose-700">ADMIN</span>
                       </div>
-                      <span className="text-[10px] font-mono text-zinc-500 truncate max-w-full">admin@test.com</span>
-                      <span className="text-[9px] font-mono text-zinc-400">pass: test</span>
+                      <span className="text-[10px] font-mono text-slate-600 truncate max-w-full">admin@test.com</span>
+                      <span className="text-[9px] font-mono text-slate-600">pass: test</span>
                     </button>
                   </div>
 
@@ -416,50 +417,53 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="font-semibold text-zinc-900 text-[11px]">Admin Utama</span>
-                      <span className="text-[10px] font-mono text-zinc-500">admin@naufal.me</span>
+                      <span className="text-[10px] font-mono text-slate-600">admin@naufal.me</span>
                     </div>
-                    <span className="text-[9px] font-mono text-zinc-400">pass: Garena123</span>
+                    <span className="text-[9px] font-mono text-slate-600">pass: Garena123</span>
                   </button>
                 </div>
               )}
 
               {/* Email Field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="login-email" className="text-xs font-medium text-zinc-700">
                   Email
                 </label>
                 <input
+                  id="login-email"
                   type="email"
                   required
                   autoFocus={!isTesting}
                   placeholder="contoh@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                 />
               </div>
 
               {/* Password Field */}
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="login-password" className="text-xs font-medium text-zinc-700">
                   Kata Sandi
                 </label>
                 <div className="relative">
                   <input
+                    id="login-password"
                     type={showPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600 transition"
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-600 hover:text-zinc-900 transition"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showPassword ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
                   </button>
                 </div>
               </div>
@@ -524,95 +528,102 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
           {mode === "register" && (
             <form onSubmit={handleRegister} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="reg-name" className="text-xs font-medium text-zinc-700">
                   Nama Lengkap
                 </label>
                 <input
+                  id="reg-name"
                   type="text"
                   required
                   autoFocus
                   placeholder="Nama lengkap"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="reg-email" className="text-xs font-medium text-zinc-700">
                   Email
                 </label>
                 <input
+                  id="reg-email"
                   type="email"
                   required
                   placeholder="contoh@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="reg-password" className="text-xs font-medium text-zinc-700">
                   Kata Sandi
                 </label>
                 <div className="relative">
                   <input
+                    id="reg-password"
                     type={showPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600 transition"
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-600 hover:text-zinc-900 transition"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showPassword ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="reg-confirm" className="text-xs font-medium text-zinc-700">
                   Konfirmasi Kata Sandi
                 </label>
                 <div className="relative">
                   <input
+                    id="reg-confirm"
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                   />
                   <button
                     type="button"
+                    aria-label={showConfirmPassword ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600 transition"
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-600 hover:text-zinc-900 transition"
                     tabIndex={-1}
                   >
-                    {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showConfirmPassword ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-zinc-700">
+                  <label htmlFor="reg-phone" className="text-xs font-medium text-zinc-700">
                     Nomor WhatsApp
                   </label>
-                  <span className="text-[10px] text-zinc-400">Opsional</span>
+                  <span className="text-[10px] text-slate-600">Opsional</span>
                 </div>
                 <input
+                  id="reg-phone"
                   type="tel"
                   placeholder="08xxxxxxxxxx"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                 />
               </div>
 
@@ -720,17 +731,18 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
           {mode === "forgot" && (
             <form onSubmit={handleForgotSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="forgot-email" className="text-xs font-medium text-zinc-700">
                   Email Terdaftar
                 </label>
                 <input
+                  id="forgot-email"
                   type="email"
                   required
                   autoFocus
                   placeholder="contoh@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                 />
               </div>
 
@@ -802,49 +814,53 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="reset-password" className="text-xs font-medium text-zinc-700">
                   Kata Sandi Baru
                 </label>
                 <div className="relative">
                   <input
+                    id="reset-password"
                     type={showPassword ? "text" : "password"}
                     required
                     placeholder="Minimal 6 karakter"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                   />
                   <button
                     type="button"
+                    aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600 transition"
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-600 hover:text-zinc-900 transition"
                     tabIndex={-1}
                   >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showPassword ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-zinc-700">
+                <label htmlFor="reset-confirm" className="text-xs font-medium text-zinc-700">
                   Konfirmasi Kata Sandi Baru
                 </label>
                 <div className="relative">
                   <input
+                    id="reset-confirm"
                     type={showConfirmPassword ? "text" : "password"}
                     required
                     placeholder="Ulangi kata sandi baru"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-zinc-400 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950 focus:outline-none"
+                    className="h-9 w-full rounded-lg border border-zinc-200 bg-white px-3 pr-9 text-xs text-zinc-900 transition placeholder:text-slate-500 focus:border-zinc-950 focus:ring-1 focus:ring-zinc-950"
                   />
                   <button
                     type="button"
+                    aria-label={showConfirmPassword ? "Sembunyikan konfirmasi kata sandi" : "Tampilkan konfirmasi kata sandi"}
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-zinc-400 hover:text-zinc-600 transition"
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-600 hover:text-zinc-900 transition"
                     tabIndex={-1}
                   >
-                    {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showConfirmPassword ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
                   </button>
                 </div>
               </div>
@@ -882,29 +898,29 @@ export function AuthView({ isTesting = false }: AuthViewProps) {
           )}
 
           {/* Links at footer */}
-          <div className="mt-5 border-t border-zinc-100 pt-3 flex items-center justify-between text-[11px] text-zinc-400">
+          <div className="mt-5 border-t border-zinc-100 pt-3 flex items-center justify-between text-[11px] text-slate-600">
             {isTesting ? (
               <>
                 <Link
                   href="/login"
-                  className="hover:text-zinc-800 transition underline underline-offset-2"
+                  className="hover:text-zinc-900 transition underline underline-offset-2"
                 >
-                  &larr; Form Login Biasa
+                  Form Login Biasa
                 </Link>
                 <Link
                   href="/cctv"
-                  className="hover:text-zinc-800 transition"
+                  className="hover:text-zinc-900 transition"
                 >
-                  Mode Tamu &rarr;
+                  Mode Tamu
                 </Link>
               </>
             ) : (
               <div className="w-full text-center">
                 <Link
                   href="/cctv"
-                  className="text-zinc-400 hover:text-zinc-700 transition"
+                  className="text-slate-600 hover:text-zinc-900 transition"
                 >
-                  Lanjutkan tanpa login &rarr;
+                  Lanjutkan tanpa login
                 </Link>
               </div>
             )}

@@ -81,10 +81,12 @@ export function PageLoader() {
         />
       </div>
 
-      {/* Floating Modern Spinner Pill */}
       {isNavigating && (
-        <div className="fixed bottom-6 right-6 z-[9999] flex items-center gap-2 rounded-full border border-zinc-200/90 bg-white/95 px-3.5 py-1.5 text-xs font-medium text-zinc-900 shadow-md backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-150">
-          <Loader2 size={13} className="animate-spin text-zinc-900" />
+        <div
+          role="status"
+          className="fixed bottom-6 right-6 z-[9999] flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-900 shadow-sm"
+        >
+          <Loader2 size={13} aria-hidden="true" className="animate-spin text-slate-900" />
           <span>Memuat...</span>
         </div>
       )}

@@ -27,3 +27,19 @@ export function cleanCameraName(name: string): string {
   return name.replace(/\s*\(Palembang\)/gi, "").replace(/^CCTV\s+/i, "").trim();
 }
 
+export function fiveMinuteWindowLabel(value?: string | null): string {
+  if (!value) return "5 menit terakhir";
+  const end = new Date(value);
+  if (Number.isNaN(end.getTime())) return "5 menit terakhir";
+  const start = new Date(end.getTime() - 5 * 60 * 1000);
+  const fmt = new Intl.DateTimeFormat("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Jakarta",
+  });
+  const startStr = fmt.format(start).replace(/\./g, ":");
+  const endStr = fmt.format(end).replace(/\./g, ":");
+  return `${startStr} - ${endStr} WIB`;
+}
+

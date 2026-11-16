@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
-  Clock,
   Compass,
   Moon,
   Sun,
@@ -83,10 +82,10 @@ export function TrafficHourlyInsights() {
 
   if (isLoading || !data) {
     return (
-      <div className="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-xs animate-pulse space-y-4">
-        <div className="h-6 w-1/3 bg-zinc-200 rounded" />
-        <div className="h-4 w-1/2 bg-zinc-100 rounded" />
-        <div className="h-32 bg-zinc-100 rounded-lg" />
+      <div className="rounded-xl border border-zinc-200/80 bg-white p-6 shadow-xs space-y-4">
+        <div className="skeleton h-6 w-1/3 rounded" />
+        <div className="skeleton h-4 w-1/2 rounded" />
+        <div className="skeleton h-32 rounded-lg" />
       </div>
     );
   }
@@ -96,23 +95,19 @@ export function TrafficHourlyInsights() {
       {/* Main Container */}
       <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-xs">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-100 p-5 sm:px-6 bg-gradient-to-r from-zinc-50/70 to-white">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-zinc-100 p-5 sm:px-6 bg-slate-50">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-md bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 mb-1.5 border border-blue-200/60">
-              <Clock size={12} />
-              <span>Wawasan Pola Arus 24 Jam</span>
-            </div>
             <h2 className="text-base sm:text-lg font-bold text-zinc-900">
               Wawasan & Analisis Jam Padat per Area
             </h2>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Ketahui jam berapa saja tiap ruas jalan di Palembang berstatus padat atau lancar berdasarkan akumulasi sensor AI dan pola mobilitas harian.
+            <p className="text-xs text-slate-600 mt-0.5">
+              Ketahui jam berapa saja tiap ruas jalan di Palembang berstatus padat atau lancar berdasarkan akumulasi deteksi kendaraan dan pola mobilitas harian.
             </p>
           </div>
 
           {/* Quick Presets */}
           <div className="flex flex-wrap items-center gap-1.5 shrink-0 text-xs">
-            <span className="text-[11px] text-zinc-400 mr-1 hidden sm:inline">Pintas:</span>
+            <span className="text-[11px] text-slate-600 mr-1 hidden sm:inline">Pintas:</span>
             <button
               onClick={() => setSelectedHour(currentHourOnServer)}
               className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-medium transition-all ${
@@ -121,7 +116,7 @@ export function TrafficHourlyInsights() {
                   : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
               }`}
             >
-              <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
               <span>Jam Sekarang ({currentHourOnServer.toString().padStart(2, "0")}:00)</span>
             </button>
             <button
@@ -353,13 +348,13 @@ export function TrafficHourlyInsights() {
           <div className="overflow-x-auto pb-2">
             <table className="w-full min-w-[760px] text-left text-xs">
               <thead>
-                <tr className="border-b border-zinc-100 text-[10px] text-zinc-400 uppercase">
+                <tr className="border-b border-zinc-100 text-[10px] text-slate-600 uppercase">
                   <th className="py-2 pr-4 font-semibold w-56">Ruas Jalan / Area</th>
                   {Array.from({ length: 24 }).map((_, h) => (
                     <th
                       key={h}
                       className={`text-center py-2 px-0.5 font-medium ${
-                        selectedHour === h ? "text-blue-600 font-bold bg-blue-50/50 rounded-t" : ""
+                        selectedHour === h ? "text-blue-700 font-bold bg-blue-50/50 rounded-t" : ""
                       }`}
                     >
                       {h}
@@ -375,7 +370,7 @@ export function TrafficHourlyInsights() {
                       <div className="truncate max-w-[210px]" title={area.road_name}>
                         {area.road_name}
                       </div>
-                      <div className="text-[10px] text-zinc-400 truncate max-w-[210px]">
+                      <div className="text-[10px] text-slate-600 truncate max-w-[210px]">
                         {area.camera_name}
                       </div>
                     </td>
@@ -421,11 +416,11 @@ export function TrafficHourlyInsights() {
       {/* Peak Hours Breakdown Cards (Jam Padat di Area Mana Saja) */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Morning Rush Highlight */}
-        <div className="rounded-xl border border-orange-200/80 bg-gradient-to-br from-orange-50/70 to-white p-5 shadow-xs">
+        <div className="rounded-xl border border-orange-200 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="grid size-8 place-items-center rounded-lg bg-orange-100 text-orange-700">
-                <Sun size={16} />
+                <Sun size={16} aria-hidden="true" />
               </span>
               <div>
                 <h3 className="text-sm font-bold text-zinc-900">Jam Sibuk Pagi</h3>
@@ -439,7 +434,7 @@ export function TrafficHourlyInsights() {
             </span>
           </div>
 
-          <p className="text-xs text-zinc-600 mb-3">
+          <p className="text-xs text-slate-600 mb-3">
             Arus padat pekerja kantor & pelajar menuju pusat kota. Area paling rawan macet pada jam ini:
           </p>
 
@@ -447,11 +442,11 @@ export function TrafficHourlyInsights() {
             {data.morning_peak_areas.map((item) => (
               <div
                 key={item.camera_id}
-                className="flex items-center justify-between rounded-lg border border-orange-100 bg-white/90 p-2.5 text-xs shadow-2xs"
+                className="flex items-center justify-between rounded-lg border border-orange-100 bg-slate-50 p-2.5 text-xs shadow-2xs"
               >
                 <div>
                   <strong className="block font-semibold text-zinc-900">{item.road_name}</strong>
-                  <span className="text-[10px] text-zinc-400">Puncak: {item.peak_window}</span>
+                  <span className="text-[10px] text-slate-600">Puncak: {item.peak_window}</span>
                 </div>
                 <StatusBadge status={item.traffic_status} />
               </div>
@@ -460,11 +455,11 @@ export function TrafficHourlyInsights() {
         </div>
 
         {/* Evening Rush Highlight */}
-        <div className="rounded-xl border border-rose-200/80 bg-gradient-to-br from-rose-50/70 to-white p-5 shadow-xs">
+        <div className="rounded-xl border border-rose-200 bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="grid size-8 place-items-center rounded-lg bg-rose-100 text-rose-700">
-                <Sunset size={16} />
+                <Sunset size={16} aria-hidden="true" />
               </span>
               <div>
                 <h3 className="text-sm font-bold text-zinc-900">Jam Sibuk Sore</h3>
@@ -478,7 +473,7 @@ export function TrafficHourlyInsights() {
             </span>
           </div>
 
-          <p className="text-xs text-zinc-600 mb-3">
+          <p className="text-xs text-slate-600 mb-3">
             Arus kepulangan menuju pemukiman & titik simpul jembatan/persimpangan utama:
           </p>
 
@@ -486,11 +481,11 @@ export function TrafficHourlyInsights() {
             {data.evening_peak_areas.map((item) => (
               <div
                 key={item.camera_id}
-                className="flex items-center justify-between rounded-lg border border-rose-100 bg-white/90 p-2.5 text-xs shadow-2xs"
+                className="flex items-center justify-between rounded-lg border border-rose-100 bg-slate-50 p-2.5 text-xs shadow-2xs"
               >
                 <div>
                   <strong className="block font-semibold text-zinc-900">{item.road_name}</strong>
-                  <span className="text-[10px] text-zinc-400">Puncak: {item.peak_window}</span>
+                  <span className="text-[10px] text-slate-600">Puncak: {item.peak_window}</span>
                 </div>
                 <StatusBadge status={item.traffic_status} />
               </div>
@@ -499,11 +494,11 @@ export function TrafficHourlyInsights() {
         </div>
 
         {/* Quiet Hours & Tips */}
-        <div className="rounded-xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/70 to-white p-5 shadow-xs md:col-span-2 lg:col-span-1">
+        <div className="rounded-xl border border-emerald-200 bg-white p-5 shadow-xs md:col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="grid size-8 place-items-center rounded-lg bg-emerald-100 text-emerald-700">
-                <Moon size={16} />
+                <Moon size={16} aria-hidden="true" />
               </span>
               <div>
                 <h3 className="text-sm font-bold text-zinc-900">Jam Paling Lengang</h3>
@@ -517,33 +512,33 @@ export function TrafficHourlyInsights() {
             </span>
           </div>
 
-          <p className="text-xs text-zinc-600 mb-3">
+          <p className="text-xs text-slate-600 mb-3">
             Waktu terbaik untuk melintasi jalan protokol tanpa hambatan berarti:
           </p>
 
           <div className="space-y-2.5 text-xs text-zinc-700">
-            <div className="flex items-start gap-2 rounded-lg border border-emerald-100 bg-white/90 p-2.5 shadow-2xs">
-              <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-100 bg-slate-50 p-2.5 shadow-2xs">
+              <CheckCircle2 size={15} aria-hidden="true" className="text-emerald-600 shrink-0 mt-0.5" />
               <div>
                 <strong className="font-semibold text-zinc-900">Malam & Dini Hari (22:00 - 05:30)</strong>
-                <p className="text-[11px] text-zinc-500">Semua koridor 100% berstatus LANCAR.</p>
+                <p className="text-[11px] text-slate-600">Semua koridor 100% berstatus LANCAR.</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2 rounded-lg border border-emerald-100 bg-white/90 p-2.5 shadow-2xs">
-              <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg border border-emerald-100 bg-slate-50 p-2.5 shadow-2xs">
+              <CheckCircle2 size={15} aria-hidden="true" className="text-emerald-600 shrink-0 mt-0.5" />
               <div>
                 <strong className="font-semibold text-zinc-900">Jeda Pagi-Siang (10:00 - 11:30)</strong>
-                <p className="text-[11px] text-zinc-500">Penurunan volume setelah arus komuter pagi usai.</p>
+                <p className="text-[11px] text-slate-600">Penurunan volume setelah arus komuter pagi usai.</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-2 rounded-lg border border-zinc-200/80 bg-white/90 p-2.5 shadow-2xs">
-              <Compass size={15} className="text-zinc-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg border border-zinc-200/80 bg-slate-50 p-2.5 shadow-2xs">
+              <Compass size={15} aria-hidden="true" className="text-slate-600 shrink-0 mt-0.5" />
               <div>
                 <strong className="font-semibold text-zinc-900">Saran Rute Komuter</strong>
-                <p className="text-[11px] text-zinc-500">
-                  Gunakan menu <Link href="/routes" className="underline font-medium text-blue-600">Rute Saya</Link> untuk panduan jalur alternatif otomatis.
+                <p className="text-[11px] text-slate-600">
+                  Gunakan menu <Link href="/routes" className="underline font-medium text-blue-700">Rute Saya</Link> untuk panduan jalur alternatif otomatis.
                 </p>
               </div>
             </div>

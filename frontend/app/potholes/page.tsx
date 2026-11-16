@@ -89,7 +89,7 @@ export default function PotholesPage() {
               type="number"
               step="any"
               defaultValue="-2.976"
-              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-blue-600"
             />
           </div>
           <div>
@@ -100,7 +100,7 @@ export default function PotholesPage() {
               type="number"
               step="any"
               defaultValue="104.748"
-              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-blue-600"
             />
           </div>
           <div className="lg:col-span-2">
@@ -108,7 +108,7 @@ export default function PotholesPage() {
             <input
               name="road_name"
               placeholder="Contoh: Jl. Demang Lebar Daun (Opsional)"
-              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-blue-600"
             />
           </div>
           <div>
@@ -121,7 +121,7 @@ export default function PotholesPage() {
               max="1"
               step="0.01"
               defaultValue="0.8"
-              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-blue-600"
             />
           </div>
           <div>
@@ -129,7 +129,7 @@ export default function PotholesPage() {
             <select
               name="severity"
               defaultValue="unknown"
-              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-zinc-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 shadow-xs focus:border-blue-600"
             >
               <option value="unknown">Belum terukur</option>
               <option value="low">Rendah</option>
@@ -176,7 +176,7 @@ export default function PotholesPage() {
                     className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs transition hover:border-zinc-300"
                   >
                     <div className="flex items-start gap-3">
-                      <Construction size={16} className="mt-0.5 shrink-0 text-zinc-400" />
+                      <Construction size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-slate-600" />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <h2 className="truncate text-sm font-semibold text-zinc-900">
@@ -192,16 +192,16 @@ export default function PotholesPage() {
                             {item.severity}
                           </span>
                         </div>
-                        <p className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
-                          <MapPin size={12} className="text-zinc-400" />
+                        <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
+                          <MapPin size={12} aria-hidden="true" className="text-slate-600" />
                           <span>
                             {item.latitude.toFixed(5)}, {item.longitude.toFixed(5)}
                           </span>
                         </p>
-                        <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2.5 text-[11px] text-zinc-400">
+                        <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2.5 text-[11px] text-slate-600">
                           <span>{dateTime(item.detected_at)}</span>
-                          <span className="flex items-center gap-1 font-medium text-zinc-600">
-                            <ShieldCheck size={13} className="text-emerald-600" />
+                          <span className="flex items-center gap-1 font-medium text-slate-700">
+                            <ShieldCheck size={13} aria-hidden="true" className="text-emerald-600" />
                             <span>{Math.round(item.confidence * 100)}% confidence</span>
                           </span>
                         </div>

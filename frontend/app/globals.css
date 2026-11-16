@@ -6,8 +6,8 @@
   --card-bg: #ffffff;
   --card-border: #e2e8f0;
   --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-sub: #94a3b8;
+  --text-muted: #475569;
+  --text-sub: #64748b;
   --brand: #0f172a;
   --brand-accent: #2563eb;
 }
@@ -39,6 +39,38 @@ button, a {
   -webkit-tap-highlight-color: transparent;
 }
 
+a[href],
+button:not(:disabled),
+summary,
+select:not(:disabled),
+label[for],
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"]:not([aria-disabled="true"]),
+[role="switch"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled,
+input:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Tabular figures for numbers, counters, and statistics */
 .tabular {
   font-variant-numeric: tabular-nums;
@@ -55,9 +87,8 @@ button, a {
 
 .leaflet-control-attribution {
   font-size: 10px !important;
-  color: #64748b !important;
-  background: rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(4px);
+  color: #475569 !important;
+  background: rgba(255, 255, 255, 0.92) !important;
   border-radius: 4px;
 }
 

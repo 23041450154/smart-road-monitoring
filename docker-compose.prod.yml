@@ -12,7 +12,7 @@ services:
     environment:
       APP_ENV: production
       DATABASE_URL: ${DATABASE_URL}
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://lajusmart.app,https://www.lajusmart.app,http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://v2.lajusmart.app,https://lajusmart.app,https://www.lajusmart.app,http://localhost:3000}
       PYTHONPATH: /app:/
       YOLO_CONFIG_DIR: /tmp/ultralytics
       OMP_NUM_THREADS: "2"

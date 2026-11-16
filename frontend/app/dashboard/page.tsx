@@ -118,36 +118,37 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      {/* 21st.dev Minimalist Header Bar */}
+      {/* Header Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200/80 pb-4">
         <div>
-          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 mb-1">
-            <span>Palembang Smart Mobility</span>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-600 mb-1">
+            <span>LAJU Palembang</span>
             <span>/</span>
-            <span className="font-medium text-zinc-700">Dashboard</span>
+            <span className="font-medium text-slate-800">Dashboard</span>
           </div>
           <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">
             Pusat Kendali Lalu Lintas Kota
           </h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-slate-600 mt-0.5">
             Telemetri status koridor jalan, volume arus 5 menit, dan proyeksi mobilitas kota.
           </p>
         </div>
 
         <div className="flex items-center gap-3 self-start sm:self-auto">
-          <div className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-[11px] text-zinc-600">
+          <div className="inline-flex items-center gap-1.5 text-xs text-slate-600">
+            <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+            <span className="font-mono text-[11px] text-slate-700">
               {summary ? dateTime(summary.generated_at) : "Menghubungkan"}
             </span>
           </div>
 
           <button
+            type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
             className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-900 transition-colors cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
+            <RefreshCw size={12} aria-hidden="true" className={isRefreshing ? "animate-spin" : ""} />
             <span>Segarkan</span>
           </button>
         </div>
@@ -159,36 +160,34 @@ export default function Dashboard() {
         <LoadingCards />
       ) : (
         <>
-          {/* Guest Role Banner: Clean Emerald Light Theme */}
           {role === "guest" && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/80 via-teal-50/40 to-white px-4 py-3 text-slate-800 shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-slate-800 shadow-2xs">
               <div className="flex items-center gap-3 min-w-0">
                 <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-emerald-600 text-white shadow-2xs">
-                  <MessageSquare size={14} />
+                  <MessageSquare size={14} aria-hidden="true" />
                 </span>
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-slate-700">
                   <strong className="font-semibold text-slate-900">Bot WhatsApp:</strong> Dapatkan notifikasi kondisi kemacetan & rute 5 menit sebelum jam berangkat perjalanan Anda.
                 </p>
               </div>
               <Link
                 href="/login"
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition shadow-2xs"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-emerald-700 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 transition shadow-2xs"
               >
                 <span>Hubungkan WA</span>
-                <span>&rarr;</span>
               </Link>
             </div>
           )}
 
-          {/* 4-KPI Metric Bento (Minimalist 21st.dev Style) */}
+          {/* KPI Metric Summary */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* KPI 1: Status Koridor Kota */}
             <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between text-zinc-400">
+              <div className="flex items-center justify-between text-slate-600">
                 <span className="text-[11px] font-medium tracking-wider uppercase">
                   Status Koridor
                 </span>
-                <Compass size={14} />
+                <Compass size={14} aria-hidden="true" />
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <StatusBadge
@@ -200,71 +199,71 @@ export default function Dashboard() {
                       : "PADAT"
                   }
                 />
-                <span className="font-mono text-xs text-zinc-500">
+                <span className="font-mono text-xs text-slate-600">
                   {smoothPercentage}% lancar
                 </span>
               </div>
-              <p className="mt-2.5 text-[11px] text-zinc-400 truncate">
+              <p className="mt-2.5 text-[11px] text-slate-600 truncate">
                 {congestedRoads.length === 0 ? "Seluruh ruas bebas hambatan" : `${congestedRoads.length} ruas padat`}
               </p>
             </div>
 
             {/* KPI 2: Volume Kendaraan 5 Menit */}
             <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between text-zinc-400">
+              <div className="flex items-center justify-between text-slate-600">
                 <span className="text-[11px] font-medium tracking-wider uppercase">
                   Volume (5 Mnt)
                 </span>
-                <Activity size={14} />
+                <Activity size={14} aria-hidden="true" />
               </div>
               <div className="mt-2 flex items-baseline gap-1.5">
                 <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
                   {summary.vehicles_last_5_minutes}
                 </span>
-                <span className="text-xs text-zinc-400">kend</span>
+                <span className="text-xs text-slate-600">kend</span>
               </div>
-              <p className="mt-2 text-[11px] text-zinc-400 truncate">
+              <p className="mt-2 text-[11px] text-slate-600 truncate">
                 Laju rerata ~{Math.round(summary.vehicles_last_5_minutes / 5)} kend./mnt
               </p>
             </div>
 
             {/* KPI 3: Kamera CCTV Online */}
             <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between text-zinc-400">
+              <div className="flex items-center justify-between text-slate-600">
                 <span className="text-[11px] font-medium tracking-wider uppercase">
                   Kamera CCTV
                 </span>
-                <Video size={14} />
+                <Video size={14} aria-hidden="true" />
               </div>
               <div className="mt-2 flex items-baseline gap-1.5">
                 <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
                   {summary.cctv_online}
                 </span>
-                <span className="font-mono text-xs text-zinc-400">/ {traffic.length} Online</span>
+                <span className="font-mono text-xs text-slate-600">/ {traffic.length} Online</span>
               </div>
               <div className="mt-2 flex items-center justify-between text-[11px]">
-                <span className="text-zinc-400">100% aktif</span>
-                <Link href="/cctv" className="font-medium text-zinc-900 hover:underline">
-                  Buka CCTV &rarr;
+                <span className="text-slate-600">100% aktif</span>
+                <Link href="/cctv" className="font-medium text-slate-900 hover:underline">
+                  Buka CCTV
                 </Link>
               </div>
             </div>
 
             {/* KPI 4: Titik Padat Terdeteksi */}
             <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between text-zinc-400">
+              <div className="flex items-center justify-between text-slate-600">
                 <span className="text-[11px] font-medium tracking-wider uppercase">
                   Titik Kepadatan
                 </span>
-                <AlertTriangle size={14} />
+                <AlertTriangle size={14} aria-hidden="true" />
               </div>
               <div className="mt-2 flex items-baseline gap-1.5">
                 <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
                   {congestedRoads.length}
                 </span>
-                <span className="text-xs text-zinc-400">titik padat</span>
+                <span className="text-xs text-slate-600">titik padat</span>
               </div>
-              <p className="mt-2 text-[11px] text-zinc-400 truncate">
+              <p className="mt-2 text-[11px] text-slate-600 truncate">
                 {congestedRoads.length > 0
                   ? congestedRoads.map((r) => r.road_name).join(", ")
                   : "Arus koridor normal lancar"}
@@ -280,13 +279,13 @@ export default function Dashboard() {
                   <h2 className="text-sm font-semibold tracking-tight text-zinc-900">
                     Insight Akses & Partisipasi Warga
                   </h2>
-                  <p className="text-xs text-zinc-500 mt-0.5">
+                  <p className="text-xs text-slate-600 mt-0.5">
                     Statistik pengguna terdaftar yang memantau arus jalan & mengaktifkan peringatan rute real-time.
                   </p>
                 </div>
                 <div className="flex items-center gap-3 self-start sm:self-auto">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-600">
-                    <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+                    <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
                     Layanan Aktif
                   </span>
                   <Link
@@ -294,60 +293,60 @@ export default function Dashboard() {
                     className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-zinc-700 shadow-2xs hover:bg-zinc-50 hover:text-zinc-900 transition"
                   >
                     <span>Panel Admin</span>
-                    <ArrowRight size={12} />
+                    <ArrowRight size={12} aria-hidden="true" />
                   </Link>
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 sm:divide-x sm:divide-zinc-100">
                 <div className="sm:pr-4">
-                  <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
+                  <span className="text-[11px] font-medium text-slate-600 uppercase tracking-wider block">
                     Total Pengguna Akses
                   </span>
                   <div className="mt-1 flex items-baseline gap-1.5">
                     <span className="font-mono text-2xl font-bold tracking-tight text-zinc-900 tabular">
                       {summary.total_users ?? 0}
                     </span>
-                    <span className="text-xs text-zinc-400">warga terdaftar</span>
+                    <span className="text-xs text-slate-600">warga terdaftar</span>
                   </div>
-                  <p className="mt-1.5 text-[11px] text-zinc-400">
+                  <p className="mt-1.5 text-[11px] text-slate-600">
                     Memantau mobilitas kota
                   </p>
                 </div>
 
                 <div className="sm:px-4">
-                  <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
+                  <span className="text-[11px] font-medium text-slate-600 uppercase tracking-wider block">
                     Akun Terverifikasi
                   </span>
                   <div className="mt-1 flex items-baseline gap-1.5">
-                    <span className="font-mono text-2xl font-bold tracking-tight text-emerald-600 tabular">
+                    <span className="font-mono text-2xl font-bold tracking-tight text-emerald-700 tabular">
                       {summary.active_users ?? summary.total_users ?? 0}
                     </span>
-                    <span className="text-xs text-zinc-400">tervalidasi</span>
+                    <span className="text-xs text-slate-600">tervalidasi</span>
                   </div>
                   <p className="mt-1.5 text-[11px] text-emerald-700 flex items-center gap-1 font-medium">
-                    <CheckCircle2 size={11} />
+                    <CheckCircle2 size={11} aria-hidden="true" />
                     Email & OTP aktif
                   </p>
                 </div>
 
                 <div className="sm:px-4">
-                  <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
+                  <span className="text-[11px] font-medium text-slate-600 uppercase tracking-wider block">
                     Rute Terpantau
                   </span>
                   <div className="mt-1 flex items-baseline gap-1.5">
-                    <span className="font-mono text-2xl font-bold tracking-tight text-blue-600 tabular">
+                    <span className="font-mono text-2xl font-bold tracking-tight text-blue-700 tabular">
                       {summary.total_routes ?? 0}
                     </span>
-                    <span className="text-xs text-zinc-400">rute terjadwal</span>
+                    <span className="text-xs text-slate-600">rute terjadwal</span>
                   </div>
-                  <p className="mt-1.5 text-[11px] text-zinc-400">
+                  <p className="mt-1.5 text-[11px] text-slate-600">
                     Monitoring kemacetan rute
                   </p>
                 </div>
 
                 <div className="sm:pl-4">
-                  <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider block">
+                  <span className="text-[11px] font-medium text-slate-600 uppercase tracking-wider block">
                     Frekuensi Telemetri
                   </span>
                   <div className="mt-1 flex items-baseline gap-1.5">
@@ -355,23 +354,23 @@ export default function Dashboard() {
                       Real-time
                     </span>
                   </div>
-                  <p className="mt-1.5 text-[11px] text-zinc-400">
-                    Sinkronisasi tiap 10–15 dtk
+                  <p className="mt-1.5 text-[11px] text-slate-600">
+                    Sinkronisasi tiap 10-15 dtk
                   </p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* SECTION: Proyeksi Lalu Lintas 24 Jam (21st.dev Clean Bento Card) */}
+          {/* SECTION: Proyeksi Lalu Lintas 24 Jam */}
           <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3.5">
               <div>
                 <h2 className="text-sm font-semibold tracking-tight text-zinc-900 flex items-center gap-2">
-                  <Clock size={15} className="text-zinc-500" />
+                  <Clock size={15} aria-hidden="true" className="text-slate-600" />
                   Proyeksi Kepadatan Lalu Lintas 24 Jam
                 </h2>
-                <p className="text-xs text-zinc-500 mt-0.5">
+                <p className="text-xs text-slate-600 mt-0.5">
                   Estimasi indeks kepadatan koridor kota Palembang sepanjang hari.
                 </p>
               </div>
@@ -401,7 +400,7 @@ export default function Dashboard() {
                     )}
                   >
                     {preset.isNow && (
-                      <span className="inline-block size-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse" />
+                      <span className="inline-block size-1.5 rounded-full bg-emerald-500 mr-1" aria-hidden="true" />
                     )}
                     {preset.label}
                   </button>
@@ -411,8 +410,8 @@ export default function Dashboard() {
 
             {/* 24-Hour Scrubber Bar Chart */}
             <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between text-xs text-zinc-500">
-                <span className="font-medium text-[11px] uppercase tracking-wider text-zinc-400">
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span className="font-medium text-[11px] uppercase tracking-wider text-slate-600">
                   Profil 24 Jam (Klik untuk Memilih Jam)
                 </span>
                 <span className="font-mono text-xs font-semibold text-zinc-800">
@@ -467,7 +466,7 @@ export default function Dashboard() {
                         <span
                           className={cn(
                             "text-[9px] mt-1 font-mono",
-                            isSelected ? "font-bold text-blue-600" : "text-zinc-400"
+                            isSelected ? "font-bold text-blue-700" : "text-slate-600"
                           )}
                         >
                           {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
@@ -485,11 +484,11 @@ export default function Dashboard() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs pt-2.5 border-t border-zinc-200/60 gap-2">
                 {hourStats ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-zinc-500">
+                    <span className="text-slate-600">
                       Pukul <b className="text-zinc-900 font-mono">{String(selectedHour).padStart(2, "0")}:00 WIB</b>:
                     </span>
                     <StatusBadge status={hourStats.cityStatus} />
-                    <span className="text-zinc-500 font-mono text-xs">
+                    <span className="text-slate-600 font-mono text-xs">
                       Indeks: <b className="text-zinc-900">{Math.round(hourStats.avgScore)}%</b>
                     </span>
                     {hourStats.isPeak && (
@@ -498,16 +497,16 @@ export default function Dashboard() {
                       </span>
                     )}
                     {hourStats.congestedInHour.length > 0 && (
-                      <span className="text-[11px] text-amber-700 font-medium">
+                      <span className="text-[11px] text-amber-800 font-medium">
                         · Padat: {hourStats.congestedInHour.map((a) => a.road_name).join(", ")}
                       </span>
                     )}
                   </div>
                 ) : (
-                  <span className="text-zinc-400 text-xs">Pilih jam untuk melihat proyeksi kepadatan</span>
+                  <span className="text-slate-600 text-xs">Pilih jam untuk melihat proyeksi kepadatan</span>
                 )}
 
-                <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-medium">
+                <div className="flex items-center gap-3 text-[11px] text-slate-600 font-medium">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="size-1.5 rounded-full bg-zinc-300" /> Lancar
                   </span>

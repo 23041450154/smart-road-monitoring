@@ -6,7 +6,7 @@ import { PageLoader } from "@/components/page-loader";
 import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
-  title: "Laju — Smart Road Palembang",
+  title: "LAJU Palembang | Pemantauan Lalu Lintas",
   description: "Dashboard pemantauan lalu lintas dan kondisi jalan Palembang",
   icons: {
     icon: "/logo.svg",

@@ -81,8 +81,8 @@ export function PotholeMarker({ pothole, isHighlighted, isDimmed }: PotholeMarke
       <Popup className="smartroad-popup">
         <div className="min-w-60 p-1 text-slate-800">
           <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
-              ⚠️ Titik Jalan Berlubang
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+              Titik Jalan Berlubang
             </span>
             <span
               className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${statusBadge.bg}`}
@@ -94,13 +94,13 @@ export function PotholeMarker({ pothole, isHighlighted, isDimmed }: PotholeMarke
           <h4 className="mt-2 text-sm font-bold">
             {pothole.road_name ?? "Lokasi belum bernama"}
           </h4>
-          <p className="text-[11px] font-mono text-slate-500">
+          <p className="text-[11px] font-mono text-slate-600">
             {pothole.latitude.toFixed(6)}, {pothole.longitude.toFixed(6)}
           </p>
 
           <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-2 text-xs">
             <div>
-              <span className="block text-[10px] text-slate-400">Keparahan:</span>
+              <span className="block text-[10px] text-slate-600">Keparahan:</span>
               <span
                 className={`inline-block mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold ${severityBadge.bg} ${severityBadge.text}`}
               >
@@ -108,7 +108,7 @@ export function PotholeMarker({ pothole, isHighlighted, isDimmed }: PotholeMarke
               </span>
             </div>
             <div>
-              <span className="block text-[10px] text-slate-400">Confidence:</span>
+              <span className="block text-[10px] text-slate-600">Confidence:</span>
               <span className="mt-0.5 block font-mono font-bold text-slate-700">
                 {Math.round(pothole.confidence * 100)}%
               </span>
@@ -124,6 +124,8 @@ export function PotholeMarker({ pothole, isHighlighted, isDimmed }: PotholeMarke
               <img
                 src={evidenceUrl}
                 alt="Bukti foto jalan berlubang"
+                width={240}
+                height={112}
                 className="h-28 w-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = "none";
@@ -132,7 +134,7 @@ export function PotholeMarker({ pothole, isHighlighted, isDimmed }: PotholeMarke
             </div>
           )}
 
-          <p className="mt-3 text-[10px] text-slate-400">
+          <p className="mt-3 text-[10px] text-slate-600">
             Terdeteksi: {dateTime(pothole.detected_at)}
           </p>
         </div>

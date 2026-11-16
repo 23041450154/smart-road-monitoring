@@ -1,26 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bike, Bus, Car, Clock3, Flame, Info, Maximize2, Minimize2, Truck } from "lucide-react";
+import { Bike, Bus, Car, Maximize2, Minimize2, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   Cell,
+  Line,
+  LineChart,
+  Bar,
+  BarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { ErrorState, StatusBadge, TrendView } from "@/components/ui";
+import { EmptyState, ErrorState, StatusBadge, TrendView } from "@/components/ui";
 import { MapPanel } from "@/components/map-panel";
 import { fetcher, getApiUrl } from "@/lib/api";
-
 import type {
   Camera,
   HourlyProfileItem,
@@ -29,11 +28,12 @@ import type {
   TrafficCurrent,
   TrafficPredictionResponse,
 } from "@/lib/types";
-import { cleanCameraName, dateTime } from "@/lib/utils";
+import { cleanCameraName, dateTime, fiveMinuteWindowLabel } from "@/lib/utils";
 
 export default function CameraDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [streamKey, setStreamKey] = useState(0);
+  const [streamError, setStreamError] = useState(false);
   const [selectedHour, setSelectedHour] = useState<number>(17);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -67,8 +67,8 @@ export default function CameraDetailPage() {
     };
   }, []);
 
-  const { data: camera, error } = useSWR<Camera>(`/api/cameras/${id}`, fetcher);
-  const { data: current } = useSWR<TrafficCurrent>(
+  const { data: camera, error, mutate: mutateCamera } = useSWR<Camera>(`/api/cameras/${id}`, fetcher);
+  const { data: current, error: currentError, mutate: mutateCurrent } = useSWR<TrafficCurrent>(
     `/api/cameras/${id}/traffic/current`,
     fetcher,
     { refreshInterval: 10_000 },
@@ -88,14 +88,32 @@ export default function CameraDetailPage() {
     fetcher,
   );
 
-  if (error) {
+  if (error || currentError) {
     return (
-      <ErrorState message="Kamera tidak ditemukan atau layanan backend belum berjalan." />
+      <ErrorState
+        message="Kamera atau data lalu lintas belum dapat dimuat dari backend."
+        onRetry={() => {
+          mutateCamera();
+          mutateCurrent();
+        }}
+      />
     );
   }
 
   if (!camera || !current) {
-    return <div className="skeleton h-[70vh] rounded-xl border border-zinc-200" />;
+    return (
+      <div
+        role="status"
+        className="rounded-lg border border-slate-200 bg-white p-8 text-center"
+      >
+        <p className="text-sm font-medium text-slate-900">
+          Memuat data kamera dan telemetri...
+        </p>
+        <p className="mt-1 text-xs text-slate-600">
+          Menghubungkan ke layanan pemantauan lalu lintas.
+        </p>
+      </div>
+    );
   }
 
   const vehicles = [
@@ -106,60 +124,62 @@ export default function CameraDetailPage() {
   ] as const;
 
   return (
-    <>
-      {/* 21st.dev Sleek Minimalist Header */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between border-b border-slate-200 pb-4">
         <div>
-          <div className="flex items-center gap-2 text-xs text-zinc-500 font-medium">
-            <Link href="/cctv" className="hover:text-zinc-900 transition-colors">
+          <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+            <Link href="/cctv" className="hover:text-slate-900 transition-colors">
               Kamera CCTV
             </Link>
-            <span>/</span>
-            <span className="text-zinc-900 font-semibold">{cleanCameraName(camera.name)}</span>
+            <span aria-hidden="true">/</span>
+            <span className="text-slate-900 font-semibold">{cleanCameraName(camera.name)}</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-900 mt-1">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 mt-1">
             {cleanCameraName(camera.name)}
           </h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-slate-600 mt-0.5">
             {camera.road_name} · Pembaruan {dateTime(current.timestamp)}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-3 self-start sm:self-auto">
           <StatusBadge status={current.traffic_status} />
+          <span className="text-slate-300" aria-hidden="true">|</span>
           <TrendView trend={current.trend} />
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.5fr_.7fr]">
-        {/* Live Video Feed Frame with Fullscreen Support */}
+      {/* Primary Row: Video Stream + Compact Telemetry Panel */}
+      <div className="grid gap-6 xl:grid-cols-[1.6fr_.75fr]">
         <div
           ref={videoContainerRef}
-          className={`overflow-hidden rounded-xl border shadow-2xs flex flex-col transition-all ${
+          className={`overflow-hidden rounded-lg border flex flex-col ${
             isFullscreen
               ? "fixed inset-0 z-[9999] w-screen h-screen rounded-none border-none justify-between bg-black"
               : "border-slate-200 bg-white"
           }`}
         >
-          {/* Player Header Bar */}
           <div
             className={`flex items-center justify-between border-b px-4 py-2.5 shrink-0 ${
               isFullscreen
-                ? "border-zinc-800 text-white bg-zinc-950/95"
-                : "border-slate-200 text-slate-800 bg-slate-50/90"
+                ? "border-slate-800 text-white bg-slate-950"
+                : "border-slate-200 text-slate-900 bg-white"
             }`}
           >
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex size-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
-              </span>
-              <span className="text-xs font-bold tracking-wider uppercase text-slate-800">
-                LIVE STREAMING
+            <div className="flex items-center gap-2">
+              <span
+                className={`size-2 rounded-full shrink-0 ${
+                  streamError ? "bg-amber-500" : "bg-emerald-600"
+                }`}
+                aria-hidden="true"
+              />
+              <span className="text-xs font-semibold tracking-wide uppercase">
+                {streamError ? "Menghubungkan Ulang" : "Siaran Langsung"}
               </span>
               {isFullscreen && (
-                <span className="hidden sm:inline-block text-xs font-medium text-zinc-400 truncate">
-                  · {camera.name} ({camera.road_name})
+                <span className="hidden sm:inline-block text-xs text-slate-300 truncate">
+                  · {cleanCameraName(camera.name)} ({camera.road_name})
                 </span>
               )}
             </div>
@@ -173,223 +193,197 @@ export default function CameraDetailPage() {
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-medium transition-colors shadow-2xs ${
+                className={`inline-flex min-h-[34px] items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
                   isFullscreen
-                    ? "border-zinc-700 bg-zinc-800/90 text-white hover:bg-zinc-700"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-600"
+                    ? "border-slate-700 bg-slate-800 text-white hover:bg-slate-700"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-700"
                 }`}
-                title={isFullscreen ? "Keluar Layar Penuh (Esc)" : "Mode Layar Penuh (Fullscreen)"}
+                title={isFullscreen ? "Keluar Layar Penuh (Esc)" : "Mode Layar Penuh"}
               >
-                {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                <span>{isFullscreen ? "Keluar Fullscreen" : "Layar Penuh"}</span>
+                {isFullscreen ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
+                <span>{isFullscreen ? "Keluar" : "Layar Penuh"}</span>
               </button>
             </div>
           </div>
 
-          {/* Video Player Box */}
           <div
-            className={`relative overflow-hidden bg-slate-900 flex items-center justify-center ${
+            className={`relative overflow-hidden bg-slate-950 flex items-center justify-center ${
               isFullscreen ? "flex-1 w-full h-full" : "aspect-video"
             }`}
             onDoubleClick={toggleFullscreen}
           >
-            {/* Live Video Stream with Real YOLO Annotations & Tracking from Backend */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={`${getApiUrl()}/api/cameras/${camera.id}/stream/video?v=${streamKey}`}
-              alt={`Live stream ${camera.name}`}
+              alt={`Live stream ${cleanCameraName(camera.name)}`}
+              width={640}
+              height={360}
               className={`h-full w-full ${isFullscreen ? "object-contain" : "object-cover"}`}
+              onLoad={() => setStreamError(false)}
               onError={() => {
+                setStreamError(true);
                 setTimeout(() => setStreamKey((k: number) => k + 1), 1000);
               }}
             />
 
-            {/* Bottom-left overlay info */}
-            <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-white/80 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-800 backdrop-blur-xs flex items-center gap-2 shadow-sm">
-              <span className="size-2 rounded-full bg-emerald-500" />
-              <span>
-                {camera.is_demo
-                  ? "Feed Demo Aktif · Deteksi Kendaraan Real-time"
-                  : "Live Stream Diskominfo Palembang"}
-              </span>
-              <span className="text-slate-300">|</span>
-              <span className="font-semibold text-emerald-700">
-                Akumulasi: {current.rolling_5_minute} kend ({current.vehicles_per_minute} kend/menit)
-              </span>
-            </div>
-
-            {/* Bottom-right Fullscreen Button Overlay */}
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="absolute bottom-3 right-3 rounded-lg border border-slate-200 bg-white/90 p-2 text-slate-700 hover:bg-white hover:text-blue-600 hover:scale-105 transition shadow-sm cursor-pointer"
-              title={isFullscreen ? "Keluar Layar Penuh (Esc)" : "Layar Penuh (Klik ganda pada video)"}
+              aria-label={isFullscreen ? "Keluar layar penuh" : "Layar penuh"}
+              className="absolute bottom-3 right-3 rounded-md border border-slate-200 bg-white/95 p-2 text-slate-700 hover:bg-white hover:text-blue-700 transition-colors shadow-sm"
+              title={isFullscreen ? "Keluar Layar Penuh (Esc)" : "Layar Penuh"}
             >
-              {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              {isFullscreen ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
             </button>
           </div>
 
-          {/* In Fullscreen mode: Bottom Telemetry HUD */}
           {isFullscreen && (
-            <div className="bg-zinc-950/95 border-t border-zinc-800/80 px-6 py-2.5 text-white flex items-center justify-between text-xs shrink-0">
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-                <div>
-                  <span className="text-zinc-400">Motor: </span>
-                  <b className="text-white">{current.motorcycle_count}</b>
-                </div>
-                <div>
-                  <span className="text-zinc-400">Mobil: </span>
-                  <b className="text-white">{current.car_count}</b>
-                </div>
-                <div>
-                  <span className="text-zinc-400">Bus: </span>
-                  <b className="text-white">{current.bus_count}</b>
-                </div>
-                <div>
-                  <span className="text-zinc-400">Truk: </span>
-                  <b className="text-white">{current.truck_count}</b>
-                </div>
-                <div>
-                  <span className="text-zinc-400">Volume (5 Menit): </span>
-                  <b className="text-emerald-400">{current.rolling_5_minute} kend ({current.vehicles_per_minute} kend/menit)</b>
-                </div>
+            <div className="bg-slate-950 border-t border-slate-800 px-6 py-2.5 text-white flex items-center justify-between text-xs shrink-0">
+              <div className="flex flex-wrap items-center gap-5">
+                <span>Motor: <b className="tabular">{current.motorcycle_count}</b></span>
+                <span>Mobil: <b className="tabular">{current.car_count}</b></span>
+                <span>Bus: <b className="tabular">{current.bus_count}</b></span>
+                <span>Truk: <b className="tabular">{current.truck_count}</b></span>
+                <span>
+                  Total 5 Menit ({fiveMinuteWindowLabel(current.timestamp)}): <b className="text-emerald-400 tabular">{current.rolling_5_minute} kend ({current.vehicles_per_minute}/mnt)</b>
+                </span>
               </div>
-
-              <div className="hidden sm:block text-zinc-400 text-[11px]">
-                Tekan <kbd className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">Esc</kbd> atau klik dua kali untuk keluar
-              </div>
+              <span className="hidden sm:inline text-slate-300 text-[11px]">
+                Tekan Esc atau klik dua kali untuk keluar
+              </span>
             </div>
           )}
         </div>
 
-        {/* Realtime Metrics Column */}
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-1">
-          {/* Main 5-Minute Volume Card */}
-          <div className="col-span-2 rounded-xl border border-zinc-800 bg-zinc-900 p-5 text-white shadow-xs xl:col-span-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-zinc-400 block">
+        {/* Unified Operational Telemetry Panel */}
+        <div className="rounded-lg border border-slate-200 bg-white flex flex-col justify-between">
+          <div className="p-5 border-b border-slate-200">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-slate-600">
                 Volume Akumulasi (5 Menit)
               </span>
-              <span className="text-[11px] font-medium text-zinc-400">
-                Jendela 5 Mnt
+              <span className="font-mono text-[11px] font-medium text-slate-700 tabular">
+                {fiveMinuteWindowLabel(current.timestamp)}
               </span>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <strong className="text-3xl sm:text-4xl font-bold tracking-tight text-white tabular">
+              <strong className="text-4xl font-bold tracking-tight text-slate-900 tabular">
                 {current.rolling_5_minute}
               </strong>
-              <span className="text-xs font-medium text-zinc-400">kendaraan</span>
+              <span className="text-xs font-medium text-slate-600">kendaraan</span>
             </div>
-            <div className="mt-3 flex items-center justify-between border-t border-zinc-800 pt-2.5 text-xs">
-              <span className="text-zinc-400">
+            <p className="mt-1.5 text-[11px] text-slate-600">
+              Rentang: <span className="font-mono font-medium text-slate-800">{fiveMinuteWindowLabel(current.timestamp)}</span>
+            </p>
+            <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
+              <span>
                 Laju rata-rata:{" "}
-                <b className="text-white font-semibold tabular">
+                <strong className="font-semibold text-slate-900 tabular">
                   {current.vehicles_per_minute}
-                </b>{" "}
+                </strong>{" "}
                 kend./menit
               </span>
-              <TrendView trend={current.trend} />
+              <span>
+                {camera.is_demo ? "Feed Demo" : "Diskominfo Palembang"}
+              </span>
             </div>
           </div>
 
-          {/* Vehicle Category Breakdown */}
-          {vehicles.map(([label, value, Icon]) => (
-            <div
-              key={label}
-              className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs transition hover:border-zinc-300"
-            >
-              <div className="flex items-center justify-between text-zinc-500 mb-2">
-                <span className="text-xs font-medium text-zinc-600">{label}</span>
-                <Icon size={16} className="text-zinc-400" />
+          <div className="divide-y divide-slate-100 flex-1">
+            {vehicles.map(([label, value, Icon]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between px-5 py-3.5"
+              >
+                <div className="flex items-center gap-2.5 text-slate-700">
+                  <Icon size={16} aria-hidden="true" className="text-slate-500" />
+                  <span className="text-xs font-medium">{label}</span>
+                </div>
+                <strong className="text-lg font-bold text-slate-900 tabular">
+                  {value}
+                </strong>
               </div>
-              <strong className="text-2xl font-bold tracking-tight text-zinc-900 block tabular">
-                {value}
-              </strong>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
       {/* 24h Trend Chart & Mini Map */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
-        <div className="min-w-0 rounded-xl border border-zinc-200/80 bg-white p-5 shadow-xs">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock3 size={16} className="text-zinc-600" />
-              <h2 className="text-sm font-semibold text-zinc-900">
-                Aktivitas Lalu Lintas (24 Jam Terakhir)
-              </h2>
+      <div className="grid gap-6 lg:grid-cols-[1.25fr_.75fr]">
+        <section className="min-w-0 rounded-lg border border-slate-200 bg-white p-5">
+          <h2 className="text-sm font-semibold text-slate-900 mb-4">
+            Aktivitas Lalu Lintas (24 Jam Terakhir)
+          </h2>
+
+          {!history || history.length === 0 ? (
+            <div className="flex h-64 items-center justify-center">
+              <EmptyState
+                title="Belum Ada Riwayat 24 Jam"
+                description="Snapshot lalu lintas untuk kamera ini belum terkumpul pada rentang 24 jam terakhir."
+              />
             </div>
-          </div>
+          ) : (
+            <div className="h-64 w-full min-w-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={history} margin={{ left: -20, right: 8, top: 8 }}>
+                  <CartesianGrid vertical={false} stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="timestamp"
+                    tickFormatter={(value: string) => {
+                      try {
+                        const d = new Date(value);
+                        return isNaN(d.getTime())
+                          ? ""
+                          : d.toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+                      } catch {
+                        return "";
+                      }
+                    }}
+                    tick={{ fontSize: 11, fill: "#475569" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#475569" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    labelFormatter={(value) => dateTime(String(value))}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      borderRadius: "6px",
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Line
+                    dataKey="total_count"
+                    name="Kendaraan"
+                    type="monotone"
+                    stroke="#1d4ed8"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </section>
 
-          <div className="h-60 sm:h-72 w-full min-w-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={history ?? []} margin={{ left: -20, right: 5, top: 10 }}>
-                <defs>
-                  <linearGradient id="trafficFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563eb" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="timestamp"
-                  tickFormatter={(value: string) => {
-                    try {
-                      const d = new Date(value);
-                      return isNaN(d.getTime())
-                        ? ""
-                        : d.toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          });
-                    } catch {
-                      return "";
-                    }
-                  }}
-                  tick={{ fontSize: 11, fill: "#64748b" }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "#64748b" }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  labelFormatter={(value) => dateTime(String(value))}
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.95)",
-                    backdropFilter: "blur(4px)",
-                    borderRadius: "8px",
-                    border: "1px solid #e2e8f0",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                    fontSize: "12px",
-                  }}
-                />
-                <Area
-                  dataKey="total_count"
-                  name="Kendaraan"
-                  type="monotone"
-                  stroke="#2563eb"
-                  strokeWidth={2}
-                  fill="url(#trafficFill)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+        <section className="overflow-hidden rounded-lg border border-slate-200 bg-white flex flex-col">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Lokasi Kamera
+            </h2>
+            <p className="text-xs text-slate-600 mt-0.5">{camera.road_name}</p>
           </div>
-        </div>
-
-        {/* Location Mini Map */}
-        <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-xs flex flex-col">
-          <div className="border-b border-zinc-100 p-4">
-            <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider block">
-              Posisi Geografis Kamera
-            </span>
-            <p className="text-sm font-semibold text-zinc-900 mt-0.5">{camera.name}</p>
-            <p className="text-xs text-zinc-500">{camera.road_name}</p>
-          </div>
-          <div className="h-60 sm:h-72 w-full flex-1">
+          <div className="h-64 w-full flex-1">
             <MapPanel
               cameras={[camera]}
               traffic={current ? [current] : []}
@@ -400,82 +394,72 @@ export default function CameraDetailPage() {
               initialZoom={15}
             />
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* AI Historical Pattern & Time-Based Prediction (Dosen Requirement) */}
-      <div className="mt-6 rounded-xl border border-zinc-200/80 bg-white p-5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-zinc-100">
+      {/* Historical Pattern & Time-Based Prediction (Flat, Un-nested) */}
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-slate-200">
           <div>
-            <div className="flex items-center gap-2">
-              <Clock3 size={18} className="text-zinc-700" />
-              <h2 className="text-base font-semibold text-zinc-900">
-                Pola Historis & Prediksi Kepadatan per Jam
-              </h2>
-            </div>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Analisis rekaman data historis untuk memprediksi tingkat kepadatan pada jam tertentu
+            <h2 className="text-base font-semibold text-slate-900">
+              Pola Historis & Prediksi Kepadatan per Jam
+            </h2>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Pilih jam atau klik batang grafik untuk melihat perkiraan kepadatan berdasarkan data historis.
             </p>
           </div>
 
-          {/* Peak hour indicators */}
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-4 flex-wrap text-xs text-slate-700">
             {profileData?.morning_peak && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                <Flame size={12} className="text-amber-600" />
-                Puncak Pagi: {profileData.morning_peak}
+              <span>
+                Puncak Pagi: <strong className="font-semibold text-slate-900">{profileData.morning_peak}</strong>
               </span>
             )}
             {profileData?.evening_peak && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-700">
-                <Flame size={12} className="text-rose-600" />
-                Puncak Sore: {profileData.evening_peak}
+              <span>
+                Puncak Sore: <strong className="font-semibold text-slate-900">{profileData.evening_peak}</strong>
               </span>
             )}
           </div>
         </div>
 
-        {/* Interactive Time Selector */}
-        <div className="mt-5 grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-zinc-700 flex items-center gap-1.5">
-                  <Clock3 size={14} className="text-zinc-500" />
-                  Simulasi Pilihan Jam:
+        <div className="mt-5 grid gap-8 lg:grid-cols-[1fr_1.15fr]">
+          <div className="space-y-5">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="hour-slider" className="text-xs font-semibold text-slate-700">
+                  Simulasi Jam
                 </label>
-                <span className="text-base font-bold font-mono text-blue-600">
+                <span className="text-base font-bold font-mono text-blue-700 tabular">
                   {selectedHour.toString().padStart(2, "0")}:00 WIB
                 </span>
               </div>
 
-              {/* Slider */}
               <input
+                id="hour-slider"
                 type="range"
                 min="0"
                 max="23"
                 value={selectedHour}
                 onChange={(e) => setSelectedHour(Number(e.target.value))}
-                className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-700"
               />
 
-              {/* Quick Preset Buttons */}
-              <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-zinc-200/60 flex-wrap">
-                <span className="text-[11px] text-zinc-400 font-medium">Pintas Cepat:</span>
+              <div className="flex items-center gap-1.5 mt-3 flex-wrap">
                 {[
-                  { label: "Pagi (07:00)", hour: 7 },
-                  { label: "Siang (12:00)", hour: 12 },
-                  { label: "Sore (17:00)", hour: 17 },
-                  { label: "Malam (20:00)", hour: 20 },
+                  { label: "07:00", hour: 7 },
+                  { label: "12:00", hour: 12 },
+                  { label: "17:00", hour: 17 },
+                  { label: "20:00", hour: 20 },
                 ].map((preset) => (
                   <button
                     key={preset.hour}
                     type="button"
                     onClick={() => setSelectedHour(preset.hour)}
-                    className={`text-xs px-2.5 py-1 rounded-md transition-colors font-medium ${
+                    className={`text-xs px-3 py-1.5 rounded-md transition-colors font-medium ${
                       selectedHour === preset.hour
-                        ? "bg-blue-600 text-white shadow-xs"
-                        : "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-100"
+                        ? "bg-blue-700 text-white"
+                        : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
                     }`}
                   >
                     {preset.label}
@@ -484,139 +468,120 @@ export default function CameraDetailPage() {
               </div>
             </div>
 
-            {/* Prediction Result Card */}
             {prediction && (
-              <div className="rounded-lg border border-zinc-200 p-4 space-y-3 bg-white">
+              <div className="border-t border-slate-200 pt-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-500">Prediksi Status Lalu Lintas:</span>
+                  <span className="text-xs text-slate-600">Prediksi Status</span>
                   <StatusBadge status={prediction.predicted_status} />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-100">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-[11px] text-zinc-400 block">Skor Kemacetan:</span>
-                    <span className="text-sm font-semibold text-zinc-800">
+                    <span className="text-[11px] text-slate-600 block">Skor Kemacetan</span>
+                    <span className="text-base font-bold text-slate-900 tabular">
                       {prediction.congestion_score.toFixed(1)} / 100
                     </span>
-                    <div className="w-full bg-zinc-100 rounded-full h-1.5 mt-1 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          prediction.congestion_score >= 75
-                            ? "bg-rose-500"
-                            : prediction.congestion_score >= 50
-                            ? "bg-amber-500"
-                            : "bg-emerald-500"
-                        }`}
-                        style={{ width: `${Math.min(100, prediction.congestion_score)}%` }}
-                      />
-                    </div>
                   </div>
                   <div>
-                    <span className="text-[11px] text-zinc-400 block">Perkiraan Volume:</span>
-                    <span className="text-sm font-semibold text-zinc-800">
-                      ~{prediction.avg_vehicles_per_minute} kendaraan/mnt
+                    <span className="text-[11px] text-slate-600 block">Perkiraan Volume</span>
+                    <span className="text-base font-bold text-slate-900 tabular">
+                      ~{prediction.avg_vehicles_per_minute} kend/mnt
                     </span>
-                    <span className="text-[11px] text-zinc-400 block mt-0.5">
-                      Tingkat Kepercayaan: <span className="font-medium text-zinc-600">{prediction.confidence_level}</span>
+                    <span className="text-[11px] text-slate-600 block">
+                      Kepercayaan: {prediction.confidence_level}
                     </span>
                   </div>
                 </div>
 
-                {/* Recommendation Box */}
-                <div className="rounded-lg bg-blue-50/70 border border-blue-100 p-3 flex items-start gap-2.5">
-                  <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-900 leading-relaxed font-normal">
-                    {prediction.recommendation}
-                  </p>
-                </div>
+                <p className="text-xs text-slate-700 leading-relaxed border-t border-slate-100 pt-3">
+                  {prediction.recommendation}
+                </p>
               </div>
             )}
           </div>
 
-          {/* 24-Hour Profile Bar Chart */}
-          <div className="flex flex-col rounded-lg border border-zinc-200/80 p-4 bg-zinc-50/50">
+          <div className="flex flex-col">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-zinc-700">
-                Pola Aktivitas 24 Jam (Klik batang untuk memilih jam)
+              <span className="text-xs font-semibold text-slate-700">
+                Rata-rata Volume per Jam (kend/menit)
               </span>
             </div>
-            <div className="h-56 w-full flex-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={profileData?.profile ?? []}
-                  margin={{ left: -25, right: 5, top: 10, bottom: 0 }}
-                  onClick={(e: unknown) => {
-                    const event = e as { activePayload?: Array<{ payload: HourlyProfileItem }> };
-                    if (event?.activePayload?.[0]?.payload?.hour !== undefined) {
-                      setSelectedHour(event.activePayload[0].payload.hour);
-                    }
-                  }}
-                >
-                  <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
-                  <XAxis
-                    dataKey="hour"
-                    tickFormatter={(h: number) => `${h}`}
-                    tick={{ fontSize: 10, fill: "#64748b" }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "#64748b" }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    formatter={(val: number) => [`${val} kendaraan/mnt`, "Rata-rata"]}
-                    labelFormatter={(h) => `Pukul ${String(h).padStart(2, "0")}:00 WIB`}
-                    contentStyle={{
-                      backgroundColor: "rgba(255, 255, 255, 0.95)",
-                      borderRadius: "8px",
-                      border: "1px solid #e2e8f0",
-                      fontSize: "12px",
+            {!profileData?.profile?.length ? (
+              <div className="flex h-56 items-center justify-center">
+                <EmptyState
+                  title="Profil Jam Belum Tersedia"
+                  description="Data rata-rata kepadatan per jam belum tersedia untuk kamera ini."
+                />
+              </div>
+            ) : (
+              <div className="h-56 w-full flex-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={profileData.profile}
+                    margin={{ left: -24, right: 4, top: 8, bottom: 0 }}
+                    onClick={(e: unknown) => {
+                      const event = e as { activePayload?: Array<{ payload: HourlyProfileItem }> };
+                      if (event?.activePayload?.[0]?.payload?.hour !== undefined) {
+                        setSelectedHour(event.activePayload[0].payload.hour);
+                      }
                     }}
-                  />
-                  <Bar dataKey="avg_vehicles_per_minute" radius={[3, 3, 0, 0]}>
-                    {(profileData?.profile ?? []).map((entry) => (
-                      <Cell
-                        key={`cell-${entry.hour}`}
-                        cursor="pointer"
-                        fill={
-                          entry.hour === selectedHour
-                            ? "#2563eb"
-                            : entry.traffic_status === "MACET"
-                            ? "#ef4444"
-                            : entry.traffic_status === "PADAT"
-                            ? "#f97316"
-                            : entry.traffic_status === "SEDANG"
-                            ? "#eab308"
-                            : "#22c55e"
-                        }
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex items-center justify-center gap-3 mt-2 text-[10px] text-zinc-500 flex-wrap">
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Lancar
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Sedang
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" /> Padat
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" /> Macet
-              </span>
-              <span className="flex items-center gap-1 font-semibold text-blue-600">
-                <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" /> Pilihan ({selectedHour}:00)
-              </span>
+                  >
+                    <CartesianGrid vertical={false} stroke="#f1f5f9" />
+                    <XAxis
+                      dataKey="hour"
+                      tickFormatter={(h: number) => `${h}`}
+                      tick={{ fontSize: 10, fill: "#475569" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "#475569" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      formatter={(val: number) => [`${val} kendaraan/mnt`, "Rata-rata"]}
+                      labelFormatter={(h) => `Pukul ${String(h).padStart(2, "0")}:00 WIB`}
+                      contentStyle={{
+                        backgroundColor: "#ffffff",
+                        borderRadius: "6px",
+                        border: "1px solid #e2e8f0",
+                        fontSize: "12px",
+                      }}
+                    />
+                    <Bar dataKey="avg_vehicles_per_minute" radius={[2, 2, 0, 0]}>
+                      {profileData.profile.map((entry) => (
+                        <Cell
+                          key={`cell-${entry.hour}`}
+                          cursor="pointer"
+                          fill={
+                            entry.hour === selectedHour
+                              ? "#1d4ed8"
+                              : entry.traffic_status === "MACET"
+                              ? "#dc2626"
+                              : entry.traffic_status === "PADAT"
+                              ? "#ea580c"
+                              : entry.traffic_status === "SEDANG"
+                              ? "#d97706"
+                              : "#16a34a"
+                          }
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-4 mt-2 text-[11px] text-slate-600 flex-wrap">
+              <span>Hijau: Lancar</span>
+              <span>Kuning: Sedang</span>
+              <span>Oranye: Padat</span>
+              <span>Merah: Macet</span>
+              <span className="font-semibold text-blue-700">Biru: Jam dipilih ({selectedHour}:00)</span>
             </div>
           </div>
         </div>
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

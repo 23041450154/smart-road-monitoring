@@ -73,30 +73,30 @@ function RoutesContent() {
                   <span
                     className={`inline-flex items-center gap-1.5 text-[11px] font-semibold ${
                       route.is_active
-                        ? "text-emerald-600"
-                        : "text-zinc-400"
+                        ? "text-emerald-700"
+                        : "text-slate-600"
                     }`}
                   >
                     <span
                       className={`size-1.5 rounded-full ${
-                        route.is_active ? "bg-emerald-500" : "bg-zinc-300"
+                        route.is_active ? "bg-emerald-500" : "bg-slate-400"
                       }`}
                     />
                     {route.is_active ? "AKTIF" : "NONAKTIF"}
                   </span>
                 </div>
 
-                <h2 className="text-base font-semibold text-zinc-900 group-hover:text-blue-600 transition-colors">
+                <h2 className="text-base font-semibold text-zinc-900 group-hover:text-blue-700 transition-colors">
                   {route.name}
                 </h2>
 
-                <div className="mt-3 flex items-center gap-4 text-xs text-zinc-500">
+                <div className="mt-3 flex items-center gap-4 text-xs text-slate-600">
                   <span className="flex items-center gap-1">
-                    <MapPin size={13} className="text-zinc-400" />
+                    <MapPin size={13} aria-hidden="true" className="text-slate-600" />
                     <span>{route.path.length} titik koordinat</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <Clock3 size={13} className="text-zinc-400" />
+                    <Clock3 size={13} aria-hidden="true" className="text-slate-600" />
                     <span>{route.notification_time?.slice(0, 5) ?? "07:00"}</span>
                   </span>
                 </div>

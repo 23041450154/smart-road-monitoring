@@ -384,7 +384,7 @@ export function RouteEditor({
         distanceMeters([result.lat, result.lng], PALEMBANG_CENTER) > 20000;
 
       // If browser returned coarse ISP IP far outside Palembang (e.g. Parit / Ogan Ilir on Linux/Brave),
-      // do not jump 55 km away — prompt 1-click map/search calibration in Palembang!
+      // do not jump 55 km away, prompt 1-click map/search calibration in Palembang.
       if (result.source === "coarse_ip" && (isOutsidePalembang || forceRecalibrate)) {
         setLocatingTarget(null);
         setCalibratingTarget(target);
@@ -603,30 +603,30 @@ export function RouteEditor({
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-xs">
       <div className="grid lg:grid-cols-[400px_1fr]">
-        {/* Left Panel: Google Maps Style Route Planner */}
+        {/* Left Panel: Route Planner */}
         <div className="border-b border-zinc-100 p-5 lg:border-b-0 lg:border-r flex flex-col justify-between max-h-[760px] overflow-y-auto">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                {route ? "Edit Rute Perjalanan" : "Perencana Rute Pintar"}
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                {route ? "Edit Rute Perjalanan" : "Perencana Rute Perjalanan"}
               </span>
               {(originPoint || destPoint) && (
                 <button
                   type="button"
                   onClick={handleResetRoute}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-rose-600 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 hover:text-rose-700 transition-colors cursor-pointer"
                 >
-                  <Trash2 size={12} />
+                  <Trash2 size={12} aria-hidden="true" />
                   <span>Reset Titik</span>
                 </button>
               )}
             </div>
 
-            {/* Google Maps Style Origin & Destination Search Box */}
+            {/* Origin & Destination Search Box */}
             <div ref={searchContainerRef} className="relative space-y-2.5">
               {/* Origin Input */}
               <div className="relative">
-                <label className="text-[11px] font-medium text-zinc-500 mb-1 flex items-center justify-between">
+                <label className="text-[11px] font-medium text-slate-600 mb-1 flex items-center justify-between">
                   <span>Titik Awal (Keberangkatan)</span>
                   <div className="flex items-center gap-2.5">
                     <button
@@ -637,23 +637,23 @@ export function RouteEditor({
                       }}
                       className={`inline-flex items-center gap-1 text-[11px] font-medium cursor-pointer transition-colors ${
                         mapPickMode === "origin"
-                          ? "text-emerald-600 font-semibold"
-                          : "text-zinc-500 hover:text-zinc-800"
+                          ? "text-emerald-700 font-semibold"
+                          : "text-slate-600 hover:text-zinc-900"
                       }`}
                     >
-                      <MapPin size={11} />
+                      <MapPin size={11} aria-hidden="true" />
                       <span>{mapPickMode === "origin" ? "Klik Peta…" : "Pilih di Peta"}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleUseDeviceLocation("origin")}
                       disabled={locatingTarget !== null}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 hover:text-blue-800 disabled:opacity-50 cursor-pointer"
                     >
                       {locatingTarget === "origin" ? (
-                        <Loader2 size={11} className="animate-spin" />
+                        <Loader2 size={11} aria-hidden="true" className="animate-spin" />
                       ) : (
-                        <LocateFixed size={11} />
+                        <LocateFixed size={11} aria-hidden="true" />
                       )}
                       <span>Gunakan Lokasi Saya</span>
                     </button>
@@ -663,6 +663,7 @@ export function RouteEditor({
                   <span className="pointer-events-none absolute left-3 size-2.5 rounded-full bg-sky-600 ring-3 ring-sky-100" />
                   <input
                     type="text"
+                    aria-label="Titik Awal Keberangkatan"
                     value={originQuery}
                     onFocus={() => setActiveSearch("origin")}
                     onChange={(e) => {
@@ -674,7 +675,7 @@ export function RouteEditor({
                         ? "Klik langsung titik keberangkatan Anda di peta Palembang..."
                         : "Cari nama jalan / tempat asal, atau klik peta..."
                     }
-                    className={`w-full rounded-lg border bg-white pl-8 pr-8 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-colors ${
+                    className={`w-full rounded-lg border bg-white pl-8 pr-8 py-2 text-xs text-zinc-900 placeholder:text-slate-500 transition-colors ${
                       mapPickMode === "origin"
                         ? "border-emerald-500 ring-2 ring-emerald-100"
                         : "border-zinc-200 focus:border-blue-500"
@@ -683,6 +684,7 @@ export function RouteEditor({
                   {originQuery && (
                     <button
                       type="button"
+                      aria-label="Hapus titik awal"
                       onClick={() => {
                         setOriginQuery("");
                         setOriginPoint(null);
@@ -690,9 +692,9 @@ export function RouteEditor({
                         setPath(destPoint ? [destPoint] : []);
                         setActiveSearch("origin");
                       }}
-                      className="absolute right-2.5 text-zinc-400 hover:text-zinc-600"
+                      className="absolute right-2.5 text-slate-600 hover:text-zinc-900"
                     >
-                      <X size={13} />
+                      <X size={13} aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -701,9 +703,9 @@ export function RouteEditor({
                     <button
                       type="button"
                       onClick={handleSaveCurrentOriginAsMyLocation}
-                      className="text-[10px] font-medium text-blue-600 hover:text-blue-800 cursor-pointer"
+                      className="text-[10px] font-medium text-blue-700 hover:text-blue-800 cursor-pointer"
                     >
-                      📌 Simpan titik ini sebagai Lokasi Saya
+                      Simpan titik ini sebagai Lokasi Saya
                     </button>
                   </div>
                 )}
@@ -711,24 +713,24 @@ export function RouteEditor({
 
               {/* Swap Button Divider */}
               <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] text-zinc-400">
-                  Geser pin 🏠 / 🏢 di peta untuk akurasi titik jalan
+                <span className="text-[10px] text-slate-600">
+                  Geser pin A / B di peta untuk akurasi titik jalan
                 </span>
                 <button
                   type="button"
                   onClick={handleSwapPoints}
                   disabled={!originPoint && !destPoint}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-zinc-500 hover:text-zinc-900 disabled:opacity-30 cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 hover:text-zinc-900 disabled:opacity-40 cursor-pointer"
                   title="Tukar titik awal dan tujuan"
                 >
-                  <ArrowUpDown size={12} />
+                  <ArrowUpDown size={12} aria-hidden="true" />
                   <span>Tukar</span>
                 </button>
               </div>
 
               {/* Destination Input */}
               <div className="relative">
-                <label className="text-[11px] font-medium text-zinc-500 mb-1 flex items-center justify-between">
+                <label className="text-[11px] font-medium text-slate-600 mb-1 flex items-center justify-between">
                   <span>Titik Tujuan (Destinasi)</span>
                   <div className="flex items-center gap-2.5">
                     <button
@@ -739,23 +741,23 @@ export function RouteEditor({
                       }}
                       className={`inline-flex items-center gap-1 text-[11px] font-medium cursor-pointer transition-colors ${
                         mapPickMode === "dest"
-                          ? "text-emerald-600 font-semibold"
-                          : "text-zinc-500 hover:text-zinc-800"
+                          ? "text-emerald-700 font-semibold"
+                          : "text-slate-600 hover:text-zinc-900"
                       }`}
                     >
-                      <MapPin size={11} />
+                      <MapPin size={11} aria-hidden="true" />
                       <span>{mapPickMode === "dest" ? "Klik Peta…" : "Pilih di Peta"}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleUseDeviceLocation("dest")}
                       disabled={locatingTarget !== null}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 hover:text-blue-800 disabled:opacity-50 cursor-pointer"
                     >
                       {locatingTarget === "dest" ? (
-                        <Loader2 size={11} className="animate-spin" />
+                        <Loader2 size={11} aria-hidden="true" className="animate-spin" />
                       ) : (
-                        <LocateFixed size={11} />
+                        <LocateFixed size={11} aria-hidden="true" />
                       )}
                       <span>Lokasi Saya</span>
                     </button>
@@ -765,6 +767,7 @@ export function RouteEditor({
                   <span className="pointer-events-none absolute left-3 size-2.5 rounded-full bg-indigo-600 ring-3 ring-indigo-100" />
                   <input
                     type="text"
+                    aria-label="Titik Tujuan Destinasi"
                     value={destQuery}
                     onFocus={() => setActiveSearch("dest")}
                     onChange={(e) => {
@@ -776,7 +779,7 @@ export function RouteEditor({
                         ? "Klik langsung titik tujuan Anda di peta Palembang..."
                         : "Cari nama jalan / tujuan (mis. Jembatan Ampera)..."
                     }
-                    className={`w-full rounded-lg border bg-white pl-8 pr-8 py-2 text-xs text-zinc-900 placeholder:text-zinc-400 focus:outline-none transition-colors ${
+                    className={`w-full rounded-lg border bg-white pl-8 pr-8 py-2 text-xs text-zinc-900 placeholder:text-slate-500 transition-colors ${
                       mapPickMode === "dest"
                         ? "border-emerald-500 ring-2 ring-emerald-100"
                         : "border-zinc-200 focus:border-blue-500"
@@ -785,6 +788,7 @@ export function RouteEditor({
                   {destQuery && (
                     <button
                       type="button"
+                      aria-label="Hapus titik tujuan"
                       onClick={() => {
                         setDestQuery("");
                         setDestPoint(null);
@@ -792,9 +796,9 @@ export function RouteEditor({
                         setPath(originPoint ? [originPoint] : []);
                         setActiveSearch("dest");
                       }}
-                      className="absolute right-2.5 text-zinc-400 hover:text-zinc-600"
+                      className="absolute right-2.5 text-slate-600 hover:text-zinc-900"
                     >
-                      <X size={13} />
+                      <X size={13} aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -803,22 +807,22 @@ export function RouteEditor({
               {/* Autocomplete Suggestions Dropdown */}
               {activeSearch && (
                 <div className="absolute left-0 right-0 z-50 mt-1 max-h-60 overflow-y-auto rounded-xl border border-zinc-200 bg-white py-1.5 shadow-lg">
-                  <div className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                  <div className="px-3 py-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                     <span>
                       {activeSearch === "origin"
                         ? "Pilih Titik Awal"
                         : "Pilih Titik Tujuan"}
                     </span>
                     {searchingPlaces && (
-                      <span className="inline-flex items-center gap-1 text-blue-600">
-                        <Loader2 size={10} className="animate-spin" />
+                      <span className="inline-flex items-center gap-1 text-blue-700">
+                        <Loader2 size={10} aria-hidden="true" className="animate-spin" />
                         Mencari jalan...
                       </span>
                     )}
                   </div>
 
                   {suggestions.length === 0 ? (
-                    <div className="px-3 py-3 text-xs text-zinc-400 text-center">
+                    <div className="px-3 py-3 text-xs text-slate-600 text-center">
                       Tidak ditemukan hasil. Coba ketik nama jalan lain atau klik peta.
                     </div>
                   ) : (
@@ -829,12 +833,12 @@ export function RouteEditor({
                         onClick={() => handleSelectPlace(item)}
                         className="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-zinc-50 transition-colors cursor-pointer"
                       >
-                        <Search size={13} className="mt-0.5 shrink-0 text-zinc-400" />
+                        <Search size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-slate-600" />
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-semibold text-zinc-900 truncate">
                             {item.label}
                           </div>
-                          <div className="text-[11px] text-zinc-500 truncate">
+                          <div className="text-[11px] text-slate-600 truncate">
                             {item.sublabel}
                           </div>
                         </div>
@@ -845,14 +849,15 @@ export function RouteEditor({
               )}
               {/* Location Calibration / Accuracy Note */}
               {locationNote && (
-                <div className="pt-1 flex items-start justify-between gap-2 text-[11px] leading-relaxed text-amber-700">
+                <div className="pt-1 flex items-start justify-between gap-2 text-[11px] leading-relaxed text-amber-800">
                   <span>{locationNote}</span>
                   <button
                     type="button"
+                    aria-label="Tutup catatan lokasi"
                     onClick={() => setLocationNote("")}
-                    className="text-zinc-400 hover:text-zinc-600 shrink-0 mt-0.5"
+                    className="text-slate-600 hover:text-zinc-900 shrink-0 mt-0.5"
                   >
-                    <X size={12} />
+                    <X size={12} aria-hidden="true" />
                   </button>
                 </div>
               )}
@@ -904,7 +909,7 @@ export function RouteEditor({
                       ~{activeRouteOption.durationMin} menit
                     </span>
                   </div>
-                  <span className="text-[11px] text-zinc-400 font-mono">
+                  <span className="text-[11px] text-slate-600 font-mono">
                     {nearbyCameras.length} CCTV terpantau
                   </span>
                 </div>
@@ -912,7 +917,7 @@ export function RouteEditor({
                 {/* Daftar Jalan yang Dilalui */}
                 {activeRouteOption.streets.length > 0 && (
                   <div className="space-y-1.5">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600 block">
                       Rute Jalan yang Dilalui
                     </span>
                     <div className="flex flex-wrap items-center gap-y-1 text-xs text-zinc-700 leading-relaxed">
@@ -920,7 +925,7 @@ export function RouteEditor({
                         <span key={`${street}-${i}`} className="inline-flex items-center">
                           <span className="font-medium text-zinc-900">{street}</span>
                           {i < activeRouteOption.streets.length - 1 && (
-                            <ArrowRight size={11} className="mx-1.5 text-zinc-400 shrink-0" />
+                            <ArrowRight size={11} aria-hidden="true" className="mx-1.5 text-slate-600 shrink-0" />
                           )}
                         </span>
                       ))}
@@ -931,7 +936,7 @@ export function RouteEditor({
                 {/* Kamera CCTV yang Dilewati di Sepanjang Rute */}
                 {nearbyCameras.length > 0 && (
                   <div className="space-y-1 pt-1">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-600 block">
                       Titik CCTV di Sepanjang Rute Ini
                     </span>
                     <div className="space-y-1">
@@ -943,10 +948,10 @@ export function RouteEditor({
                             className="flex items-center justify-between text-xs py-0.5"
                           >
                             <span className="flex items-center gap-1.5 text-zinc-700 truncate">
-                              <Video size={12} className="text-blue-600 shrink-0" />
+                              <Video size={12} aria-hidden="true" className="text-blue-600 shrink-0" />
                               <span className="truncate">{cam.name}</span>
                             </span>
-                            <span className="text-[11px] font-semibold text-zinc-500 shrink-0 ml-2">
+                            <span className="text-[11px] font-semibold text-slate-600 shrink-0 ml-2">
                               {camTraffic?.traffic_status ?? "AKTIF"}
                             </span>
                           </div>
@@ -966,7 +971,7 @@ export function RouteEditor({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Misal: Berangkat Ngantor / Kampus"
-                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-blue-500 focus:outline-none"
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-900 focus:border-blue-600"
                 />
               </label>
 
@@ -978,7 +983,7 @@ export function RouteEditor({
                     onChange={(e) =>
                       setRouteType(e.target.value as Route["route_type"])
                     }
-                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-900 focus:border-blue-500 focus:outline-none"
+                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-900 focus:border-blue-600"
                   >
                     <option value="commute_to_work">Rute Berangkat</option>
                     <option value="commute_home">Rute Pulang</option>
@@ -995,7 +1000,7 @@ export function RouteEditor({
                     type="time"
                     value={notifyTime}
                     onChange={(e) => setNotifyTime(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-900 focus:border-blue-500 focus:outline-none"
+                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-2 text-xs text-zinc-900 focus:border-blue-600"
                   />
                 </label>
               </div>
@@ -1012,11 +1017,12 @@ export function RouteEditor({
             {onCancel && (
               <button
                 type="button"
+                aria-label="Batalkan perubahan rute"
                 onClick={onCancel}
                 className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
                 title="Batal"
               >
-                <RotateCcw size={14} />
+                <RotateCcw size={14} aria-hidden="true" />
               </button>
             )}
             <button

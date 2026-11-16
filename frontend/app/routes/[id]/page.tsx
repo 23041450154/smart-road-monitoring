@@ -186,7 +186,7 @@ function RouteDetailContent() {
                     <span key={`${street}-${idx}`} className="inline-flex items-center">
                       <span className="font-medium text-zinc-900">{street}</span>
                       {idx < traversedStreets.length - 1 && (
-                        <ArrowRight size={11} className="mx-1.5 text-zinc-400 shrink-0" />
+                        <ArrowRight size={11} aria-hidden="true" className="mx-1.5 text-slate-600 shrink-0" />
                       )}
                     </span>
                   ))}
@@ -240,12 +240,12 @@ function RouteDetailContent() {
 
             {waResult && (
               <div className="mt-4 pt-3 border-t border-emerald-200">
-                <div className="flex items-center justify-between text-[11px] text-zinc-600 mb-2">
+                <div className="flex items-center justify-between text-[11px] text-slate-600 mb-2">
                   <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                    <CheckCircle2 size={13} />
+                    <CheckCircle2 size={13} aria-hidden="true" />
                     Simulasi Berhasil (Outbox Siap)
                   </span>
-                  <span className="font-mono text-zinc-500">📱 {waResult.recipient_phone}</span>
+                  <span className="font-mono text-slate-600">{waResult.recipient_phone}</span>
                 </div>
 
                 {/* WhatsApp Chat Preview Bubble */}
@@ -277,9 +277,9 @@ function RouteDetailContent() {
           {/* Metric Summary */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between text-zinc-500 mb-2">
-                <span className="text-xs font-medium text-zinc-600">CCTV Terdekat</span>
-                <MapPin size={15} className="text-zinc-400" />
+              <div className="flex items-center justify-between text-slate-600 mb-2">
+                <span className="text-xs font-medium text-slate-700">CCTV Terdekat</span>
+                <MapPin size={15} aria-hidden="true" className="text-slate-600" />
               </div>
               <strong className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 tabular block">
                 {briefing.traffic.length}
@@ -287,9 +287,9 @@ function RouteDetailContent() {
             </div>
 
             <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
-              <div className="flex items-center justify-between text-zinc-500 mb-2">
-                <span className="text-xs font-medium text-zinc-600">Titik Lubang</span>
-                <Construction size={15} className="text-amber-500" />
+              <div className="flex items-center justify-between text-slate-600 mb-2">
+                <span className="text-xs font-medium text-slate-700">Titik Lubang</span>
+                <Construction size={15} aria-hidden="true" className="text-amber-600" />
               </div>
               <strong className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 tabular block">
                 {briefing.potholes.length}
@@ -309,12 +309,12 @@ function RouteDetailContent() {
                     <strong className="block text-xs sm:text-sm font-semibold text-zinc-900">
                       {item.road_name}
                     </strong>
-                    <p className="text-[11px] text-zinc-400">{item.camera_name}</p>
+                    <p className="text-[11px] text-slate-600">{item.camera_name}</p>
                   </div>
                   <StatusBadge status={item.traffic_status} />
                 </div>
                 <div className="mt-2.5 flex items-center justify-between border-t border-zinc-100 pt-2 text-xs">
-                  <span className="text-zinc-500">
+                  <span className="text-slate-600">
                     <b className="text-zinc-900 font-semibold tabular">
                       {item.vehicles_per_minute}
                     </b>{" "}

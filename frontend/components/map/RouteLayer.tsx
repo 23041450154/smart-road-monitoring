@@ -20,20 +20,22 @@ const startIcon = L.divIcon({
     <div style="
       background: #0284c7;
       color: white;
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       border: 2px solid white;
       box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-      font-size: 16px;
-    ">🏠</div>
+      font-size: 13px;
+      font-weight: 800;
+      font-family: sans-serif;
+    ">A</div>
   `,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16],
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15],
 });
 
 const destinationIcon = L.divIcon({
@@ -42,27 +44,29 @@ const destinationIcon = L.divIcon({
     <div style="
       background: #4f46e5;
       color: white;
-      width: 32px;
-      height: 32px;
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       border: 2px solid white;
       box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-      font-size: 16px;
-    ">🏢</div>
+      font-size: 13px;
+      font-weight: 800;
+      font-family: sans-serif;
+    ">B</div>
   `,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16],
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15],
 });
 
 const waypointIcon = (index: number, total: number) => {
   const isStart = index === 0;
   const isEnd = index === total - 1;
   const bg = isStart ? "#0284c7" : isEnd ? "#4f46e5" : "#f59e0b";
-  const icon = isStart ? "🏠" : isEnd ? "🏢" : String(index + 1);
+  const icon = isStart ? "A" : isEnd ? "B" : String(index + 1);
 
   return L.divIcon({
     className: "smartroad-draft-pin",
@@ -78,8 +82,9 @@ const waypointIcon = (index: number, total: number) => {
         justify-content: center;
         border: 2px solid white;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        font-size: ${isStart || isEnd ? "14px" : "11px"};
+        font-size: 12px;
         font-weight: 800;
+        font-family: sans-serif;
       ">${icon}</div>
     `,
     iconSize: [28, 28],
@@ -117,7 +122,7 @@ export function RouteLayer({
             >
               <Popup>
                 <div className="p-1 text-slate-800">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">
                     {routeLabel(route.route_type)}
                   </span>
                   <h4 className="text-sm font-bold">{route.name}</h4>
@@ -144,8 +149,8 @@ export function RouteLayer({
               <Marker position={startPoint} icon={startIcon}>
                 <Popup>
                   <div className="text-xs font-bold">
-                    🏠 Titik Awal ({route.name})
-                    <p className="font-normal text-slate-500">
+                    Titik Awal A ({route.name})
+                    <p className="font-normal text-slate-600">
                       {startPoint[0].toFixed(5)}, {startPoint[1].toFixed(5)}
                     </p>
                   </div>
@@ -157,8 +162,8 @@ export function RouteLayer({
               <Marker position={destPoint} icon={destinationIcon}>
                 <Popup>
                   <div className="text-xs font-bold">
-                    🏢 Titik Tujuan ({route.name})
-                    <p className="font-normal text-slate-500">
+                    Titik Tujuan B ({route.name})
+                    <p className="font-normal text-slate-600">
                       {destPoint[0].toFixed(5)}, {destPoint[1].toFixed(5)}
                     </p>
                   </div>

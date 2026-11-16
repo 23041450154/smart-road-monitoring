@@ -6,7 +6,7 @@ export default function Loading() {
         <div className="absolute inset-0 rounded-full border-2 border-zinc-950 border-t-transparent animate-spin" />
         <span className="text-xs font-bold text-zinc-950">L</span>
       </div>
-      <p className="text-xs font-medium text-zinc-500 animate-pulse">
+      <p className="text-xs font-medium text-slate-600">
         Memuat data...
       </p>
     </div>

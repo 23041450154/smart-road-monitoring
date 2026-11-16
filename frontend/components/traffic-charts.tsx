@@ -74,10 +74,10 @@ export function TrafficCharts({ traffic }: { traffic: TrafficCurrent[] }) {
         {/* Bar Chart Volume per Jalan */}
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-600">
               Volume per Koridor
             </span>
-            <span className="text-[11px] text-zinc-400">Satuan: Kendaraan</span>
+            <span className="text-[11px] text-slate-600">Satuan: Kendaraan</span>
           </div>
 
           <div className="h-60 w-full">
@@ -86,7 +86,7 @@ export function TrafficCharts({ traffic }: { traffic: TrafficCurrent[] }) {
                 <CartesianGrid vertical={false} stroke="#f4f4f5" />
                 <XAxis
                   dataKey="road_name"
-                  tick={{ fontSize: 11, fill: "#71717a" }}
+                  tick={{ fontSize: 11, fill: "#475569" }}
                   tickLine={false}
                   axisLine={{ stroke: "#e4e4e7" }}
                   angle={-15}
@@ -95,7 +95,7 @@ export function TrafficCharts({ traffic }: { traffic: TrafficCurrent[] }) {
                   tickFormatter={(v: string) => v.replace("Jl. ", "").slice(0, 10)}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "#71717a" }}
+                  tick={{ fontSize: 11, fill: "#475569" }}
                   tickLine={false}
                   axisLine={false}
                 />
@@ -109,11 +109,11 @@ export function TrafficCharts({ traffic }: { traffic: TrafficCurrent[] }) {
                           <strong className="block font-semibold text-zinc-900">
                             {data.road_name}
                           </strong>
-                          <span className="text-[11px] text-zinc-400">
+                          <span className="text-[11px] text-slate-600">
                             {data.camera_name.replace(" (Palembang)", "")}
                           </span>
                           <div className="mt-1.5 flex items-center justify-between gap-4 border-t border-zinc-100 pt-1 text-[11px]">
-                            <span className="text-zinc-500">Volume:</span>
+                            <span className="text-slate-600">Volume:</span>
                             <span className="font-mono font-semibold text-zinc-900">
                               {data.rolling_5_minute} kend.
                             </span>
@@ -139,10 +139,10 @@ export function TrafficCharts({ traffic }: { traffic: TrafficCurrent[] }) {
         {/* Donut Chart Komposisi */}
         <div className="flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-zinc-100 pt-4 lg:pt-0 lg:pl-6">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-600">
               Distribusi Jenis Kendaraan
             </span>
-            <span className="text-[11px] text-zinc-400">Model Deteksi AI</span>
+            <span className="text-[11px] text-slate-600">Proporsi 5 Menit</span>
           </div>
 
           <div className="relative h-40 w-full flex items-center justify-center">
@@ -173,9 +173,9 @@ export function TrafficCharts({ traffic }: { traffic: TrafficCurrent[] }) {
             </ResponsiveContainer>
             {/* Center Donut Statistic */}
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-[10px] text-zinc-400 uppercase tracking-wider">Total</span>
+              <span className="text-[10px] text-slate-600 uppercase tracking-wider">Total</span>
               <span className="text-base font-bold text-zinc-900 font-mono tabular">{totalClassified}</span>
-              <span className="text-[9px] text-zinc-400">Unit</span>
+              <span className="text-[9px] text-slate-600">Unit</span>
             </div>
           </div>
 
@@ -192,7 +192,7 @@ export function TrafficCharts({ traffic }: { traffic: TrafficCurrent[] }) {
                 <span className="text-[11px] font-medium text-zinc-700 truncate">
                   {item.name}
                 </span>
-                <span className="text-[10px] text-zinc-400 ml-auto font-mono">
+                <span className="text-[10px] text-slate-600 ml-auto font-mono">
                   {item.percentage}%
                 </span>
               </div>

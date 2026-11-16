@@ -81,7 +81,7 @@ export default function MapPage() {
     <>
       <PageHeading
         eyebrow="Peta Spasial Geografis"
-        title="Pemetaan Cerdas Wilayah Palembang"
+        title="Peta Lalu Lintas & Kondisi Jalan"
         description="Pantau konsentrasi volume CCTV, sebaran titik jalan berlubang, serta geometri lintasan rute harian dalam satu kanvas peta terpadu."
         action={
           <button
@@ -104,8 +104,8 @@ export default function MapPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200/80 bg-white p-3 sm:p-3.5 shadow-xs">
         {/* Layer Checkboxes */}
         <div className="flex flex-wrap items-center gap-2.5 text-xs font-medium">
-          <span className="flex items-center gap-1.5 text-zinc-400 text-[11px] uppercase tracking-wider">
-            <Layers size={13} /> Layer:
+          <span className="flex items-center gap-1.5 text-slate-600 text-[11px] uppercase tracking-wider">
+            <Layers size={13} aria-hidden="true" /> Layer:
           </span>
 
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 bg-white px-2.5 py-1 hover:bg-zinc-50 transition-colors">
@@ -115,7 +115,7 @@ export default function MapPage() {
               onChange={(e) => setShowCctv(e.target.checked)}
               className="accent-zinc-900 rounded"
             />
-            <CameraIcon size={13} className="text-zinc-600" />
+            <CameraIcon size={13} aria-hidden="true" className="text-slate-600" />
             <span className="text-zinc-700">CCTV ({cameras?.length ?? 0})</span>
           </label>
 
@@ -126,7 +126,7 @@ export default function MapPage() {
               onChange={(e) => setShowPotholes(e.target.checked)}
               className="accent-zinc-900 rounded"
             />
-            <Construction size={13} className="text-zinc-600" />
+            <Construction size={13} aria-hidden="true" className="text-slate-600" />
             <span className="text-zinc-700">Lubang ({potholes?.length ?? 0})</span>
           </label>
 
@@ -137,7 +137,7 @@ export default function MapPage() {
               onChange={(e) => setShowRoutes(e.target.checked)}
               className="accent-zinc-900 rounded"
             />
-            <RouteIcon size={13} className="text-zinc-600" />
+            <RouteIcon size={13} aria-hidden="true" className="text-slate-600" />
             <span className="text-zinc-700">Rute ({routes?.length ?? 0})</span>
           </label>
         </div>
@@ -146,11 +146,12 @@ export default function MapPage() {
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {showCctv && (
             <div className="flex items-center gap-1">
-              <Filter size={12} className="text-zinc-400" />
+              <Filter size={12} aria-hidden="true" className="text-slate-600" />
               <select
+                aria-label="Filter status lalu lintas CCTV"
                 value={trafficFilter}
                 onChange={(e) => setTrafficFilter(e.target.value)}
-                className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700 outline-none focus:border-zinc-400"
+                className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700 focus:border-zinc-400"
               >
                 <option value="all">Semua Arus CCTV</option>
                 <option value="LANCAR">Lancar</option>
@@ -165,7 +166,7 @@ export default function MapPage() {
             <select
               value={potholeFilter}
               onChange={(e) => setPotholeFilter(e.target.value)}
-              className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700 outline-none focus:border-zinc-400"
+              className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700 focus:border-blue-600"
             >
               <option value="all">Semua Status Lubang</option>
               <option value="active">Aktif</option>
@@ -182,7 +183,7 @@ export default function MapPage() {
               onChange={(e) =>
                 setSelectedRouteId(e.target.value ? Number(e.target.value) : null)
               }
-              className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-800 outline-none focus:border-zinc-400"
+              className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-800 focus:border-blue-600"
             >
               <option value="">Semua Rute (Overview)</option>
               {routes?.map((r) => (
@@ -261,15 +262,15 @@ export default function MapPage() {
               <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <CameraIcon size={15} className="text-zinc-600" />
+                    <CameraIcon size={15} aria-hidden="true" className="text-slate-600" />
                     <h4 className="text-xs font-semibold text-zinc-900">
                       CCTV Dekat Rute ({briefing.traffic.length})
                     </h4>
                   </div>
-                  <span className="text-[10px] text-zinc-400 font-medium">Buffer 500m</span>
+                  <span className="text-[10px] text-slate-600 font-medium">Buffer 500m</span>
                 </div>
                 {briefing.traffic.length === 0 ? (
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-slate-600">
                     Tidak ada kamera CCTV di koridor rute ini.
                   </p>
                 ) : (
@@ -283,7 +284,7 @@ export default function MapPage() {
                           <strong className="text-zinc-800 font-medium">{cam.road_name}</strong>
                           <StatusBadge status={cam.traffic_status} />
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-[11px] text-zinc-500">
+                        <div className="mt-1 flex items-center justify-between text-[11px] text-slate-600">
                           <span>
                             <b className="text-zinc-800 font-semibold tabular">
                               {cam.vehicles_per_minute}
@@ -302,15 +303,15 @@ export default function MapPage() {
               <div className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-xs">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Construction size={15} className="text-amber-600" />
+                    <Construction size={15} aria-hidden="true" className="text-amber-600" />
                     <h4 className="text-xs font-semibold text-zinc-900">
                       Lubang Jalan Dekat Rute ({briefing.potholes.length})
                     </h4>
                   </div>
-                  <span className="text-[10px] text-zinc-400 font-medium">Buffer 100m</span>
+                  <span className="text-[10px] text-slate-600 font-medium">Buffer 100m</span>
                 </div>
                 {briefing.potholes.length === 0 ? (
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-slate-600">
                     Kondisi aman, tidak ada lubang terdata di rute ini.
                   </p>
                 ) : (
@@ -328,7 +329,7 @@ export default function MapPage() {
                             {p.severity}
                           </span>
                         </div>
-                        <p className="mt-1 text-[11px] text-zinc-500">
+                        <p className="mt-1 text-[11px] text-slate-600">
                           Tingkat keyakinan model: {Math.round(p.confidence * 100)}%
                         </p>
                       </div>
@@ -339,16 +340,16 @@ export default function MapPage() {
             </>
           ) : (
             <div className="rounded-xl border border-dashed border-zinc-200 bg-white p-6 text-center shadow-xs">
-              <RouteIcon size={24} className="mx-auto text-zinc-400 mb-2" />
+              <RouteIcon size={24} aria-hidden="true" className="mx-auto text-slate-600 mb-2" />
               <h4 className="text-sm font-semibold text-zinc-900">
                 Pilih Rute Perjalanan
               </h4>
-              <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
+              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
                 Pilih salah satu rute tersimpan untuk melihat kalkulasi kondisi CCTV, tingkat kepadatan lalu lintas, dan peringatan lubang jalan secara otomatis.
               </p>
 
               <div className="mt-5 border-t border-zinc-100 pt-3.5 text-left">
-                <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-400 block mb-2.5">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-slate-600 block mb-2.5">
                   Statistik Ringkasan
                 </span>
                 <div className="space-y-2 text-xs text-zinc-600">
