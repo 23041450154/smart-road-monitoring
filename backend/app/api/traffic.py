@@ -1,4 +1,6 @@
 from datetime import UTC, datetime, timedelta
+import threading
+import time
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -12,6 +14,10 @@ from app.traffic.analytics import camera_metrics, get_city_hourly_insights
 
 router = APIRouter(prefix="/traffic", tags=["traffic"])
 
+_CURRENT_CACHE_LOCK = threading.Lock()
+_CURRENT_CACHE: tuple[float, list[TrafficCurrent]] | None = None
+_CURRENT_CACHE_TTL = 5.0
+
 
 @router.get("/hourly-insights", response_model=CityHourlyInsightsResponse)
 def city_hourly_insights(db: Session = Depends(get_db)) -> CityHourlyInsightsResponse:
@@ -21,8 +27,18 @@ def city_hourly_insights(db: Session = Depends(get_db)) -> CityHourlyInsightsRes
 
 @router.get("/current", response_model=list[TrafficCurrent])
 def current_traffic(db: Session = Depends(get_db)) -> list[TrafficCurrent]:
+    global _CURRENT_CACHE
+    now = time.monotonic()
+    with _CURRENT_CACHE_LOCK:
+        if _CURRENT_CACHE is not None and (now - _CURRENT_CACHE[0]) < _CURRENT_CACHE_TTL:
+            return _CURRENT_CACHE[1]
+
     cameras = db.scalars(select(Camera).where(Camera.is_active.is_(True)).order_by(Camera.name))
-    return [camera_metrics(db, camera) for camera in cameras]
+    result = [camera_metrics(db, camera) for camera in cameras]
+
+    with _CURRENT_CACHE_LOCK:
+        _CURRENT_CACHE = (time.monotonic(), result)
+    return result
 
 
 @router.get("/summary", response_model=TrafficSummary)

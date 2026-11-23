@@ -67,11 +67,26 @@ export default function CameraDetailPage() {
     };
   }, []);
 
-  const { data: camera, error, mutate: mutateCamera } = useSWR<Camera>(`/api/cameras/${id}`, fetcher);
+  const { data: camera, error, mutate: mutateCamera } = useSWR<Camera>(
+    `/api/cameras/${id}`,
+    fetcher,
+    {
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+      errorRetryCount: 3,
+      errorRetryInterval: 3000,
+    },
+  );
   const { data: current, error: currentError, mutate: mutateCurrent } = useSWR<TrafficCurrent>(
     `/api/cameras/${id}/traffic/current`,
     fetcher,
-    { refreshInterval: 10_000 },
+    {
+      refreshInterval: 15_000,
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+      errorRetryCount: 3,
+      errorRetryInterval: 3000,
+    },
   );
   const { data: history } = useSWR<Snapshot[]>(
     `/api/cameras/${id}/traffic/history?hours=24`,
@@ -88,7 +103,7 @@ export default function CameraDetailPage() {
     fetcher,
   );
 
-  if (error || currentError) {
+  if ((!camera && error) || (!current && currentError)) {
     return (
       <ErrorState
         message="Kamera atau data lalu lintas belum dapat dimuat dari backend."
