@@ -105,9 +105,22 @@ def get_camera(camera_id: int, db: Session = Depends(get_db)) -> Camera:
     return get_camera_or_404(db, camera_id)
 
 
+_CAM_TRAFFIC_CACHE_LOCK = threading.Lock()
+_CAM_TRAFFIC_CACHE: dict[int, tuple[float, TrafficCurrent]] = {}
+_CAM_TRAFFIC_CACHE_TTL = 5.0
+
+
 @router.get("/{camera_id}/traffic/current", response_model=TrafficCurrent)
 def get_current_traffic(camera_id: int, db: Session = Depends(get_db)) -> TrafficCurrent:
-    return camera_metrics(db, get_camera_or_404(db, camera_id))
+    now = time.monotonic()
+    with _CAM_TRAFFIC_CACHE_LOCK:
+        cached = _CAM_TRAFFIC_CACHE.get(camera_id)
+        if cached is not None and (now - cached[0]) < _CAM_TRAFFIC_CACHE_TTL:
+            return cached[1]
+    result = camera_metrics(db, get_camera_or_404(db, camera_id))
+    with _CAM_TRAFFIC_CACHE_LOCK:
+        _CAM_TRAFFIC_CACHE[camera_id] = (time.monotonic(), result)
+    return result
 
 
 @router.get("/{camera_id}/traffic/history", response_model=list[SnapshotRead])
@@ -338,8 +351,9 @@ class ThreadedCameraReader:
                 "ffmpeg",
                 "-loglevel", "error",
                 "-user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "-live_start_index", "-4",
-                "-re",
+                "-fflags", "nobuffer",
+                "-flags", "low_delay",
+                "-live_start_index", "-2",
                 "-http_persistent", "1",
                 "-http_multiple", "1",
                 "-reconnect", "1",
@@ -659,7 +673,7 @@ class CameraStreamWorker:
         latest_tracks: list[Track] = []
         last_frame_time = time.monotonic()
         last_inference_time = 0.0
-        min_inference_interval = float(os.getenv("STREAM_YOLO_INTERVAL", "0.085"))  # ~12 inferences/sec + velocity extrapolation for 15 FPS smoothness
+        min_inference_interval = float(os.getenv("STREAM_YOLO_INTERVAL", "0.10"))  # ~10 inferences/sec + velocity extrapolation for 25 FPS smoothness
         last_read_seq = -1
 
         try:
@@ -791,8 +805,8 @@ class CameraStreamWorker:
                         is_fallback=reader.is_fallback,
                     )
 
-                    # 3. High-speed JPEG encoding (Quality 55 for ultra low latency and lightweight frame delivery)
-                    ret, buf = cv2.imencode(".jpg", frame_small, [cv2.IMWRITE_JPEG_QUALITY, 55])
+                    # 3. High-speed JPEG encoding (Quality 50 for low latency and lightweight frame delivery)
+                    ret, buf = cv2.imencode(".jpg", frame_small, [cv2.IMWRITE_JPEG_QUALITY, 50])
                     if ret:
                         frame_bytes = buf.tobytes()
                         with self.condition:

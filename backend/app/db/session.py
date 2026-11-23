@@ -26,6 +26,19 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 if engine.dialect.name == "sqlite" and not settings.database_url.endswith((":memory:", "sqlite://")):
     Base.metadata.create_all(bind=engine)
 
+if not settings.database_url.endswith((":memory:", "sqlite://")):
+    try:
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "CREATE INDEX IF NOT EXISTS ix_traffic_snapshots_cam_ts "
+                    "ON traffic_snapshots (camera_id, timestamp)"
+                )
+            )
+    except Exception:
+        pass
+
 
 def get_db() -> Generator[Session, None, None]:
     with SessionLocal() as session:

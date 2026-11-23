@@ -3,7 +3,7 @@ from datetime import UTC, datetime, time
 from typing import Any
 
 from geoalchemy2 import Geometry
-from sqlalchemy import JSON, Boolean, DateTime, Enum, Float, ForeignKey, Integer, String, Text, Time
+from sqlalchemy import JSON, Boolean, DateTime, Enum, Float, ForeignKey, Index, Integer, String, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import TypeDecorator
 
@@ -123,6 +123,9 @@ class Camera(Base):
 
 class TrafficSnapshot(Base):
     __tablename__ = "traffic_snapshots"
+    __table_args__ = (
+        Index("ix_traffic_snapshots_cam_ts", "camera_id", "timestamp"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     camera_id: Mapped[int] = mapped_column(ForeignKey("cameras.id", ondelete="CASCADE"), index=True)
