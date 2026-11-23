@@ -1,3 +1,5 @@
+import threading
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -160,12 +162,28 @@ def _aware(value: datetime) -> datetime:
     return value.replace(tzinfo=UTC) if value.tzinfo is None else value
 
 
+_HOURLY_PROFILE_CACHE_LOCK = threading.Lock()
+_HOURLY_PROFILE_CACHE: dict[int, tuple[float, HourlyProfileResponse]] = {}
+_HOURLY_PROFILE_CACHE_TTL = 60.0
+
+
 def get_camera_hourly_profile(db: Session, camera: Camera) -> HourlyProfileResponse:
+    now_mono = time.monotonic()
+    with _HOURLY_PROFILE_CACHE_LOCK:
+        cached = _HOURLY_PROFILE_CACHE.get(camera.id)
+        if cached is not None and (now_mono - cached[0]) < _HOURLY_PROFILE_CACHE_TTL:
+            return cached[1]
+
+    since = datetime.now(UTC) - timedelta(days=7)
     snapshots = list(
         db.scalars(
             select(TrafficSnapshot)
-            .where(TrafficSnapshot.camera_id == camera.id)
-            .order_by(TrafficSnapshot.timestamp)
+            .where(
+                TrafficSnapshot.camera_id == camera.id,
+                TrafficSnapshot.timestamp >= since,
+            )
+            .order_by(TrafficSnapshot.timestamp.desc())
+            .limit(2000)
         )
     )
 
@@ -236,7 +254,7 @@ def get_camera_hourly_profile(db: Session, camera: Camera) -> HourlyProfileRespo
         evening_peak.is_peak_hour = True
         evening_label = f"{evening_peak.hour:02d}:00 - {evening_peak.hour + 1:02d}:00"
 
-    return HourlyProfileResponse(
+    res = HourlyProfileResponse(
         camera_id=camera.id,
         camera_name=camera.name,
         road_name=camera.road_name,
@@ -245,6 +263,9 @@ def get_camera_hourly_profile(db: Session, camera: Camera) -> HourlyProfileRespo
         evening_peak=evening_label,
         total_samples=len(snapshots),
     )
+    with _HOURLY_PROFILE_CACHE_LOCK:
+        _HOURLY_PROFILE_CACHE[camera.id] = (time.monotonic(), res)
+    return res
 
 
 def predict_camera_traffic(db: Session, camera: Camera, hour: int) -> TrafficPredictionResponse:

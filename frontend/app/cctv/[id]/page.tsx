@@ -103,7 +103,26 @@ export default function CameraDetailPage() {
     fetcher,
   );
 
-  if ((!camera && error) || (!current && currentError)) {
+  const currentData: TrafficCurrent = current ?? {
+    camera_id: camera?.id ?? Number(id),
+    camera_name: camera?.name ?? "",
+    road_name: camera?.road_name ?? "",
+    timestamp: null,
+    motorcycle_count: 0,
+    car_count: 0,
+    bus_count: 0,
+    truck_count: 0,
+    total_count: 0,
+    vehicles_per_minute: 0,
+    rolling_5_minute: 0,
+    rolling_15_minute: 0,
+    congestion_score: 0,
+    traffic_status: "LANCAR",
+    trend: "STABIL",
+    is_demo: camera?.is_demo ?? false,
+  };
+
+  if ((!camera && error) || (!camera && !current && currentError)) {
     return (
       <ErrorState
         message="Kamera atau data lalu lintas belum dapat dimuat dari backend."
@@ -115,7 +134,7 @@ export default function CameraDetailPage() {
     );
   }
 
-  if (!camera || !current) {
+  if (!camera) {
     return (
       <div
         role="status"
@@ -132,10 +151,10 @@ export default function CameraDetailPage() {
   }
 
   const vehicles = [
-    ["Sepeda Motor", current.motorcycle_count, Bike],
-    ["Mobil Pribadi", current.car_count, Car],
-    ["Bus Angkutan", current.bus_count, Bus],
-    ["Truk Logistik", current.truck_count, Truck],
+    ["Sepeda Motor", currentData.motorcycle_count, Bike],
+    ["Mobil Pribadi", currentData.car_count, Car],
+    ["Bus Angkutan", currentData.bus_count, Bus],
+    ["Truk Logistik", currentData.truck_count, Truck],
   ] as const;
 
   return (
@@ -154,14 +173,14 @@ export default function CameraDetailPage() {
             {cleanCameraName(camera.name)}
           </h1>
           <p className="text-xs text-slate-600 mt-0.5">
-            {camera.road_name} · Pembaruan {dateTime(current.timestamp)}
+            {camera.road_name} · Pembaruan {dateTime(currentData.timestamp)}
           </p>
         </div>
 
         <div className="flex items-center gap-3 self-start sm:self-auto">
-          <StatusBadge status={current.traffic_status} />
+          <StatusBadge status={currentData.traffic_status} />
           <span className="text-slate-300" aria-hidden="true">|</span>
-          <TrendView trend={current.trend} />
+          <TrendView trend={currentData.trend} />
         </div>
       </div>
 
@@ -202,7 +221,7 @@ export default function CameraDetailPage() {
             <div className="flex items-center gap-2.5">
               {isFullscreen && (
                 <div className="hidden sm:block">
-                  <StatusBadge status={current.traffic_status} />
+                  <StatusBadge status={currentData.traffic_status} />
                 </div>
               )}
               <button
@@ -255,12 +274,12 @@ export default function CameraDetailPage() {
           {isFullscreen && (
             <div className="bg-slate-950 border-t border-slate-800 px-6 py-2.5 text-white flex items-center justify-between text-xs shrink-0">
               <div className="flex flex-wrap items-center gap-5">
-                <span>Motor: <b className="tabular">{current.motorcycle_count}</b></span>
-                <span>Mobil: <b className="tabular">{current.car_count}</b></span>
-                <span>Bus: <b className="tabular">{current.bus_count}</b></span>
-                <span>Truk: <b className="tabular">{current.truck_count}</b></span>
+                <span>Motor: <b className="tabular">{currentData.motorcycle_count}</b></span>
+                <span>Mobil: <b className="tabular">{currentData.car_count}</b></span>
+                <span>Bus: <b className="tabular">{currentData.bus_count}</b></span>
+                <span>Truk: <b className="tabular">{currentData.truck_count}</b></span>
                 <span>
-                  Total 5 Menit ({fiveMinuteWindowLabel(current.timestamp)}): <b className="text-emerald-400 tabular">{current.rolling_5_minute} kend ({current.vehicles_per_minute}/mnt)</b>
+                  Total 5 Menit ({fiveMinuteWindowLabel(currentData.timestamp)}): <b className="text-emerald-400 tabular">{currentData.rolling_5_minute} kend ({currentData.vehicles_per_minute}/mnt)</b>
                 </span>
               </div>
               <span className="hidden sm:inline text-slate-300 text-[11px]">
@@ -278,23 +297,23 @@ export default function CameraDetailPage() {
                 Volume Akumulasi (5 Menit)
               </span>
               <span className="font-mono text-[11px] font-medium text-slate-700 tabular">
-                {fiveMinuteWindowLabel(current.timestamp)}
+                {fiveMinuteWindowLabel(currentData.timestamp)}
               </span>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <strong className="text-4xl font-bold tracking-tight text-slate-900 tabular">
-                {current.rolling_5_minute}
+                {currentData.rolling_5_minute}
               </strong>
               <span className="text-xs font-medium text-slate-600">kendaraan</span>
             </div>
             <p className="mt-1.5 text-[11px] text-slate-600">
-              Rentang waktu: <span className="font-mono font-medium text-slate-800">{fiveMinuteWindowLabel(current.timestamp)}</span>
+              Rentang waktu: <span className="font-mono font-medium text-slate-800">{fiveMinuteWindowLabel(currentData.timestamp)}</span>
             </p>
             <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
               <span>
                 Laju rata-rata:{" "}
                 <strong className="font-semibold text-slate-900 tabular">
-                  {current.vehicles_per_minute}
+                  {currentData.vehicles_per_minute}
                 </strong>{" "}
                 kend./menit
               </span>

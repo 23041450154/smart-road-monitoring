@@ -7,8 +7,19 @@ from app.core.config import get_settings
 from app.db.base import Base
 
 settings = get_settings()
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, pool_pre_ping=True, connect_args=connect_args)
+is_sqlite = settings.database_url.startswith("sqlite")
+connect_args = {"check_same_thread": False} if is_sqlite else {"connect_timeout": 5}
+engine_kwargs = (
+    {"connect_args": connect_args}
+    if is_sqlite
+    else {
+        "connect_args": connect_args,
+        "pool_size": 15,
+        "max_overflow": 20,
+        "pool_recycle": 300,
+    }
+)
+engine = create_engine(settings.database_url, pool_pre_ping=True, **engine_kwargs)
 
 if engine.dialect.name == "sqlite":
     from sqlalchemy import event
