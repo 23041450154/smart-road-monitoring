@@ -290,3 +290,52 @@ def test_stopped_car_not_counted_and_marked_stationary():
     assert last_tracks[0].is_stationary is True
 
 
+def test_implausible_and_low_conf_night_false_positives_filtered():
+    processor = _make_mock_processor()
+    frame_dummy = MagicMock()
+    frame_dummy.shape = (360, 640, 3)
+
+    # 1. Tiny roadside pole/sign (#8 style): 8x30 (bw < 10)
+    tiny_pole = MockBox([600.0, 90.0, 608.0, 120.0], 0.45, 2)
+    # 2. Thin horizontal striped median curb (#9 style): 90x12 (aspect > 4.5)
+    thin_curb = MockBox([240.0, 160.0, 330.0, 172.0], 0.40, 2)
+    # 3. Low-confidence night reflection car (conf=0.21 < 0.28)
+    low_conf_car = MockBox([100.0, 200.0, 160.0, 240.0], 0.21, 2)
+    # 4. Valid distant motorcycle (conf=0.25 >= 0.22, size 18x26)
+    valid_moto = MockBox([350.0, 180.0, 368.0, 206.0], 0.25, 3)
+
+    processor.model.track.return_value = [
+        MockResult([tiny_pole, thin_curb, low_conf_car, valid_moto], [1, 2, 3, 4])
+    ]
+    tracks = processor.process(frame_dummy)
+    assert len(tracks) == 1
+    assert tracks[0].vehicle_type == "motorcycle"
+    assert tracks[0].tracker_id == "vehicle_4"
+
+
+def test_static_zone_suppresses_respawned_false_positive():
+    processor = _make_mock_processor()
+    frame_dummy = MagicMock()
+    frame_dummy.shape = (360, 640, 3)
+
+    # First, a static curb/parked object appears for 4 frames and gets marked stationary
+    curb_box = [240.0, 160.0, 285.0, 190.0]
+    for _ in range(4):
+        processor.model.track.return_value = [
+            MockResult([MockBox(curb_box, 0.35, 2)], [9])
+        ]
+        tracks = processor.process(frame_dummy)
+    assert tracks[0].is_stationary is True
+
+    # Even if ByteTrack drops ID 9 and respawns ID 99 at the exact same static spot,
+    # it is immediately suppressed as stationary from frame 1!
+    processor._active_tracks.clear()
+    processor.model.track.return_value = [
+        MockResult([MockBox(curb_box, 0.35, 2)], [99])
+    ]
+    respawned = processor.process(frame_dummy)
+    assert len(respawned) == 1
+    assert respawned[0].is_stationary is True
+
+
+

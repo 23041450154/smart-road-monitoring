@@ -85,7 +85,7 @@ def run(camera_id: int, show: bool = False, once: bool = False) -> None:
         exclusion_zones = CAMERA_EXCLUSION_ZONES.get(camera_id, [])
         processor = YoloByteTrackProcessor(
             os.getenv("YOLO_MODEL", "yolo11s.pt"),
-            float(os.getenv("YOLO_CONFIDENCE", "0.10")),
+            float(os.getenv("YOLO_CONFIDENCE", "0.24")),
             os.getenv("YOLO_DEVICE", "cpu"),
             exclusion_zones=exclusion_zones,
         )
@@ -141,6 +141,8 @@ def _draw(frame, tracks: list[Track]) -> None:
 
     for track in tracks:
         if getattr(track, "is_stationary", False):
+            continue
+        if getattr(track, "hits", 1) < 2 and track.confidence < 0.45:
             continue
         left, top, right, bottom = map(int, track.bounding_box)
         cv2.rectangle(frame, (left, top), (right, bottom), (48, 209, 88), 2)

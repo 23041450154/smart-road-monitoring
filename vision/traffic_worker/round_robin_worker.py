@@ -146,7 +146,7 @@ def sample_camera(
     camera_id: int,
     duration_seconds: int = 120,
     model_path: str = "yolo11s.pt",
-    confidence: float = 0.18,
+    confidence: float = 0.24,
 ) -> None:
     """Samples a single camera for duration_seconds, then cleanly disconnects."""
     effective_model = resolve_model_path(model_path)

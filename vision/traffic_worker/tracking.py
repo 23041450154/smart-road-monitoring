@@ -20,6 +20,7 @@ class Track:
     bounding_box: list[float]
     velocity: tuple[float, float] = (0.0, 0.0)
     is_stationary: bool = False
+    hits: int = 1
 
     @property
     def center(self) -> tuple[float, float]:
@@ -159,6 +160,39 @@ def _filter_pedestrians_and_merge_riders(
     )
 
 
+def _is_plausible_vehicle_box(
+    box: list[float],
+    cls_id: int,
+    conf: float,
+    frame_w: int = 640,
+    frame_h: int = 360,
+) -> bool:
+    """Filter out physically implausible detections (tiny poles/signs, thin curbs, night-time glitches)."""
+    bw = box[2] - box[0]
+    bh = box[3] - box[1]
+    if bw < 10.0 or bh < 10.0:
+        return False
+    area = bw * bh
+    if area < 120.0:
+        return False
+    if frame_w > 0 and frame_h > 0 and area > 0.55 * frame_w * frame_h:
+        return False
+
+    aspect = bw / bh
+    if aspect < 0.22 or aspect > 4.5:
+        return False
+
+    # Class-specific confidence floors to suppress low-light / reflection false positives
+    if cls_id in (1, 3):  # bicycle / motorcycle
+        min_conf = 0.22
+    elif cls_id in (5, 7):  # bus / truck
+        min_conf = 0.34 if area < 450.0 else 0.30
+    else:  # car (cls == 2)
+        min_conf = 0.34 if area < 450.0 else 0.28
+
+    return conf >= min_conf
+
+
 CAMERA_EXCLUSION_ZONES: dict[int, list[list[tuple[float, float]]]] = {
     4: [
         # Cam 4 (Masjid Agung) - bottom-left fountain monument & bright spotlights
@@ -291,7 +325,7 @@ class YoloByteTrackProcessor:
     def __init__(
         self,
         model_path: str,
-        confidence: float = 0.07,
+        confidence: float = 0.24,
         device: str = "cpu",
         exclusion_zones: list[list[tuple[float, float]]] | None = None,
     ) -> None:
@@ -330,6 +364,7 @@ class YoloByteTrackProcessor:
         self._bytetrack_remap: dict[int, str] = {}
         self._reid_memory_seconds: float = 2.5
         self._stationary_memory_seconds: float = 15.0
+        self._static_zones: list[tuple[list[float], float]] = []
 
         # Path to custom tracker config
         custom_tracker = Path(__file__).parent / "bytetrack_custom.yaml"
@@ -421,8 +456,8 @@ class YoloByteTrackProcessor:
         )
 
         # Filter out detections inside exclusion zones (e.g. non-drivable park or fountain)
+        fh, fw = frame.shape[:2] if hasattr(frame, "shape") else (360, 640)
         if self.exclusion_zones and hasattr(frame, "shape"):
-            fh, fw = frame.shape[:2]
             valid_indices = []
             for i, box in enumerate(raw_boxes):
                 cx = ((box[0] + box[2]) / 2) / fw
@@ -433,6 +468,17 @@ class YoloByteTrackProcessor:
             raw_confs = [raw_confs[i] for i in valid_indices]
             raw_clss = [raw_clss[i] for i in valid_indices]
             native_ids = [native_ids[i] for i in valid_indices]
+
+        # Filter out physically implausible boxes (tiny poles/signs, thin curbs, low-conf night glitches)
+        plausible_indices = [
+            i
+            for i, box in enumerate(raw_boxes)
+            if _is_plausible_vehicle_box(box, raw_clss[i], raw_confs[i], fw, fh)
+        ]
+        raw_boxes = [raw_boxes[i] for i in plausible_indices]
+        raw_confs = [raw_confs[i] for i in plausible_indices]
+        raw_clss = [raw_clss[i] for i in plausible_indices]
+        native_ids = [native_ids[i] for i in plausible_indices]
 
         # Apply NMS to filter redundant overlapping detections
         keep_indices = _nms(raw_boxes, raw_confs, raw_clss, iou_thresh=0.55, iomin_thresh=0.75)
@@ -567,10 +613,26 @@ class YoloByteTrackProcessor:
                 anchor_center = (new_cx, new_cy)
                 anchor_time = now
 
+            static_zones = getattr(self, "_static_zones", None)
+            if static_zones is None:
+                static_zones = []
+                self._static_zones = static_zones
+            static_zones[:] = [(sb, ts) for sb, ts in static_zones if now - ts < 60.0]
+
+            matches_static_zone = any(
+                _box_iou(box, sbox) >= 0.45 or _center_dist(box, sbox) < 18.0
+                for sbox, _ in static_zones
+            )
+
             is_stationary = bool(
-                (hits >= 4 and not has_moved and net_disp < 10.0)
+                (not has_moved and matches_static_zone)
+                or (hits >= 4 and not has_moved and net_disp < 10.0)
                 or ((now - anchor_time) >= 1.8 and anchor_disp < 12.0 and speed < 12.0)
             )
+
+            if is_stationary and not has_moved:
+                if not matches_static_zone and len(static_zones) < 60:
+                    static_zones.append((box, now))
 
             class_votes[vtype] += 1
             # Canonical vehicle type from consensus majority voting across track lifetime
@@ -604,6 +666,7 @@ class YoloByteTrackProcessor:
                     bounding_box=box,
                     velocity=(vx_step, vy_step),
                     is_stationary=is_stationary,
+                    hits=hits,
                 )
             )
 

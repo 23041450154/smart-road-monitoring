@@ -273,7 +273,7 @@ export default function CameraDetailPage() {
               <span className="text-xs font-medium text-slate-600">kendaraan</span>
             </div>
             <p className="mt-1.5 text-[11px] text-slate-600">
-              Rentang: <span className="font-mono font-medium text-slate-800">{fiveMinuteWindowLabel(current.timestamp)}</span>
+              Rentang waktu: <span className="font-mono font-medium text-slate-800">{fiveMinuteWindowLabel(current.timestamp)}</span>
             </p>
             <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
               <span>

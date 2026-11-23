@@ -26,6 +26,11 @@ except Exception:
     pass
 
 import cv2
+
+try:
+    cv2.setNumThreads(1)
+except Exception:
+    pass
 from fastapi import (
     APIRouter,
     Depends,
@@ -186,6 +191,8 @@ def _annotate_frame(
     for track in tracks:
         if getattr(track, "is_stationary", False):
             continue
+        if getattr(track, "hits", 1) < 2 and track.confidence < 0.45:
+            continue
         try:
             b = track.bounding_box
             if not b or len(b) < 4:
@@ -254,8 +261,11 @@ def _annotate_frame(
     # 3. HUD footer bar - Standard 5-Minute Accumulation & Vehicle Rate
     total_5 = rolling_5m_total if rolling_5m_total is not None else sum(counts.values())
     vpm_val = rolling_5m_vpm if rolling_5m_vpm is not None else round(total_5 / 5.0, 1)
+    wib_now = datetime.now(UTC) + timedelta(hours=7)
+    wib_start = wib_now - timedelta(minutes=5)
+    win_str = f"{wib_start.strftime('%H:%M')}-{wib_now.strftime('%H:%M')} WIB"
     hud = (
-        f"YOLO LIVE | Akumulasi 5 Mnt: {total_5} kend ({vpm_val} kend/mnt) | "
+        f"YOLO LIVE ({win_str}) | Akumulasi 5 Mnt: {total_5} kend ({vpm_val}/mnt) | "
         f"Motor: {counts['motorcycle']}, Mobil: {counts['car']}, "
         f"Bus: {counts['bus']}, Truk: {counts['truck']}"
     )
@@ -613,7 +623,7 @@ class CameraStreamWorker:
 
         processor = YoloByteTrackProcessor(
             model_path=chosen_model,
-            confidence=0.18,
+            confidence=0.24,
             device="cpu",
             exclusion_zones=self.exclusion_zones,
         )
@@ -649,7 +659,7 @@ class CameraStreamWorker:
         latest_tracks: list[Track] = []
         last_frame_time = time.monotonic()
         last_inference_time = 0.0
-        min_inference_interval = 0.040  # ~25 inferences/sec: real-time per frame on 4 vCPU EPYC
+        min_inference_interval = float(os.getenv("STREAM_YOLO_INTERVAL", "0.085"))  # ~12 inferences/sec + velocity extrapolation for 15 FPS smoothness
         last_read_seq = -1
 
         try:
@@ -673,7 +683,7 @@ class CameraStreamWorker:
                 if (w, h) != (target_w, target_h):
                     frame_small = cv2.resize(frame, (target_w, target_h))
                 else:
-                    frame_small = frame.copy()
+                    frame_small = frame
 
                 now = time.monotonic()
                 dt = min(0.1, max(0.01, now - last_frame_time))
@@ -792,15 +802,14 @@ class CameraStreamWorker:
                 except Exception as exc:
                     logging.getLogger("traffic-worker").warning("Error annotating/encoding frame: %s", exc)
 
-                # Adaptive jitter pacing: maintain rock-solid ~15 FPS cadence (66.7ms)
-                # Dynamically adjusts pacing within ±5ms based on queue depth to prevent both underflow and latency buildup
+                # Adaptive jitter pacing: match 25 FPS native HLS cadence (40ms) with zero frame drops
                 qsize = reader._queue.qsize()
-                if qsize > 12:
-                    target_interval = 0.058  # gently drain surplus frames
+                if qsize > 10:
+                    target_interval = 0.035  # gently drain surplus frames
                 elif qsize < 3:
-                    target_interval = 0.072  # gently protect queue from starvation
+                    target_interval = 0.044  # gently protect queue from starvation
                 else:
-                    target_interval = 0.0667  # 15.0 FPS standard
+                    target_interval = 0.040  # 25.0 FPS native smooth playback
 
                 elapsed = time.monotonic() - loop_start
                 if elapsed < target_interval:
@@ -928,7 +937,7 @@ async def _generate_video_stream(camera: Camera, video_source: str):
                     + b"\r\n"
                 )
 
-            await asyncio.sleep(0.005)
+            await asyncio.sleep(0.010)
     finally:
         worker.remove_client()
 
